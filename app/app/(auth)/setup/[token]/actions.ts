@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const schema = z
   .object({
@@ -51,6 +51,17 @@ export async function setupAccountAction(
     .from("profiles")
     .update({ is_active: true })
     .eq("id", user.id);
+
+  // Mark the matching invitation as accepted so the link can't be reused.
+  // Service role required: invitations is admin-only via RLS.
+  if (user.email) {
+    const sb = createServiceClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (sb.from("invitations") as any)
+      .update({ accepted_at: new Date().toISOString() })
+      .eq("email", user.email)
+      .is("accepted_at", null);
+  }
 
   redirect("/");
 }

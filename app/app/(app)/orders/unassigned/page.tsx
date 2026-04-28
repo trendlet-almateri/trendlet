@@ -38,7 +38,8 @@ export default async function UnassignedQueuePage() {
       order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name ) )
     `)
     .eq("is_unassigned", true)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(500);
 
   if (error) {
     console.error("[UnassignedQueuePage]", error);

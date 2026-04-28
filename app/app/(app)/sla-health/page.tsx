@@ -21,7 +21,8 @@ export default async function SlaHealthPage() {
   // Aggregate sla state per status category
   const { data, error } = await sb
     .from("sub_orders")
-    .select("status, is_at_risk, is_delayed, sla_due_at");
+    .select("status, is_at_risk, is_delayed, sla_due_at")
+    .limit(2000);
   if (error) console.error("[SlaHealthPage]", error);
 
   const rows = (data ?? []) as { status: string; is_at_risk: boolean; is_delayed: boolean; sla_due_at: string | null }[];

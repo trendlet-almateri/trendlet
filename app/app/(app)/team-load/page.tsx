@@ -33,7 +33,7 @@ export default async function TeamLoadPage() {
 
   const [teamLoad, perfRes] = await Promise.all([
     fetchTeamLoad(),
-    sb.from("mv_team_performance_30d").select("*").order("items_completed_30d", { ascending: false }),
+    sb.from("mv_team_performance_30d").select("*").order("items_completed_30d", { ascending: false }).limit(500),
   ]);
   const perf = (perfRes.data ?? []) as unknown as TeamPerf[];
 

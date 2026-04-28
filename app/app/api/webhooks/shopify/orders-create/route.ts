@@ -8,7 +8,9 @@ type Currency = "SAR" | "USD" | "EUR" | "GBP" | "AED";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const TRENDLET_STORE_ID = "db563070-bbf7-4b75-b256-0b93fd44a56f"; // single store for now
+// Single-store fallback. Override with TRENDLET_STORE_ID env var when going multi-store.
+const TRENDLET_STORE_ID =
+  process.env.TRENDLET_STORE_ID ?? "db563070-bbf7-4b75-b256-0b93fd44a56f";
 
 type ShopifyAddress = {
   first_name?: string | null;
@@ -101,9 +103,29 @@ export async function POST(req: Request) {
   }
 
   const sb = createServiceClient();
+
+  // Replay protection. Shopify sends the same X-Shopify-Webhook-Id on every
+  // retry/replay; we record it once and reject duplicates.
+  const webhookId = req.headers.get("x-shopify-webhook-id");
+  const topic = req.headers.get("x-shopify-topic");
+  if (webhookId) {
+    // webhook_deliveries is service-role-only and not yet in the generated
+    // Database types — cast to any until types are regenerated.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: dedupErr } = await ((sb as any).from("webhook_deliveries")).insert({
+      webhook_id: webhookId,
+      source: "shopify",
+      topic,
+    });
+    // 23505 = unique_violation → already processed
+    if (dedupErr && (dedupErr.code === "23505" || /duplicate key/i.test(dedupErr.message ?? ""))) {
+      return NextResponse.json({ ok: true, action: "noop", reason: "replay" });
+    }
+  }
+
   const shopifyOrderId = String(payload.id);
 
-  // Idempotency
+  // Idempotency by shopify order id (belt-and-suspenders alongside webhook-id dedup)
   const { data: existing } = await sb
     .from("orders")
     .select("id")
