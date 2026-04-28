@@ -51,13 +51,13 @@ export function UserDropdown({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className={cn(
-          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
+          "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors",
           "hover:bg-white/5 focus:bg-white/5 focus:outline-none",
           "data-[state=open]:bg-white/5",
         )}
         aria-label="Open account menu"
       >
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-navy text-[12px] font-medium text-white">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy text-[13px] font-semibold text-white">
           {initials}
         </span>
         <span className="flex min-w-0 flex-col leading-tight">
@@ -73,20 +73,20 @@ export function UserDropdown({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-50 w-[320px] rounded-lg border border-white/[0.08] bg-[#2A2A2A] p-1.5",
-            "shadow-popover",
+            "z-50 w-[260px] rounded-xl border border-white/[0.08] bg-[#232323] p-1.5",
+            "shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
             "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
           )}
         >
           {/* Profile header */}
-          <div className="flex items-center gap-2.5 px-2.5 py-2.5">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-navy text-[14px] font-medium text-white">
+          <div className="flex items-center gap-3 px-3 py-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-navy text-[14px] font-semibold text-white">
               {initials}
             </span>
-            <div className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-[14px] font-medium text-white">{fullName}</span>
+            <div className="flex min-w-0 flex-col leading-snug">
+              <span className="truncate text-[13px] font-semibold text-white">{fullName}</span>
               <span className="truncate text-[11px] text-neutral-400">
                 {email} · <span className="capitalize">{primaryRole}</span>
               </span>
@@ -172,7 +172,7 @@ export function UserDropdown({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-2.5 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.4px] text-neutral-500">
+    <div className="px-2.5 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.5px] text-neutral-500">
       {children}
     </div>
   );
@@ -192,15 +192,15 @@ function Item({ icon: Icon, href, children, right, tone }: ItemProps) {
       <Link
         href={href}
         className={cn(
-          "flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] outline-none",
-          "text-neutral-200 hover:bg-white/[0.04] focus:bg-white/[0.04]",
+          "flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
+          "text-neutral-200 hover:bg-white/[0.06] focus:bg-white/[0.06]",
           tone === "danger" && "bg-[#791F1F]/15 text-[#FCD3D3] hover:bg-[#791F1F]/25",
         )}
       >
-        <Icon className="h-3.5 w-3.5 shrink-0 text-neutral-400" aria-hidden />
+        <Icon className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
         <span className="flex-1 truncate">{children}</span>
         {right && (
-          <span className="shrink-0 text-[11px] text-neutral-400">{right}</span>
+          <span className="shrink-0 text-[11px] text-neutral-500">{right}</span>
         )}
       </Link>
     </DropdownMenu.Item>

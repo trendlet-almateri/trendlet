@@ -35,22 +35,27 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
       className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col bg-sidebar text-neutral-300 md:flex"
       aria-label="Primary navigation"
     >
-      {/* Logo */}
-      <div className="flex items-center justify-center px-4 pb-3 pt-5">
+      {/* Header: logo + bell */}
+      <div className="flex items-center justify-between px-4 py-3.5">
         <Image
           src="/logo.png"
           alt="Trendlet"
-          width={130}
-          height={38}
+          width={110}
+          height={32}
           priority
         />
+        {notifications && (
+          <div className="shrink-0">{notifications}</div>
+        )}
       </div>
 
-      {/* Sections */}
-      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 pb-3 pt-1">
+      <div className="mx-3 mb-1 h-px bg-white/[0.06]" />
+
+      {/* Nav sections */}
+      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 pb-3 pt-3">
         {sections.map((section) => (
           <div key={section.id} className="flex flex-col gap-0.5">
-            <div className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.4px] text-neutral-500">
+            <div className="px-3 pb-1 pt-1 text-[10px] font-medium uppercase tracking-[0.5px] text-neutral-500">
               {section.label}
             </div>
             {section.items.map((item) => {
@@ -61,7 +66,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
                   href={item.href}
                   label={item.label}
                   count={key ? counts[key] ?? null : null}
-                  dot={item.dot}
+                  dot={item.dot ?? "bg-neutral-500"}
                 />
               );
             })}
@@ -69,11 +74,8 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
         ))}
       </nav>
 
-      {/* Bottom: notifications + user dropdown */}
-      <div className="border-t border-white/[0.06] px-2 py-2 flex flex-col gap-1">
-        {notifications && (
-          <div className="px-1">{notifications}</div>
-        )}
+      {/* Bottom: user dropdown */}
+      <div className="border-t border-white/[0.06] px-2 py-2">
         <UserDropdown
           fullName={user.fullName}
           email={user.email}
