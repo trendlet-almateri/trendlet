@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -29,12 +28,9 @@ export default async function LoginPage({
         <Logo />
       </div>
 
-      <h1 id="login-heading" className="text-[22px] font-medium text-ink-primary">
+      <h1 id="login-heading" className="mb-7 text-[22px] font-medium text-ink-primary">
         Welcome back
       </h1>
-      <p className="mb-7 mt-1 text-[13px] text-ink-secondary">
-        Sign in to manage orders, invoices, and operations.
-      </p>
 
       {forbidden && (
         <p
@@ -49,14 +45,6 @@ export default async function LoginPage({
 
       <footer className="mt-7 flex items-center justify-between border-t border-[rgba(0,0,0,0.08)] pt-4 text-[11px] text-ink-tertiary">
         <span>© 2026 Optify · Powered by Optify.cc</span>
-        <span className="flex gap-3">
-          <Link href="/privacy" className="hover:text-ink-secondary">
-            Privacy
-          </Link>
-          <Link href="/help" className="hover:text-ink-secondary">
-            Help
-          </Link>
-        </span>
       </footer>
     </section>
   );

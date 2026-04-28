@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { ArrowRight, Info } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ function SubmitButton() {
 
 export function LoginForm({ next }: { next: string }) {
   const [state, formAction] = useFormState(loginAction, initial);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
@@ -51,26 +53,27 @@ export function LoginForm({ next }: { next: string }) {
             Forgot password?
           </Link>
         </div>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          placeholder="••••••••"
-          aria-invalid={state.error ? true : undefined}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            placeholder="••••••••"
+            aria-invalid={state.error ? true : undefined}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute inset-y-0 right-3 flex items-center text-ink-tertiary hover:text-ink-secondary"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
-
-      <label className="flex items-center gap-2 text-[12px] text-ink-secondary">
-        <input
-          type="checkbox"
-          name="remember"
-          value="1"
-          className="h-3.5 w-3.5 rounded-sm border-[rgba(0,0,0,0.15)] text-navy focus:ring-navy/30"
-        />
-        <span>Keep me signed in for 30 days</span>
-      </label>
 
       {state.error && (
         <p
@@ -84,10 +87,6 @@ export function LoginForm({ next }: { next: string }) {
 
       <SubmitButton />
 
-      <div className="flex items-start gap-2 rounded-md bg-[#F1EFE8] px-3 py-2.5 text-[12px] text-ink-secondary">
-        <Info className="mt-[1px] h-3.5 w-3.5 shrink-0 text-ink-tertiary" aria-hidden />
-        <span>Access is invite-only. Contact your admin if you need an account.</span>
-      </div>
     </form>
   );
 }
