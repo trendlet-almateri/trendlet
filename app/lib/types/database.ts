@@ -1,4 +1,4 @@
-// Auto-generated from Supabase project kfrjqpjprvvsibwmrqph on 2026-04-27.
+// Auto-generated from Supabase project kfrjqpjprvvsibwmrqph on 2026-04-28.
 // Regenerate via Supabase MCP: generate_typescript_types(project_id="kfrjqpjprvvsibwmrqph").
 // Hand-written aliases (Role, Region, Currency) are appended below for app code that imports them.
 
@@ -1871,6 +1871,27 @@ export type Database = {
           },
         ]
       }
+      webhook_deliveries: {
+        Row: {
+          received_at: string
+          source: string
+          topic: string | null
+          webhook_id: string
+        }
+        Insert: {
+          received_at?: string
+          source: string
+          topic?: string | null
+          webhook_id: string
+        }
+        Update: {
+          received_at?: string
+          source?: string
+          topic?: string | null
+          webhook_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       mv_dashboard_kpis: {
@@ -2315,6 +2336,7 @@ export type Database = {
       jwt_is_admin: { Args: never; Returns: boolean }
       match_brand_from_vendor: { Args: { p_vendor: string }; Returns: string }
       next_invoice_sequence: { Args: { p_year: number }; Returns: string }
+      prune_webhook_deliveries: { Args: never; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_has_role: {

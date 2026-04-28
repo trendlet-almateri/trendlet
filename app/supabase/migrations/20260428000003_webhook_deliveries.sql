@@ -26,6 +26,7 @@ ALTER TABLE webhook_deliveries ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION prune_webhook_deliveries()
 RETURNS void
 LANGUAGE sql
+SET search_path = public
 AS $$
   DELETE FROM webhook_deliveries WHERE received_at < now() - interval '30 days';
 $$;

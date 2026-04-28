@@ -109,10 +109,7 @@ export async function POST(req: Request) {
   const webhookId = req.headers.get("x-shopify-webhook-id");
   const topic = req.headers.get("x-shopify-topic");
   if (webhookId) {
-    // webhook_deliveries is service-role-only and not yet in the generated
-    // Database types — cast to any until types are regenerated.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: dedupErr } = await ((sb as any).from("webhook_deliveries")).insert({
+    const { error: dedupErr } = await sb.from("webhook_deliveries").insert({
       webhook_id: webhookId,
       source: "shopify",
       topic,
