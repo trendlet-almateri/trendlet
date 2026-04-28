@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
+// getCurrentUser() reads cookies + env vars + queries Supabase. Cannot be
+// statically prerendered at build time — Vercel's build env has no request
+// context, which crashes the prerender + cascades into error overlay failures.
+export const dynamic = "force-dynamic";
+
 export default async function RootPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
