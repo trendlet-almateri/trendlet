@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { Sidebar } from "@/components/nav/sidebar";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { MobileTopbar } from "@/components/nav/mobile-topbar";
-import { UtilityBar } from "@/components/nav/utility-bar";
 import { NotificationsPanel } from "@/components/notifications/notifications-panel";
 import { CommandPalette } from "@/components/nav/command-palette";
 import { ServiceWorkerRegister } from "@/components/offline/sw-register";
@@ -56,12 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <MobileTopbar notifications={mobileNotifications} />
-        <div className="flex flex-1 flex-col">
-          <div className="flex items-center justify-end px-6 pt-5">
-            <UtilityBar />
-          </div>
-          <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
-        </div>
+        <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
       </div>
 
       <BottomNav />
