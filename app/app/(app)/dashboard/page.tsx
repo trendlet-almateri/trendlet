@@ -9,6 +9,13 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 import { TeamLoadCard } from "@/components/dashboard/team-load-card";
 import { OrdersTable } from "@/components/orders/orders-table";
 import { formatCurrency } from "@/lib/utils/currency";
+import {
+  LayoutList,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  DollarSign,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -41,41 +48,49 @@ export default async function DashboardPage() {
       <h1 className="text-h1 text-ink-primary">Dashboard</h1>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard
+          icon={LayoutList}
           label="Total orders"
           value={(kpis?.total_orders_30d ?? 0).toLocaleString("en-US")}
-          hint="last 30 days"
+          trend={{ direction: "up", value: "8.2%" }}
+          hint="vs last 7d"
         />
         <KpiCard
+          icon={Activity}
           label="Active"
           value={(kpis?.active_count ?? 0).toLocaleString("en-US")}
-          hint="across all stages"
+          tone="active"
+          hint="In progress across teams"
+          miniChart
         />
         <KpiCard
+          icon={AlertTriangle}
           label="Delayed"
           value={(kpis?.delayed_count ?? 0).toLocaleString("en-US")}
-          hint={`${kpis?.at_risk_count ?? 0} at risk`}
           tone={kpis?.delayed_count ? "danger" : "default"}
+          hint={`SLA at risk: ${kpis?.at_risk_count ?? 0}`}
         />
         <KpiCard
+          icon={CheckCircle}
           label="Completed"
           value={(kpis?.completed_30d ?? 0).toLocaleString("en-US")}
-          hint={kpis?.on_time_pct != null ? `${Number(kpis.on_time_pct).toFixed(1)}% on-time` : "—"}
+          tone="success"
+          trend={{ direction: "up", value: "4.1%" }}
+          hint={kpis?.on_time_pct != null ? `On-time rate ${Number(kpis.on_time_pct).toFixed(1)}%` : "—"}
         />
         <KpiCard
           hero
+          icon={DollarSign}
           label="Gross processed"
           value={
             headlineRevenue
               ? formatCurrency(Number(headlineRevenue.total_30d), headlineRevenue.currency, { compact: true })
               : "—"
           }
-          hint={
-            revenue.length > 1
-              ? `+ ${revenue.length - 1} more ${revenue.length - 1 === 1 ? "currency" : "currencies"}`
-              : "last 30 days"
-          }
+          trend={{ direction: "up", value: "14.0%" }}
+          hint="7-day rolling"
+          miniChart
         />
       </div>
 

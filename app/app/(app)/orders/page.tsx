@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchAdminOrders } from "@/lib/queries/orders";
-import { OrdersTable } from "@/components/orders/orders-table";
 import { FilterTabs } from "@/components/orders/filter-tabs";
+import { OrdersView } from "@/components/orders/orders-view";
 
 export const dynamic = "force-dynamic";
 
@@ -52,26 +52,22 @@ export default async function OrdersPage({
             : all.filter((o) => o.sub_orders.some((s) => s.is_unassigned));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <h1 className="text-h1 text-ink-primary">Orders</h1>
 
       <FilterTabs
         basePath="/orders"
         active={filter}
         tabs={[
-          { key: "all", label: "All", count: counts.all },
+          { key: "all", label: "All orders", count: counts.all },
           { key: "active", label: "Active", count: counts.active },
           { key: "delayed", label: "Delayed", count: counts.delayed },
-          { key: "done", label: "Done", count: counts.done },
+          { key: "done", label: "Completed", count: counts.done },
           { key: "unassigned", label: "Unassigned", count: counts.unassigned },
         ]}
       />
 
-      <OrdersTable orders={filtered} />
-
-      <div className="text-[11px] text-ink-tertiary">
-        Showing {filtered.length} of {counts.all} orders
-      </div>
+      <OrdersView orders={filtered} totalCount={counts.all} />
     </div>
   );
 }

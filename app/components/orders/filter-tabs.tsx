@@ -15,7 +15,7 @@ type FilterTabsProps = {
 
 export function FilterTabs({ tabs, active, basePath }: FilterTabsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-hairline">
+    <div className="flex flex-wrap items-center gap-1.5">
       {tabs.map((t) => {
         const isActive = t.key === active;
         const href = t.key === "all" ? basePath : `${basePath}?filter=${t.key}`;
@@ -24,18 +24,18 @@ export function FilterTabs({ tabs, active, basePath }: FilterTabsProps) {
             key={t.key}
             href={href}
             className={cn(
-              "-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] transition-colors",
+              "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors",
               isActive
-                ? "border-navy text-ink-primary"
-                : "border-transparent text-ink-secondary hover:text-ink-primary",
+                ? "bg-ink-primary text-white"
+                : "bg-transparent text-ink-secondary hover:bg-neutral-100 hover:text-ink-primary",
             )}
           >
             <span>{t.label}</span>
             {typeof t.count === "number" && (
               <span
                 className={cn(
-                  "rounded-sm px-1.5 py-0.5 text-[11px] tabular-nums",
-                  isActive ? "bg-neutral-100 text-ink-primary" : "bg-neutral-100 text-ink-tertiary",
+                  "tabular-nums text-[11px]",
+                  isActive ? "text-white/70" : "text-ink-tertiary",
                 )}
               >
                 {t.count.toLocaleString("en-US")}
