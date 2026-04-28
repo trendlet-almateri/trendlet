@@ -1,4 +1,4 @@
-import { Logo } from "@/components/brand/logo";
+import Image from "next/image";
 import { SidebarNavItem } from "./sidebar-nav-item";
 import { UserDropdown } from "./user-dropdown";
 import { visibleSections } from "./nav-items";
@@ -12,6 +12,7 @@ type SidebarProps = {
   };
   counts: Record<string, number | null>;
   unassignedCount: number;
+  notifications?: React.ReactNode;
 };
 
 const COUNT_KEY: Record<string, string> = {
@@ -24,19 +25,25 @@ const COUNT_KEY: Record<string, string> = {
   "/deliveries": "ksa_lastmile",
 };
 
-export function Sidebar({ user, counts, unassignedCount }: SidebarProps) {
+export function Sidebar({ user, counts, unassignedCount, notifications }: SidebarProps) {
   const sections = visibleSections(user.roles);
   const initials = getInitials(user.fullName);
   const primaryRole = user.roles[0] ?? "user";
 
   return (
     <aside
-      className="hidden min-h-screen w-[220px] shrink-0 flex-col bg-sidebar text-neutral-300 md:flex"
+      className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col bg-sidebar text-neutral-300 md:flex"
       aria-label="Primary navigation"
     >
-      {/* Store header */}
-      <div className="px-4 pb-3 pt-4">
-        <Logo subtitle="Main store" />
+      {/* Logo */}
+      <div className="flex items-center justify-center px-4 pb-3 pt-5">
+        <Image
+          src="/logo.png"
+          alt="Trendlet"
+          width={130}
+          height={38}
+          priority
+        />
       </div>
 
       {/* Sections */}
@@ -62,8 +69,11 @@ export function Sidebar({ user, counts, unassignedCount }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Bottom: user dropdown trigger */}
-      <div className="border-t border-white/[0.06] px-2 py-2">
+      {/* Bottom: notifications + user dropdown */}
+      <div className="border-t border-white/[0.06] px-2 py-2 flex flex-col gap-1">
+        {notifications && (
+          <div className="px-1">{notifications}</div>
+        )}
         <UserDropdown
           fullName={user.fullName}
           email={user.email}

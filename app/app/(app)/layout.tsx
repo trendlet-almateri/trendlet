@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex min-h-screen bg-page">
+    <div className="flex h-screen overflow-hidden bg-page">
       <Sidebar
         user={{
           fullName: user.fullName ?? user.email,
@@ -51,13 +51,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
         counts={counts}
         unassignedCount={unassignedCount}
+        notifications={desktopNotifications}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <MobileTopbar notifications={mobileNotifications} />
         <div className="flex flex-1 flex-col">
           <div className="flex items-center justify-end px-6 pt-5">
-            <UtilityBar notifications={desktopNotifications} />
+            <UtilityBar />
           </div>
           <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
         </div>

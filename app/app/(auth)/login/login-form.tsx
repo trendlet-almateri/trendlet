@@ -26,7 +26,7 @@ export function LoginForm({ next }: { next: string }) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form action={formAction} className="flex flex-col gap-5" noValidate>
       <input type="hidden" name="next" value={next} />
 
       <div className="flex flex-col gap-1.5">
