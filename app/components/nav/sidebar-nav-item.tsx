@@ -11,10 +11,6 @@ type SidebarNavItemProps = {
   dot?: string;
 };
 
-/**
- * One row in the sidebar. Highlights when its route is the active path
- * (or a nested child of it).
- */
 export function SidebarNavItem({ href, label, count, dot }: SidebarNavItemProps) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(href + "/");
@@ -30,14 +26,23 @@ export function SidebarNavItem({ href, label, count, dot }: SidebarNavItemProps)
       <span className="flex items-center gap-2">
         {dot && (
           <span
-            className={cn("h-1.5 w-1.5 rounded-full", dot)}
+            className={cn(
+              "h-1.5 w-1.5 rounded-full transition-all",
+              dot,
+              isActive && "shadow-[0_0_0_3px_rgba(122,136,255,0.25)]",
+            )}
             aria-hidden
           />
         )}
         <span>{label}</span>
       </span>
       {typeof count === "number" && count > 0 && (
-        <span className="text-[11px] tabular-nums text-neutral-400">
+        <span
+          className={cn(
+            "tabular-nums text-[11px]",
+            isActive ? "text-[#b8c1ff]/70" : "text-[#6e7581]",
+          )}
+        >
           {count.toLocaleString("en-US")}
         </span>
       )}

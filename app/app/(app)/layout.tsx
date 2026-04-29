@@ -7,6 +7,7 @@ import { NotificationsPanel } from "@/components/notifications/notifications-pan
 import { CommandPalette } from "@/components/nav/command-palette";
 import { ServiceWorkerRegister } from "@/components/offline/sw-register";
 import { fetchRecentNotifications } from "@/lib/queries/notifications";
+import { MobileNavProvider } from "@/components/nav/mobile-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-page">
+    <MobileNavProvider>
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)]">
       <Sidebar
         user={{
           fullName: user.fullName ?? user.email,
@@ -62,5 +64,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CommandPalette />
       <ServiceWorkerRegister />
     </div>
+    </MobileNavProvider>
   );
 }
