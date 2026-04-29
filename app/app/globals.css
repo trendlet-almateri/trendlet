@@ -190,6 +190,21 @@
   to   { background-color: rgba(20, 22, 28, 0.35); }
 }
 
+/* ── Brand spinner gold halo ────────────────────────────────── */
+
+@keyframes brandGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(184, 128, 26, 0.45)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(245, 208, 99, 0.75)); }
+}
+
+.brand-spinner-glow {
+  animation: brandGlow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-spinner-glow { animation: none; }
+}
+
 /* Live dot */
 .live-dot {
   animation: pulse 1.8s infinite;
