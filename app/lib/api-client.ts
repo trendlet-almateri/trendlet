@@ -11,7 +11,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 
-export type ApiService = "shopify" | "twilio" | "openai" | "openrouter" | "dhl" | "hubstaff" | "resend";
+export type ApiService = "shopify" | "twilio" | "openai" | "openrouter" | "dhl" | "hubstaff" | "resend" | "zoho";
 
 export type ApiCallParams = {
   service: ApiService;

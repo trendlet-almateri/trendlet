@@ -234,6 +234,69 @@ export async function checkResend(): Promise<IntegrationHealth> {
   };
 }
 
+export async function checkZoho(): Promise<IntegrationHealth> {
+  const id = process.env.ZOHO_CLIENT_ID;
+  const secret = process.env.ZOHO_CLIENT_SECRET;
+  const refresh = process.env.ZOHO_REFRESH_TOKEN;
+  const accountId = process.env.ZOHO_ACCOUNT_ID;
+  const from = process.env.ZOHO_FROM_ADDRESS;
+
+  const missing = [
+    !id && "ZOHO_CLIENT_ID",
+    !secret && "ZOHO_CLIENT_SECRET",
+    !refresh && "ZOHO_REFRESH_TOKEN",
+    !accountId && "ZOHO_ACCOUNT_ID",
+    !from && "ZOHO_FROM_ADDRESS",
+  ].filter(Boolean) as string[];
+
+  if (missing.length > 0) {
+    return {
+      service: "zoho",
+      status: "missing",
+      detail: `Missing: ${missing.join(", ")}`,
+      latency_ms: null,
+    };
+  }
+
+  // Refresh-token grant is read-only — issues a new access token, sends nothing.
+  const params = new URLSearchParams({
+    refresh_token: refresh!,
+    client_id: id!,
+    client_secret: secret!,
+    grant_type: "refresh_token",
+  });
+  const res = await apiCall<{ access_token?: string; error?: string }>({
+    service: "zoho",
+    endpoint: "/oauth/v2/token",
+    method: "POST",
+    url: `https://accounts.zoho.com/oauth/v2/token?${params.toString()}`,
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+
+  if (res.status === 400 || res.status === 401) {
+    return {
+      service: "zoho",
+      status: "auth_failed",
+      detail: res.data?.error ?? `HTTP ${res.status}`,
+      latency_ms: null,
+    };
+  }
+  if (!res.ok || !res.data?.access_token) {
+    return {
+      service: "zoho",
+      status: "error",
+      detail: res.error ?? `HTTP ${res.status}`,
+      latency_ms: null,
+    };
+  }
+  return {
+    service: "zoho",
+    status: "ok",
+    detail: `mailbox ${from} ready`,
+    latency_ms: null,
+  };
+}
+
 export async function checkAll(): Promise<IntegrationHealth[]> {
   // Fan out — each check is independent.
   return Promise.all([
@@ -245,5 +308,6 @@ export async function checkAll(): Promise<IntegrationHealth[]> {
     checkDhl(),
     checkHubstaff(),
     checkResend(),
+    checkZoho(),
   ]);
 }

@@ -4,6 +4,7 @@ import { ChevronRight, FileText, Brain } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCustomerInvoiceSignedUrl } from "@/lib/storage/customer-invoices";
+import { isZohoConfigured } from "@/lib/integrations/zoho-mail";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
     ? await getCustomerInvoiceSignedUrl(inv.pdf_storage_path)
     : null;
   const canRegenerate = inv.status === "approved" || inv.status === "sent";
+  const zohoLive = isZohoConfigured();
 
   return (
     <div className="flex flex-col gap-5">
@@ -191,6 +193,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
             sentAt={inv.sent_at}
             sentToEmail={inv.sent_to_email}
             customerEmail={customerEmail}
+            zohoLive={zohoLive}
           />
 
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">

@@ -42,3 +42,17 @@ export async function getCustomerInvoiceSignedUrl(
   if (error || !data?.signedUrl) return null;
   return data.signedUrl;
 }
+
+/**
+ * Download the stored PDF as a Buffer for attaching to outbound emails.
+ * Service-role only; never call from client code.
+ */
+export async function downloadCustomerInvoicePdf(
+  storagePath: string,
+): Promise<{ ok: true; buffer: Buffer } | { ok: false; error: string }> {
+  const sb = createServiceClient();
+  const { data, error } = await sb.storage.from(BUCKET).download(storagePath);
+  if (error || !data) return { ok: false, error: error?.message ?? "PDF not found" };
+  const arrayBuffer = await data.arrayBuffer();
+  return { ok: true, buffer: Buffer.from(arrayBuffer) };
+}

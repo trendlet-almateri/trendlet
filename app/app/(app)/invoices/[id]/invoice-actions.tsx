@@ -22,6 +22,9 @@ type Props = {
   sentAt: string | null;
   sentToEmail: string | null;
   customerEmail: string | null;
+  /** True when the server has full Zoho credentials. Drives the
+   *  Send button copy ("Send to customer" vs "Mark sent"). */
+  zohoLive: boolean;
 };
 
 const initialState: ActionState = { ok: false, error: null };
@@ -33,6 +36,7 @@ export function InvoiceActions({
   sentAt,
   sentToEmail,
   customerEmail,
+  zohoLive,
 }: Props) {
   if (status === "draft") {
     return (
@@ -47,7 +51,13 @@ export function InvoiceActions({
   }
 
   if (status === "approved") {
-    return <ApprovedActions invoiceId={invoiceId} customerEmail={customerEmail} />;
+    return (
+      <ApprovedActions
+        invoiceId={invoiceId}
+        customerEmail={customerEmail}
+        zohoLive={zohoLive}
+      />
+    );
   }
 
   if (status === "sent") {
@@ -142,11 +152,18 @@ function PendingActions({ invoiceId }: { invoiceId: string }) {
 function ApprovedActions({
   invoiceId,
   customerEmail,
+  zohoLive,
 }: {
   invoiceId: string;
   customerEmail: string | null;
+  zohoLive: boolean;
 }) {
   const [state, dispatch] = useFormState(markSentAction, initialState);
+  const buttonLabel = zohoLive ? "Send to customer" : "Mark sent";
+  const pendingLabel = zohoLive ? "Sending…" : "Marking…";
+  const caption = zohoLive
+    ? `Will email PDF to ${customerEmail}`
+    : `Will mark sent to ${customerEmail}`;
 
   return (
     <section className="rounded-md border border-hairline bg-surface p-4">
@@ -155,13 +172,11 @@ function ApprovedActions({
       </h2>
       <form action={dispatch} className="flex flex-col gap-2">
         <input type="hidden" name="id" value={invoiceId} />
-        <SubmitButton variant="primary" pendingLabel="Marking…" disabled={!customerEmail}>
-          <Send className="h-4 w-4" aria-hidden /> Mark sent
+        <SubmitButton variant="primary" pendingLabel={pendingLabel} disabled={!customerEmail}>
+          <Send className="h-4 w-4" aria-hidden /> {buttonLabel}
         </SubmitButton>
         {customerEmail ? (
-          <span className="text-[11px] text-ink-tertiary">
-            Will mark sent to {customerEmail}
-          </span>
+          <span className="text-[11px] text-ink-tertiary">{caption}</span>
         ) : (
           <span className="text-[11px] text-status-danger-fg">
             No customer email on file. Add one before sending.

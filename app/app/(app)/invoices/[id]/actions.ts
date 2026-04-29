@@ -5,7 +5,14 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/server";
 import { renderCustomerInvoicePdf, type InvoicePdfData } from "@/lib/pdf/customer-invoice-pdf";
-import { uploadCustomerInvoicePdf } from "@/lib/storage/customer-invoices";
+import {
+  uploadCustomerInvoicePdf,
+  downloadCustomerInvoicePdf,
+} from "@/lib/storage/customer-invoices";
+import {
+  sendCustomerInvoiceEmail,
+  isZohoConfigured,
+} from "@/lib/integrations/zoho-mail";
 
 export type ActionState = { ok: boolean; error: string | null };
 
@@ -167,9 +174,14 @@ export async function reopenInvoiceAction(
 }
 
 /**
- * Mark an approved invoice as sent. PLACEHOLDER — does not actually email
- * the customer yet. Sets sent_at + sent_to_email so the row reads as
- * "delivered" in the UI. Real Zoho Mail integration arrives in Phase 3.
+ * Send the approved invoice's PDF to the customer via Zoho Mail and
+ * flip status to 'sent'.
+ *
+ * Mock mode (Zoho env vars not configured): logs "skipped" to api_logs
+ * and still flips status. Lets admins iterate the UI before Zoho is wired.
+ *
+ * Live mode: only flips status if the email send returns ok. On failure
+ * the invoice stays 'approved' so the admin can retry.
  */
 export async function markSentAction(
   _prev: ActionState,
@@ -183,22 +195,70 @@ export async function markSentAction(
 
   const sb = createServiceClient();
 
-  // Look up the customer email from the linked order so we record where it
-  // *would* have gone. Required column on customer_invoices is sent_to_email.
+  // Need: customer email (where to send), invoice_number (for filename + subject),
+  // pdf_storage_path (the artifact to attach).
   const { data: invRaw } = await sb
     .from("customer_invoices")
-    .select("order:orders ( customer:customers ( email ) )")
+    .select(`
+      invoice_number, pdf_storage_path,
+      order:orders ( customer:customers ( email ) )
+    `)
     .eq("id", id.data)
     .maybeSingle();
-  const customerEmail =
-    (invRaw as { order?: { customer?: { email?: string | null } | null } | null } | null)
-      ?.order?.customer?.email ?? null;
+
+  if (!invRaw) return { ok: false, error: "Invoice not found." };
+
+  const inv = invRaw as {
+    invoice_number: string;
+    pdf_storage_path: string | null;
+    order: { customer: { email: string | null } | null } | null;
+  };
+  const customerEmail = inv.order?.customer?.email ?? null;
 
   if (!customerEmail) {
     return {
       ok: false,
       error: "Customer has no email address on file. Add one before sending.",
     };
+  }
+
+  if (!inv.pdf_storage_path) {
+    return {
+      ok: false,
+      error: "PDF has not been generated yet. Re-approve or use Regenerate PDF first.",
+    };
+  }
+
+  // Attempt the send (no-op in mock mode).
+  let sendResult: Awaited<ReturnType<typeof sendCustomerInvoiceEmail>> | null = null;
+  if (isZohoConfigured()) {
+    const pdfDownload = await downloadCustomerInvoicePdf(inv.pdf_storage_path);
+    if (!pdfDownload.ok) {
+      return { ok: false, error: `Couldn't load stored PDF: ${pdfDownload.error}` };
+    }
+    sendResult = await sendCustomerInvoiceEmail({
+      to: customerEmail,
+      subject: `Your Trendslet invoice ${inv.invoice_number}`,
+      body: `<p>Hi,</p><p>Your invoice <strong>${inv.invoice_number}</strong> is attached.</p><p>Thanks for shopping with Trendslet.</p>`,
+      pdf: pdfDownload.buffer,
+      filename: `${inv.invoice_number}.pdf`,
+      user_id: user.id,
+    });
+
+    if (sendResult.error) {
+      return { ok: false, error: `Email send failed: ${sendResult.error}` };
+    }
+  } else {
+    // Mock mode — record the skip but proceed. Lets the UI move forward
+    // before Zoho credentials are pasted.
+    sendResult = await sendCustomerInvoiceEmail({
+      to: customerEmail,
+      subject: `Your Trendslet invoice ${inv.invoice_number}`,
+      body: "",
+      pdf: Buffer.alloc(0),
+      filename: `${inv.invoice_number}.pdf`,
+      user_id: user.id,
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
