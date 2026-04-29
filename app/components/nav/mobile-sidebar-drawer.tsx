@@ -81,10 +81,6 @@ export function MobileSidebarDrawer({ user, counts, unassignedCount, notificatio
 
         {/* Nav */}
         <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-2 pb-3 pt-4">
-          <div className="flex items-center gap-2 px-3">
-            <span className="live-dot h-1.5 w-1.5 rounded-full bg-[#30b766]" aria-hidden />
-            <span className="text-[10px] uppercase tracking-[0.14em] text-[#6e7581]">Live</span>
-          </div>
           {sections.map((section) => (
             <div key={section.id} className="flex flex-col gap-0.5">
               <div className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7581]">

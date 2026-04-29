@@ -147,46 +147,65 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           <section className="rounded-md border border-hairline bg-surface p-4">
             <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Calculation</h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">
-              <Row label="Cost" value={formatCurrency(inv.cost, inv.cost_currency)} />
-              {inv.cost_currency !== inv.total_currency && (
-                <Row
-                  label={`FX → ${inv.total_currency}`}
-                  value={formatCurrency(inv.item_price, inv.total_currency)}
-                  hint
-                />
-              )}
-              <Row
-                label={`Markup ${Number(inv.markup_percent).toFixed(0)}%`}
-                value={`+${formatCurrency(inv.item_price - (inv.cost_currency === inv.total_currency ? inv.cost : inv.item_price), inv.total_currency)}`}
-                muted
-              />
-              {inv.shipment_fee > 0 && (
-                <Row label="Shipping" value={`+${formatCurrency(inv.shipment_fee, inv.total_currency)}`} muted />
-              )}
-              {inv.tax_amount > 0 && (
-                <Row
-                  label={`VAT ${Number(inv.tax_percent).toFixed(0)}%`}
-                  value={`+${formatCurrency(inv.tax_amount, inv.total_currency)}`}
-                  muted
-                />
-              )}
-              <div className="my-1 border-t border-hairline" />
-              <Row label="Total" value={formatCurrency(inv.total, inv.total_currency)} bold />
-              {inv.profit_amount != null && (
-                <Row
-                  label="Profit"
-                  value={
-                    <>
-                      {formatCurrency(inv.profit_amount, inv.total_currency)}
-                      {inv.profit_percent != null && (
-                        <span className="ml-1 text-ink-tertiary">
-                          ({Number(inv.profit_percent).toFixed(0)}%)
-                        </span>
-                      )}
-                    </>
-                  }
-                />
-              )}
+              {(() => {
+                // item_price is post-markup. Pre-markup converted cost is:
+                //   item_price / (1 + markup_percent/100)
+                // For same-currency invoices that equals inv.cost; for FX it's the
+                // converted-cost-before-markup.
+                const markupRate = 1 + Number(inv.markup_percent) / 100;
+                const convertedCost =
+                  markupRate > 0 ? inv.item_price / markupRate : inv.item_price;
+                const markupAmount = inv.item_price - convertedCost;
+                const isFx = inv.cost_currency !== inv.total_currency;
+
+                return (
+                  <>
+                    <Row
+                      label={`Cost (${inv.cost_currency})`}
+                      value={formatCurrency(inv.cost, inv.cost_currency)}
+                    />
+                    {isFx && (
+                      <Row
+                        label={`Converted to ${inv.total_currency}`}
+                        value={formatCurrency(convertedCost, inv.total_currency)}
+                        hint
+                      />
+                    )}
+                    <Row
+                      label={`Markup ${Number(inv.markup_percent).toFixed(0)}%`}
+                      value={`+${formatCurrency(markupAmount, inv.total_currency)}`}
+                      muted
+                    />
+                    {inv.shipment_fee > 0 && (
+                      <Row label="Shipping" value={`+${formatCurrency(inv.shipment_fee, inv.total_currency)}`} muted />
+                    )}
+                    {inv.tax_amount > 0 && (
+                      <Row
+                        label={`VAT ${Number(inv.tax_percent).toFixed(0)}%`}
+                        value={`+${formatCurrency(inv.tax_amount, inv.total_currency)}`}
+                        muted
+                      />
+                    )}
+                    <div className="my-1 border-t border-hairline" />
+                    <Row label="Total" value={formatCurrency(inv.total, inv.total_currency)} bold />
+                    {inv.profit_amount != null && (
+                      <Row
+                        label="Profit"
+                        value={
+                          <>
+                            {formatCurrency(inv.profit_amount, inv.total_currency)}
+                            {inv.profit_percent != null && (
+                              <span className="ml-1 text-ink-tertiary">
+                                ({Number(inv.profit_percent).toFixed(0)}%)
+                              </span>
+                            )}
+                          </>
+                        }
+                      />
+                    )}
+                  </>
+                );
+              })()}
             </dl>
           </section>
 
