@@ -4,79 +4,111 @@ Paste this into the new chat as the first message:
 
 ---
 
-Resume the Trendlet Optify OMS build.
+Resume the Trendlet Optify OMS build at the start of Phase 4e (supplier invoice upload).
 
-**Read these in order:**
-1. `d:\claude code project\Trendlet\PROGRESS.md` — full history of phases 1–7
-2. `d:\claude code project\Trendlet\CLAUDE.md` — project rules (WAT framework, edit policy, 95% confidence)
+**Read these files in order to load full context:**
+1. `d:\claude code project\Trendlet\PROGRESS.md` — full history of phases 1–7 + this session's 0–4d
+2. `d:\claude code project\Trendlet\CLAUDE.md` — project rules (WAT framework, edit policy, 95% confidence, Karpathy principles)
 3. `d:\claude code project\Trendlet\OPTIFY_SYSTEM_PROMPT.md` — full spec
-4. This file (`RESUME.md`) — current deployment state
+4. This file — current deployment state
 
-**Current state (2026-04-28, post audit pass):**
+**Current state (2026-04-29 end of session):**
+- ✅ Live at https://trendlet.vercel.app
+- ✅ HEAD commit `090b11b` — Phase 4d shipped (sourcing view)
+- ✅ All 3 role views complete: fulfiller (EU) at `/fulfillment`, warehouse (US late) at `/pipeline`, sourcing (US early) at `/queue`
+- ✅ Brand admin (`/admin/brands`) — full CRUD with create + rename + region + markup + assignee
+- ✅ Invoice flow Phases 0–3 complete: review actions UI, PDF generator (`@react-pdf/renderer` + `bwip-js`), Zoho Mail outbound (mock-mode-first)
+- ✅ Supabase: 22 migrations applied, JWT custom claims hook live, RLS hardened
+- 🟡 3 test accounts in production Auth (fulfiller-test / sourcing-test / warehouse-test, password `Trendlet!Test2026`) — DELETE BEFORE LAUNCH
+- 🟡 Zoho env vars NOT set — outbound email currently no-ops (logs as 'skipped' in api_logs)
 
-- ✅ Phases 1–6 code-complete, Phase 7 partial
-- ✅ GitHub repo: https://github.com/trendlet-almateri/trendlet (private, you have token in `.env.local`)
-- 🆕 **Vercel project deleted by user.** Re-import pending. See "Re-import checklist" below.
-- 🆕 **Audit pass applied:** RLS hardened (jwt_is_admin), webhook replay protection, invitation acceptance flag, query limits added. All committed locally — push when ready to redeploy.
-- 🔴 Known dead credentials (per `/setup/integrations` health page): `SHOPIFY_ACCESS_TOKEN` (HTTP 401), `OPENAI_API_KEY` (HTTP 401). Webhook secret is fine.
-- ⚪ Mock-mode (no creds): DHL, Hubstaff, Resend
-- 🟢 Working: Supabase, Twilio (account active, 0/15 template SIDs in DB), OpenRouter
+**Next phase: 4e — Supplier invoice upload**
 
-**Migrations needing `supabase db push` BEFORE next deploy:**
-- `20260428000002_rls_jwt_admin_full.sql` — converts remaining `is_admin()` policies to `jwt_is_admin()`
-- `20260428000003_webhook_deliveries.sql` — adds dedup table for Shopify webhook replay protection
+Sourcer / fulfiller drag-and-drops a PDF receipt onto a sub-order. The PDF is stored in the existing `supplier-invoices` bucket. A `supplier_invoices` row is created and `customer_invoices.supplier_invoice_id` is linked. No AI yet — that's Phase 4f.
 
-After applying migrations, regenerate types:
-```
-supabase gen types typescript --project-id kfrjqpjprvvsibwmrqph > app/lib/types/database.ts
-```
-(The webhook handler casts `webhook_deliveries` to `any` until that's done.)
+Scope:
+- Drag-and-drop component on the sub-order detail panel (or a dedicated upload page on the role views)
+- Server action `uploadSupplierInvoiceAction` — service-role storage upload, MIME validation, sub-order linking
+- File size limit 10MB, MIME `application/pdf` only
+- Path convention: `supplier-invoices/{user_id}/{yyyy-mm}/{uuid}-{filename}`
 
-**Re-import checklist (do BEFORE clicking Deploy in Vercel):**
+**Locked design decisions (do not re-ask in future sessions):**
+- 3 disjoint roles: fulfiller (EU only), sourcing (US, brand-restricted), warehouse (US, sees all). KSA driver reserved for future shipping integration.
+- Brand routing: `brands.region` + `brand_assignments.is_primary` drives queue routing. Unassigned brands → `/orders/unassigned`.
+- Markup: per-brand only, snapshotted onto customer_invoices at draft time. Math: `item_price = cost / (1 + markup_percent/100)`.
+- Barcode: ONE per supplier invoice (not per item). Reproduced verbatim on every split customer invoice. If null, PDF omits the block silently.
+- AI extraction model: admin-picked from `/admin/invoice-settings` (built in 4f), stored in `settings` table.
+- AI extraction failure fallback: manual data-entry form (built in 4f).
+- Phase 4-team (admin user creation UI) deferred until after 4e + 4f.
 
-| Vercel field | Value |
-|---|---|
-| Root Directory | `app` (NOT blank, NOT `./`) |
-| Framework Preset | Next.js |
-| Build / Install / Output | (leave defaults) |
-| Node.js Version | 20.x |
-
-**Required env vars (6 minimum to boot):**
-```
-NEXT_PUBLIC_SUPABASE_URL          (from app/.env.local)
-NEXT_PUBLIC_SUPABASE_ANON_KEY     (from app/.env.local)
-SUPABASE_SERVICE_ROLE_KEY         (from app/.env.local)
-SHOPIFY_WEBHOOK_SECRET            (from app/.env.local)
-NEXT_PUBLIC_APP_URL               https://trendlet.vercel.app
-CRON_SECRET                       (from app/.env.local or regenerate via openssl rand -base64 32)
+**Verify build is healthy first:**
+```bash
+cd "d:/claude code project/Trendlet/app"
+npm run typecheck    # expect 0 errors
+npm run build         # expect 23 routes clean, no warnings
+git log --oneline -5  # confirm last commit is 090b11b
 ```
 
-**Optional / mock-mode env vars:** Twilio (3), OpenRouter (2), DHL (2), Hubstaff (1), Resend (1), Shopify api/secret/access-token/shop-domain, NEXTAUTH_SECRET, NEXT_PUBLIC_APP_ENV, SMTP_*, TRENDLET_STORE_ID. Set when ready to flip features live.
+Via MCP:
+```
+mcp__claude_ai_Supabase__execute_sql(
+  project_id="kfrjqpjprvvsibwmrqph",
+  query="SELECT count(*) FROM brands"
+)
+```
+(Expected: 0 unless user has manually added brands via /admin/brands.)
 
-**NEVER paste these into Vercel:** `github_token`, `vercel_apikey` (dev-only).
+---
 
-**Active git config in this repo:**
-- author: `ai-4275 <ai@trendlet.com>` (matches Vercel project owner — required by Hobby plan)
+## Key infrastructure to know about
+
+**Shared queue fetcher**: `app/lib/queries/fulfillment.ts` → `fetchFulfillmentQueue({ region, userId, isAdmin, assigneeFilter })`. Used by all 3 role views.
+
+**Shared row component**: `app/app/(app)/fulfillment/sub-order-row.tsx` → `<SubOrderRow>`. Imported by `/pipeline` and `/queue` from the fulfillment route group. `useOptimistic` for instant feedback. Status buttons filtered by role whitelist.
+
+**Shared status action**: `app/app/(app)/fulfillment/actions.ts` → `setSubOrderStatusAction()`. The DB trigger `enforce_status_whitelist` is the security boundary; this action just calls `.update()` and lets RLS + the trigger gate.
+
+**Status state machine**: `app/lib/workflow/sub-order-transitions.ts` → `getNextStatuses(currentStatus, role, whitelist)`. Drives which buttons render in each view.
+
+**Role whitelist**: `app/lib/constants.ts` → `ROLE_STATUS_WHITELIST`. Mirrors `statuses.allowed_from_roles` in DB. DB is source of truth.
+
+## Test accounts in production Supabase (DELETE BEFORE LAUNCH)
+
+| email | role | password |
+|---|---|---|
+| `ai@trendlet.com` | admin | (your password) |
+| `fulfiller-test@trendlet.com` | fulfiller | `Trendlet!Test2026` |
+| `sourcing-test@trendlet.com` | sourcing | `Trendlet!Test2026` |
+| `warehouse-test@trendlet.com` | warehouse | `Trendlet!Test2026` |
+
+Seed script: `app/scripts/seed-test-users.mjs` — idempotent; re-running is safe.
+
+## Active git config in this repo
+- author: `ai-4275 <ai@trendlet.com>` (Vercel Hobby plan requires project-member commit author)
 - remote: `https://github.com/trendlet-almateri/trendlet.git`
 - gh CLI authenticated as `trendlet-almateri` via OS keyring
 - credential helper: `gh auth setup-git` already done
+- main branch protected by Vercel auto-deploy: every push to main → Vercel deploy
 
-**Tokens in `app/.env.local`:**
-- `github_token=...` (PAT for repo access; gh CLI uses keyring, not this file)
-- `vercel_apikey=...` (heavily scoped — can't create projects, can read user identity only)
-
-**Vercel-specific gotchas already learned:**
+## Vercel-specific gotchas already learned
 - Hobby plan: only daily crons. `vercel.json` is currently `0 4 * * *`.
 - Hobby plan: blocks deploys whose commit author isn't a project member. Always commit as `ai@trendlet.com`.
 - Edge runtime middleware can't import `@supabase/ssr` — no middleware in the repo right now (auth gating lives in server-component layouts).
 - Project is behind Vercel SSO (Deployment Protection ON) — public visitors see 401 until they sign in to Vercel.
 
-**Status:** Vercel project deleted on 2026-04-28. Local `next build` is green (22/22 routes). The previous 404-on-root issue was almost certainly Root Directory mis-set — fixed by re-importing with the cheat sheet above.
-
-**What NOT to do (per PROGRESS.md "do not" rules):**
+## What NOT to do (per PROGRESS.md "do not" rules)
 - Don't run paid scripts without confirmation
-- Don't add a Settings page in sidebar
+- Don't add a Settings page in sidebar (settings live in the user dropdown / page-level settings)
 - Don't commit `.env.local`
-- Don't write back to Shopify
+- Don't write back to Shopify (read-only integration)
 - Don't use `is_admin()` in RLS — use `jwt_is_admin()`
 - Don't change git author away from `ai@trendlet.com` in this repo
+- Don't include "fulfiller" in role lists for `/queue` or `/pipeline` (those are US-only roles now; fulfiller has its own `/fulfillment`)
+
+## Open items still parked (not blocking)
+- `markup_percent` storage format on existing seeded brands — should default 0; admin sets per-brand via `/admin/brands`
+- Admin AI model picker UI — Phase 4f
+- `activity_log` writes on invoice actions — nice-to-have audit trail, not yet wired
+- "Synced 2 min ago" sync badge is hardcoded on dashboard + invoice list
+- Lighthouse a11y sweep — deferred to final test pass before launch
+- Phase 5+ (Zoho inbound polling, AI barcode-from-image) — not started

@@ -564,3 +564,72 @@ Expected: `s=15, jobs=5`.
 - **Invoice templates** — `invoice_templates` table empty. Admin uploads PDFs via Invoices → Settings → Templates tab.
 - **Twilio Content Template SIDs** — `statuses.twilio_template_sid` is NULL for all 15. User must paste the 8 pre-approved SIDs into the table once Twilio approves them.
 - **Hubstaff / DHL / Resend** — mocked. Wire real integrations in Phase 6 when credentials provided.
+
+---
+
+## Session 2026-04-29 — Invoice flow + role views (Phases 0–4d)
+
+This session shipped 9 commits expanding the admin invoice workflow into a full review-approve-send pipeline AND replacing the placeholder role pages with proper role-aware views. After this session every employee role lands on its own dedicated workspace.
+
+### Commits in order
+- `662d190` — Phase 0: invoice bug fixes (Pending value math, FX label)
+- `e8a6807` — Phase 1: review actions UI (approve/reject/reopen/mark-sent)
+- `65d7ddb` — Phase 2: PDF generator with supplier barcode (`@react-pdf/renderer` + `bwip-js/node`, signed URL iframe preview, regenerate button)
+- `487f6d5` — Phase 3: Zoho Mail outbound integration (mock-mode-first; goes live when ZOHO_* env vars are pasted)
+- `34e74d0` — Phase 4a: brand admin page + `brands.markup_percent` migration
+- `c52bc24` — Fix: `/admin/brands` 500 caused by ambiguous PostgREST embed (user_roles has dual FK to profiles)
+- `e86e603` — Phase 4a+: admin can create + rename brands manually
+- `726568c` — Phase 4b: fulfiller view (EU full pipeline) + role whitelist extended (warehouse + fulfiller can drive arrived_in_ksa / out_for_delivery / delivered until KSA shipping integration ships)
+- `01b358e` — seed-test-users script (3 test employee accounts created in live Auth)
+- `bb2726e` — Fix: separate fulfiller from sourcing/warehouse role visibility (sidebar + landing redirect)
+- `75f7cac` — Phase 4c: warehouse view (US late stages, sees ALL US sub-orders)
+- `090b11b` — Phase 4d: sourcing view (US early stages, brand-filtered to assignee)
+
+### Schema migrations applied to live Supabase
+- `20260428000002_rls_jwt_admin_full.sql` — already applied earlier; remaining is_admin() → jwt_is_admin()
+- `20260428000003_webhook_deliveries.sql` — already applied earlier
+- `20260429000001_supplier_invoice_barcode.sql` — `supplier_invoices.barcode text` (single barcode per receipt, reproduced verbatim on every customer invoice generated from it; nullable)
+- `20260429000002_brand_markup.sql` — `brands.markup_percent numeric(5,2) NOT NULL DEFAULT 0` (snapshotted to customer_invoices at draft time so future markup changes don't retroactively change issued invoices)
+- `20260429000003_extend_role_whitelist.sql` — `statuses.allowed_from_roles` extended for `arrived_in_ksa` / `out_for_delivery` / `delivered` to include `warehouse` and `fulfiller` (KSA driver reserved for future shipping-company integration)
+
+Total schema state: 31 tables, 22 migrations applied (was 19 at session start).
+
+### Locked design decisions (do not re-ask in future sessions)
+- **3 disjoint employee roles**: `fulfiller` handles EU brands end-to-end; `sourcing` handles US early stages (brand-restricted to their assigned brands); `warehouse` handles US late stages (sees ALL US orders). `ksa_operator` exists in DB but no real users — reserved for future shipping-company integration.
+- **Brand routing**: `brands.region` ('US' | 'EU' | 'KSA' | 'GLOBAL') + `brand_assignments.is_primary` drives whose queue an order lands in. Brands without a primary assignee fall to `/orders/unassigned`.
+- **Markup**: per-brand only, stored on `brands.markup_percent` (50.00 = 50%). Snapshotted onto `customer_invoices.markup_percent` at draft time. Reassigning a brand to a different employee never changes its markup.
+- **Markup math**: `item_price = cost / (1 + markup_percent/100)` — confirmed via schema comment.
+- **Barcode**: ONE per supplier invoice (not per item). Reproduced verbatim on every customer invoice split out from that supplier invoice. If `supplier_invoices.barcode` IS NULL, the customer PDF omits the barcode block silently — no fallback.
+- **Approve flow**: status flip is durable; PDF render is regenerable. If `approveInvoiceAction` succeeds at the status flip but PDF render fails, status stays `approved` and admin retries via the Regenerate button.
+- **Mark-sent flow**: in mock mode (no Zoho env vars), status flips to `sent` after logging api_logs as 'skipped'. In live mode, status flips ONLY if Zoho returns success — failure leaves status as `approved` so admin can retry.
+- **Phase 4-team**: admin user-creation UI is deferred. 3 test accounts unblock testing in the meantime; they live in production Auth and must be deleted before launch.
+- **AI model picker**: deferred to Phase 4f. Admin will pick OpenRouter model from `/admin/invoice-settings` (not yet built); the choice is stored in `settings` table and read at extraction time.
+- **AI extraction failure fallback**: manual data-entry form (deferred to 4f).
+
+### Test accounts in live Supabase (DELETE BEFORE LAUNCH)
+| email | role | password |
+|---|---|---|
+| `fulfiller-test@trendlet.com` | fulfiller | `Trendlet!Test2026` |
+| `sourcing-test@trendlet.com` | sourcing | `Trendlet!Test2026` |
+| `warehouse-test@trendlet.com` | warehouse | `Trendlet!Test2026` |
+
+The seed script lives at `app/scripts/seed-test-users.mjs` (idempotent — re-running is safe).
+
+### Architectural decisions worth carrying forward
+- **`fetchFulfillmentQueue`** is the shared queue fetcher for all 3 role views. Takes `region: 'EU'|'US'` and `assigneeFilter: 'self'|'all'`. Returns `FulfillmentRow[]` with brand + customer joined. Used by `/fulfillment`, `/pipeline`, `/queue`.
+- **`SubOrderRow`** client island with `useOptimistic` is also shared across all 3 views. Renders status pill + action buttons; buttons are filtered by the role's whitelist via `getNextStatuses(currentStatus, role, ROLE_STATUS_WHITELIST)`.
+- **`setSubOrderStatusAction`** is the shared status-change action. Auth: `requireRole(["fulfiller","warehouse","sourcing","admin"])`. Uses regular client for non-admins so RLS narrows; service-role for admins until JWT carries role claims on first sign-in. Twilio fire-and-forget on `notifies_customer` statuses.
+- **PostgREST embed ambiguity**: `user_roles` has TWO FKs to `profiles` (`user_id` and `granted_by`). When joining via `profiles ( user_roles ( role ) )` the embed fails with a 500. Solution: split into two queries and group in JS (already done in `lib/queries/brands.ts`).
+
+### What's deployed
+- **Production URL**: https://trendlet.vercel.app
+- **HEAD commit**: `090b11b` (Phase 4d shipped)
+- **Routes**: 23 dynamic routes, all green build, no warnings, ~87–110 kB First Load JS
+- **Vercel project**: trendlet, owner ai@trendlet.com, root directory `app`
+- **Auto-deploys** on push to `main`
+
+### What's NOT done yet (Phase 4 remaining work)
+- **4e — Supplier invoice upload**: drag-and-drop PDF, store in `supplier-invoices` bucket, attach to a sub-order. Pure data ingestion, no AI yet.
+- **4f — AI extraction**: OpenRouter call extracts supplier name + line items + barcode from uploaded PDFs, sourcer maps line items to sub-orders, clicks "create drafts" → customer invoices appear in admin queue. Closes the end-to-end loop. Includes admin AI model picker (`/admin/invoice-settings`) and manual-entry fallback for AI failures.
+- **4-team — Admin user-creation UI**: deferred. Test accounts unblock for now.
+- **Browser smoke testing**: most Phase 1–4d functionality has been validated by typecheck + build but not yet exercised end-to-end in a real browser session against the live deploy.
