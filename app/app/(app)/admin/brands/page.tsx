@@ -1,8 +1,7 @@
-import { Tag } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchBrandsForAdmin, fetchAssigneeOptions } from "@/lib/queries/brands";
-import { EmptyState } from "@/components/common/empty-state";
 import { BrandRowForm } from "./brand-row-form";
+import { NewBrandForm } from "./new-brand-form";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +34,9 @@ export default async function AdminBrandsPage() {
         </div>
       </header>
 
-      {/* Column headers */}
+      <NewBrandForm assignees={assignees} />
+
+      {/* Column headers (only when at least one brand exists) */}
       {brands.length > 0 && (
         <div className="grid grid-cols-[1.5fr_0.7fr_0.7fr_1.4fr_auto] items-center gap-3 px-3 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
           <span>Brand</span>
@@ -46,13 +47,7 @@ export default async function AdminBrandsPage() {
         </div>
       )}
 
-      {brands.length === 0 ? (
-        <EmptyState
-          icon={Tag}
-          title="No brands yet"
-          description="Brands appear automatically the first time a Shopify webhook delivers an order with a vendor we don't recognize."
-        />
-      ) : (
+      {brands.length > 0 && (
         <div className="flex flex-col gap-2">
           {brands.map((b) => (
             <BrandRowForm key={b.id} brand={b} assignees={assignees} />

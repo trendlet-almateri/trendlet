@@ -4,18 +4,10 @@ import { useFormState, useFormStatus } from "react-dom";
 import { useState } from "react";
 import { Loader2, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { updateBrandAction, type BrandActionState } from "./actions";
 import type { BrandRow, AssigneeOption } from "@/lib/queries/brands";
 
 const initialState: BrandActionState = { ok: false, error: null };
-
-const REGION_PILL: Record<string, string> = {
-  US: "border-blue-300 bg-blue-50 text-blue-700",
-  EU: "border-purple-300 bg-purple-50 text-purple-700",
-  KSA: "border-green-300 bg-green-50 text-green-700",
-  GLOBAL: "border-neutral-300 bg-neutral-50 text-neutral-700",
-};
 
 export function BrandRowForm({
   brand,
@@ -40,20 +32,15 @@ export function BrandRowForm({
     >
       <input type="hidden" name="brand_id" value={brand.id} />
 
-      {/* Brand name */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-medium text-ink-primary truncate">{brand.name}</span>
-        {brand.region && (
-          <span
-            className={cn(
-              "pill border text-[10px]",
-              REGION_PILL[brand.region] ?? REGION_PILL.GLOBAL,
-            )}
-          >
-            {brand.region}
-          </span>
-        )}
-      </div>
+      {/* Brand name (editable) */}
+      <input
+        name="name"
+        type="text"
+        defaultValue={brand.name}
+        required
+        maxLength={120}
+        className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[13px] font-medium text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
+      />
 
       {/* Region */}
       <select
