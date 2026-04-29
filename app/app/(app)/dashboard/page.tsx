@@ -68,6 +68,7 @@ export default async function DashboardPage() {
       {/* KPI row — asymmetric Bento (2fr 2fr 2fr 2fr 3fr) so the hero card visibly leads */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-3">
         <KpiCard
+          index={0}
           icon={LayoutList}
           label="Total orders"
           value={(kpis?.total_orders_30d ?? 0).toLocaleString("en-US")}
@@ -75,6 +76,7 @@ export default async function DashboardPage() {
           hint="vs last 7d"
         />
         <KpiCard
+          index={1}
           icon={Activity}
           label="Active"
           value={(kpis?.active_count ?? 0).toLocaleString("en-US")}
@@ -83,6 +85,7 @@ export default async function DashboardPage() {
           miniChart
         />
         <KpiCard
+          index={2}
           icon={AlertTriangle}
           label="Delayed"
           value={(kpis?.delayed_count ?? 0).toLocaleString("en-US")}
@@ -90,6 +93,7 @@ export default async function DashboardPage() {
           hint={`SLA at risk: ${kpis?.at_risk_count ?? 0}`}
         />
         <KpiCard
+          index={3}
           icon={CheckCircle}
           label="Completed"
           value={(kpis?.completed_30d ?? 0).toLocaleString("en-US")}
@@ -98,6 +102,7 @@ export default async function DashboardPage() {
           hint={kpis?.on_time_pct != null ? `On-time rate ${Number(kpis.on_time_pct).toFixed(1)}%` : "—"}
         />
         <KpiCard
+          index={4}
           hero
           icon={DollarSign}
           label="Gross processed"
@@ -150,12 +155,13 @@ export default async function DashboardPage() {
           Team load · today
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {TEAM_ORDER.map((key) => {
+          {TEAM_ORDER.map((key, i) => {
             const row = teamLoadByKey.get(key);
             const meta = TEAM_META[key];
             return (
               <TeamLoadCard
                 key={key}
+                index={i}
                 team={meta.label}
                 memberCount={row?.member_count ?? 0}
                 activeCount={row?.active_items ?? 0}
