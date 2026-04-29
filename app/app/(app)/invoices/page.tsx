@@ -46,10 +46,19 @@ export default async function InvoicesPage({
   ]);
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  const pendingValue = invoices
+
+  // Sum pending invoice totals per currency (mixing currencies is wrong).
+  // Show the largest bucket as the headline, hint at the rest.
+  const pendingByCurrency = invoices
     .filter((i) => i.status === "pending_review")
-    .reduce((sum, i) => sum + (i.total ?? 0), 0);
-  const pendingCurrency = invoices.find((i) => i.status === "pending_review")?.total_currency ?? "SAR";
+    .reduce<Record<string, number>>((acc, i) => {
+      const cur = i.total_currency ?? "SAR";
+      acc[cur] = (acc[cur] ?? 0) + (i.total ?? 0);
+      return acc;
+    }, {});
+  const pendingBuckets = Object.entries(pendingByCurrency).sort((a, b) => b[1] - a[1]);
+  const pendingHeadline = pendingBuckets[0];
+  const otherCurrencyCount = Math.max(0, pendingBuckets.length - 1);
 
   return (
     <div className="flex flex-col gap-4">
@@ -78,9 +87,22 @@ export default async function InvoicesPage({
         <div className="rounded-md bg-navy-deep p-4 text-white">
           <span className="text-hint uppercase text-white/60">Pending value</span>
           <div className="mt-1 text-[24px] font-medium tabular-nums">
-            {pendingValue > 0 ? formatCurrency(pendingValue, pendingCurrency, { compact: true }) : "—"}
+            {pendingHeadline
+              ? formatCurrency(pendingHeadline[1], pendingHeadline[0], { compact: true })
+              : "—"}
           </div>
-          <div className="mt-0.5 text-[11px] text-white/70">across {counts.pending_review} drafts</div>
+          <div className="mt-0.5 text-[11px] text-white/70">
+            {counts.pending_review === 0
+              ? "no drafts to review"
+              : (
+                  <>
+                    across {counts.pending_review} {counts.pending_review === 1 ? "draft" : "drafts"}
+                    {otherCurrencyCount > 0 && (
+                      <> · + {otherCurrencyCount} more {otherCurrencyCount === 1 ? "currency" : "currencies"}</>
+                    )}
+                  </>
+                )}
+          </div>
         </div>
       </div>
 
