@@ -1,107 +1,155 @@
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Inbox } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
-import { createServiceClient } from "@/lib/supabase/server";
+import { fetchFulfillmentQueue } from "@/lib/queries/fulfillment";
 import { EmptyState } from "@/components/common/empty-state";
-import { StatusPill } from "@/components/status/status-pill";
-import { relativeTime } from "@/lib/utils/date";
-import type { StatusCode } from "@/lib/constants";
+import { SubOrderRow } from "../fulfillment/sub-order-row";
+import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
+import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Sourcing queue · Trendslet Operations" };
-
-const SOURCING_STATUSES: StatusCode[] = ["pending", "under_review", "in_progress"];
-
-type Row = {
-  id: string;
-  sub_order_number: string;
-  product_title: string;
-  variant_title: string | null;
-  brand_name_raw: string | null;
-  quantity: number;
-  status: string;
-  is_at_risk: boolean;
-  is_delayed: boolean;
-  created_at: string;
-  order: { shopify_order_number: string } | null;
-  brand: { name: string } | null;
-};
+export const metadata = { title: "Sourcing · Trendslet Operations" };
 
 export default async function SourcingQueuePage() {
   const user = await requireRole(["sourcing", "admin"]);
-  const sb = createServiceClient();
+  const isAdmin = user.roles.includes("admin");
 
-  // Admin sees all sourcing-stage items; sourcing/fulfiller see only their assigned ones
-  let q = sb
-    .from("sub_orders")
-    .select(`
-      id, sub_order_number, product_title, variant_title, brand_name_raw, quantity, status,
-      is_at_risk, is_delayed, created_at,
-      order:orders ( shopify_order_number ),
-      brand:brands ( name )
-    `)
-    .in("status", SOURCING_STATUSES)
-    .order("created_at", { ascending: true })
-    .limit(100);
+  // Sourcer sees only US sub-orders for brands assigned to them.
+  // The brand-assignment filtering happens via assigned_employee_id —
+  // when the Shopify webhook auto-assigns, it picks the primary
+  // brand_assignments user (Phase 4d's brand_assignments are already
+  // wired in /admin/brands).
+  // Admin sees every US sourcing-stage item.
+  const rows = await fetchFulfillmentQueue({
+    region: "US",
+    userId: user.id,
+    isAdmin,
+    assigneeFilter: isAdmin ? "all" : "self",
+  });
 
-  if (!user.roles.includes("admin")) {
-    q = q.eq("assigned_employee_id", user.id);
-  }
+  const role: Role = user.roles.includes("sourcing") ? "sourcing" : "admin";
 
-  const { data, error } = await q;
-  if (error) console.error("[SourcingQueue]", error);
-  const rows = (data ?? []) as unknown as Row[];
+  // Sourcing-relevant groups:
+  //   "To buy"   = early stages, sourcer needs to act (in_progress, etc.)
+  //   "Bought"   = sourcer purchased, hand-off to warehouse pending
+  //   "Handed off" (read-only) = at warehouse or further along, sourcer
+  //                              can see status but no longer acts
+  const groups = {
+    toBuy: rows.filter((r) => TO_BUY_STAGE.has(r.status)),
+    bought: rows.filter((r) => BOUGHT_STAGE.has(r.status)),
+    handedOff: rows.filter((r) => HANDED_OFF_STAGE.has(r.status)),
+  };
+  const total =
+    groups.toBuy.length + groups.bought.length + groups.handedOff.length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">Sourcing queue</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          {rows.length} {rows.length === 1 ? "item" : "items"} to source
-        </span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-h1 text-ink-primary">Sourcing</h1>
+          <span className="text-[12px] text-ink-tertiary">
+            US brands · {total.toLocaleString("en-US")}{" "}
+            {total === 1 ? "active sub-order" : "active sub-orders"}
+            {isAdmin && total > 0 && " · admin view"}
+          </span>
+        </div>
+      </header>
 
-      {rows.length === 0 ? (
+      {total === 0 ? (
         <EmptyState
           icon={ShoppingBag}
-          title="Queue is empty"
-          description="New orders flow into this queue. Mark items as purchased online or in-store, or flag as out of stock."
+          title="Nothing to source"
+          description="Items appear here when Shopify orders come in for US brands assigned to you. Check /admin/brands to confirm brand assignments."
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-wrap items-center gap-3 rounded-md border border-hairline bg-surface p-4"
-            >
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
-                    {r.sub_order_number}
-                  </span>
-                  <StatusPill status={r.status} />
-                  {r.is_delayed && (
-                    <span className="pill border border-status-danger-border/40 bg-status-danger-bg text-status-danger-fg">
-                      Delayed
-                    </span>
-                  )}
-                  {r.is_at_risk && !r.is_delayed && (
-                    <span className="pill border border-status-sourcing-border/40 bg-status-sourcing-bg text-status-sourcing-fg">
-                      SLA risk
-                    </span>
-                  )}
-                </div>
-                <div className="text-ink-primary">{r.product_title}</div>
-                <div className="text-[11px] text-ink-tertiary">
-                  Brand: {r.brand?.name ?? r.brand_name_raw ?? "—"} · qty {r.quantity}
-                  {r.variant_title ? ` · ${r.variant_title}` : ""} · {r.order?.shopify_order_number}
-                </div>
-              </div>
-              <span className="text-[11px] text-ink-tertiary">{relativeTime(r.created_at)}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col gap-6">
+          <Group
+            label="To buy"
+            emptyHint="Nothing to buy right now"
+            items={groups.toBuy}
+            role={role}
+          />
+          <Group
+            label="Bought — hand off to warehouse"
+            emptyHint="Nothing waiting for handoff"
+            items={groups.bought}
+            role={role}
+          />
+          <Group
+            label="Handed off"
+            emptyHint="Nothing handed off recently"
+            items={groups.handedOff}
+            role={role}
+            readOnly
+          />
+        </div>
       )}
     </div>
   );
 }
+
+function Group({
+  label,
+  emptyHint,
+  items,
+  role,
+  readOnly = false,
+}: {
+  label: string;
+  emptyHint: string;
+  items: Awaited<ReturnType<typeof fetchFulfillmentQueue>>;
+  role: Role;
+  readOnly?: boolean;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+        {label}
+        <span className="rounded-sm bg-neutral-100 px-1.5 py-0.5 tabular-nums">
+          {items.length}
+        </span>
+      </h2>
+      {items.length === 0 ? (
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-hairline-strong bg-neutral-50 px-3 py-3 text-[12px] text-ink-tertiary">
+          <Inbox className="h-3 w-3" aria-hidden />
+          {emptyHint}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map((row) => (
+            <SubOrderRow
+              key={row.id}
+              row={row}
+              nextStatuses={
+                readOnly ? [] : getNextStatuses(row.status, role, ROLE_STATUS_WHITELIST)
+              }
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const TO_BUY_STAGE = new Set([
+  "pending",
+  "assigned",
+  "unassigned",
+  "in_progress",
+]);
+
+const BOUGHT_STAGE = new Set([
+  "purchased_in_store",
+  "purchased_online",
+]);
+
+// Once the item is at the warehouse, sourcing can SEE the status but
+// no longer takes action — it's the warehouse role's responsibility.
+const HANDED_OFF_STAGE = new Set([
+  "delivered_to_warehouse",
+  "under_review",
+  "preparing_for_shipment",
+  "shipped",
+  "arrived_in_ksa",
+  "out_for_delivery",
+]);
