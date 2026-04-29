@@ -13,6 +13,8 @@ type KpiCardProps = {
   /** @deprecated — use tone="hero" */
   hero?: boolean;
   miniChart?: boolean;
+  /** Stagger index for entrance — pass 0..N from parent so cards cascade in */
+  index?: number;
 };
 
 const MINI_BARS = [3, 5, 4, 7, 6, 8, 9, 7, 10, 8, 11, 9, 12, 10];
@@ -26,6 +28,7 @@ export function KpiCard({
   tone: toneProp = "default",
   hero = false,
   miniChart = false,
+  index = 0,
 }: KpiCardProps) {
   const tone = hero ? "hero" : toneProp;
 
@@ -34,7 +37,7 @@ export function KpiCard({
 
   // Card shell
   const cardCls = cn(
-    "relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
+    "rise-in relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
     isHero && "bg-[#0f1419] text-white",
     isWarn && "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
     !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
@@ -49,9 +52,9 @@ export function KpiCard({
     : "text-[var(--muted)]",
   );
 
-  // Value
+  // Value — slow opacity tick gives a "live data" feel without being distracting
   const valueCls = cn(
-    "mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none",
+    "value-tick mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none",
     "[font-variant-numeric:tabular-nums]",
     isHero ? "text-white"
     : tone === "danger" ? "text-[var(--rose)]"
@@ -70,7 +73,10 @@ export function KpiCard({
   );
 
   return (
-    <div className={cardCls}>
+    <div
+      className={cardCls}
+      style={{ ["--stagger-index" as string]: index }}
+    >
       {/* Label row */}
       <div className={labelCls}>
         {Icon && <Icon className="h-3 w-3" aria-hidden />}
