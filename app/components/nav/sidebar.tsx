@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { SidebarNavItem } from "./sidebar-nav-item";
 import { UserDropdown } from "./user-dropdown";
+import { MobileSidebarDrawer } from "./mobile-sidebar-drawer";
 import { visibleSections } from "./nav-items";
 import type { Role } from "@/lib/types/database";
 
@@ -16,13 +17,13 @@ type SidebarProps = {
 };
 
 const COUNT_KEY: Record<string, string> = {
-  "/orders": "orders",
-  "/invoices": "invoices",
-  "/returns": "returns",
-  "/queue": "sourcing",
-  "/pipeline": "warehouse",
+  "/orders":         "orders",
+  "/invoices":       "invoices",
+  "/returns":        "returns",
+  "/queue":          "sourcing",
+  "/pipeline":       "warehouse",
   "/eu-fulfillment": "eu_fulfillment",
-  "/deliveries": "ksa_lastmile",
+  "/deliveries":     "ksa_lastmile",
 };
 
 export function Sidebar({ user, counts, unassignedCount, notifications }: SidebarProps) {
@@ -30,32 +31,24 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
   const initials = getInitials(user.fullName);
   const primaryRole = user.roles[0] ?? "user";
 
-  return (
-    <aside
-      className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col bg-sidebar text-neutral-300 md:flex"
-      aria-label="Primary navigation"
-    >
-      {/* Header: logo + bell */}
-      <div className="flex items-center justify-between px-4 py-3.5">
-        <Image
-          src="/logo.png"
-          alt="Trendlet"
-          width={110}
-          height={32}
-          priority
-        />
-        {notifications && (
-          <div className="shrink-0">{notifications}</div>
-        )}
-      </div>
+  const navContent = (
+    <>
+      {/* Live indicator + section nav */}
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-2 pb-3 pt-4">
+        {/* Live status dot */}
+        <div className="flex items-center gap-2 px-3">
+          <span
+            className="live-dot h-1.5 w-1.5 rounded-full bg-[#30b766]"
+            aria-hidden
+          />
+          <span className="text-[10px] uppercase tracking-[0.14em] text-[#6e7581]">
+            Live
+          </span>
+        </div>
 
-      <div className="mx-3 mb-1 h-px bg-white/[0.06]" />
-
-      {/* Nav sections */}
-      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 pb-3 pt-3">
         {sections.map((section) => (
           <div key={section.id} className="flex flex-col gap-0.5">
-            <div className="px-3 pb-1 pt-1 text-[10px] font-medium uppercase tracking-[0.5px] text-neutral-500">
+            <div className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7581]">
               {section.label}
             </div>
             {section.items.map((item) => {
@@ -66,7 +59,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
                   href={item.href}
                   label={item.label}
                   count={key ? counts[key] ?? null : null}
-                  dot={item.dot ?? "bg-neutral-500"}
+                  dot={item.dot ?? "bg-[#6e7581]"}
                 />
               );
             })}
@@ -74,7 +67,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
         ))}
       </nav>
 
-      {/* Bottom: user dropdown */}
+      {/* Footer: user dropdown */}
       <div className="border-t border-white/[0.06] px-2 py-2">
         <UserDropdown
           fullName={user.fullName}
@@ -84,7 +77,43 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
           unassignedCount={unassignedCount}
         />
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col bg-[#111418] text-neutral-300 md:flex"
+        aria-label="Primary navigation"
+      >
+        {/* Header: logo + bell */}
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <Image
+            src="/logo.png"
+            alt="Trendlet"
+            width={110}
+            height={32}
+            priority
+          />
+          {notifications && (
+            <div className="shrink-0">{notifications}</div>
+          )}
+        </div>
+
+        <div className="mx-3 mb-1 h-px bg-white/[0.06]" />
+
+        {navContent}
+      </aside>
+
+      {/* Mobile drawer (client component — handles open/close state) */}
+      <MobileSidebarDrawer
+        user={user}
+        counts={counts}
+        unassignedCount={unassignedCount}
+        notifications={notifications}
+      />
+    </>
   );
 }
 

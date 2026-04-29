@@ -8,7 +8,9 @@ type KpiCardProps = {
   hint?: string;
   icon?: LucideIcon;
   trend?: { direction: "up" | "down"; value: string };
-  tone?: "default" | "danger" | "success" | "active";
+  /** default = neutral cream; active = blue; danger = rose; success = green; warn = amber gradient; hero = dark rev card */
+  tone?: "default" | "danger" | "success" | "active" | "warn" | "hero";
+  /** @deprecated — use tone="hero" */
   hero?: boolean;
   miniChart?: boolean;
 };
@@ -21,74 +23,96 @@ export function KpiCard({
   hint,
   icon: Icon,
   trend,
-  tone = "default",
+  tone: toneProp = "default",
   hero = false,
   miniChart = false,
 }: KpiCardProps) {
-  const valueColor = cn(
-    "mt-1 text-[28px] font-semibold leading-none tabular-nums tracking-tight",
-    hero
-      ? "text-white"
-      : tone === "danger"
-        ? "text-[#C05A00]"
-        : tone === "success"
-          ? "text-[#1A7F4B]"
-          : tone === "active"
-            ? "text-[#1D4ED8]"
-            : "text-ink-primary",
+  const tone = hero ? "hero" : toneProp;
+
+  const isHero = tone === "hero";
+  const isWarn = tone === "warn";
+
+  // Card shell
+  const cardCls = cn(
+    "relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
+    isHero && "bg-[#0f1419] text-white",
+    isWarn && "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
+    !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
+  );
+
+  // Label row
+  const labelCls = cn(
+    "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
+    isHero ? "text-white/50"
+    : isWarn ? "text-[var(--amber)]"
+    : tone === "danger" ? "text-[var(--rose)]"
+    : "text-[var(--muted)]",
+  );
+
+  // Value
+  const valueCls = cn(
+    "mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none",
+    "[font-variant-numeric:tabular-nums]",
+    isHero ? "text-white"
+    : tone === "danger" ? "text-[var(--rose)]"
+    : tone === "success" ? "text-[var(--green)]"
+    : tone === "active" ? "text-[var(--blue)]"
+    : isWarn ? "text-[var(--amber)]"
+    : "text-[var(--ink)]",
+  );
+
+  // Bottom row
+  const bottomCls = cn(
+    "flex flex-wrap items-center gap-1.5 text-[11px]",
+    isHero ? "text-white/60"
+    : isWarn ? "text-[var(--amber)]/80"
+    : "text-[var(--muted)]",
   );
 
   return (
-    <div
-      className={cn(
-        "relative flex flex-col gap-2 overflow-hidden rounded-lg p-4",
-        hero
-          ? "bg-[#0C1F35] text-white"
-          : "border border-hairline bg-surface",
-      )}
-    >
+    <div className={cardCls}>
       {/* Label row */}
-      <div className={cn(
-        "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
-        hero ? "text-white/50" : tone === "danger" ? "text-[#C05A00]" : "text-ink-tertiary",
-      )}>
+      <div className={labelCls}>
         {Icon && <Icon className="h-3 w-3" aria-hidden />}
         <span>{label}</span>
       </div>
 
       {/* Value */}
-      <span className={valueColor}>{value}</span>
+      <span className={valueCls}>{value}</span>
 
       {/* Mini chart */}
       {miniChart && (
-        <div className="flex items-end gap-[2px] h-7">
+        <div className="spark-wave flex h-7 items-end gap-[2px]">
           {MINI_BARS.map((h, i) => (
             <span
               key={i}
               className={cn(
-                "w-[3px] rounded-sm",
-                hero ? "bg-white/30" : "bg-navy/20",
-                i === MINI_BARS.length - 1 && (hero ? "bg-white/70" : "bg-navy/60"),
+                "spark-bar w-[3px] rounded-sm",
+                isHero ? "bg-white/30" : "bg-[var(--accent)]/20",
+                i === MINI_BARS.length - 1 && (isHero ? "bg-white/70" : "bg-[var(--accent)]/60"),
               )}
-              style={{ height: `${(h / 12) * 100}%` }}
+              style={{
+                height: `${(h / 12) * 100}%`,
+                "--i": String(i),
+              } as React.CSSProperties}
             />
           ))}
         </div>
       )}
 
-      {/* Bottom row: trend + hint */}
-      <div className={cn(
-        "flex flex-wrap items-center gap-1.5 text-[11px]",
-        hero ? "text-white/60" : "text-ink-secondary",
-      )}>
+      {/* Trend + hint */}
+      <div className={bottomCls}>
         {trend && (
-          <span className={cn(
-            "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
-            trend.direction === "up"
-              ? "bg-[#DCFCE7] text-[#166534]"
-              : "bg-[#FEE2E2] text-[#991B1B]",
-            hero && trend.direction === "up" && "bg-white/15 text-white",
-          )}>
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+              trend.direction === "up"
+                ? isHero
+                  ? "bg-white/15 text-white"
+                  : "bg-[var(--green-bg)] text-[var(--green)]"
+                : "bg-[var(--rose-bg)] text-[var(--rose)]",
+            )}
+          >
             {trend.direction === "up"
               ? <TrendingUp className="h-2.5 w-2.5" aria-hidden />
               : <TrendingDown className="h-2.5 w-2.5" aria-hidden />

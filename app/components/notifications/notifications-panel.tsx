@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { relativeTime } from "@/lib/utils/date";
@@ -13,15 +13,21 @@ import type { NotificationRow } from "@/lib/queries/notifications";
 type Props = {
   initialNotifications: NotificationRow[];
   userId: string;
-  /** Unique per mounted instance to avoid Realtime channel name collisions. */
   channelKey: string;
 };
 
-const severityBorder: Record<NotificationRow["severity"], string> = {
-  critical: "border-l-status-danger-border",
-  warning: "border-l-status-sourcing-border",
-  info: "border-l-status-warehouse-border",
-  success: "border-l-status-success-border",
+const SEVERITY_ICON: Record<NotificationRow["severity"], React.ComponentType<{ className?: string }>> = {
+  critical: AlertCircle,
+  warning:  AlertTriangle,
+  info:     Info,
+  success:  CheckCircle,
+};
+
+const SEVERITY_COLOR: Record<NotificationRow["severity"], string> = {
+  critical: "text-[var(--rose)]",
+  warning:  "text-[var(--amber)]",
+  info:     "text-[var(--blue)]",
+  success:  "text-[var(--green)]",
 };
 
 export function NotificationsPanel({ initialNotifications, userId, channelKey }: Props) {
@@ -33,28 +39,19 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
   if (!supabaseRef.current) supabaseRef.current = createClient();
   const supabase = supabaseRef.current;
 
-  // Realtime subscription: prepend new INSERTs for this user.
   React.useEffect(() => {
     const channel = supabase
       .channel(`notifications-bell-${channelKey}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload) => {
           const row = payload.new as NotificationRow;
           setItems((prev) => [row, ...prev].slice(0, 50));
         },
       )
       .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    return () => { void supabase.removeChannel(channel); };
   }, [supabase, userId, channelKey]);
 
   const unreadCount = items.filter((n) => !n.read_at).length;
@@ -79,14 +76,18 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
       <Popover.Trigger asChild>
         <button
           type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-md border border-hairline bg-surface text-ink-secondary transition-colors hover:border-hairline-strong hover:text-ink-primary data-[state=open]:border-hairline-strong"
+          className={cn(
+            "relative flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+            "text-[#6e7581] hover:bg-white/[0.06] hover:text-[#e2e4e8]",
+            open && "bg-white/[0.06] text-[#e2e4e8]",
+          )}
           aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
         >
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 && (
             <span
               aria-hidden
-              className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent"
+              className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--rose)]"
             />
           )}
         </button>
@@ -94,31 +95,39 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
 
       <Popover.Portal>
         <Popover.Content
-          align="end"
-          sideOffset={8}
+          side="right"
+          align="start"
+          sideOffset={12}
           className={cn(
-            "z-50 w-[380px] overflow-hidden rounded-xl border border-hairline bg-surface shadow-popover",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-            "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+            "popover-dark z-50 w-[380px] overflow-hidden rounded-xl",
+            "border border-white/[0.08] bg-[#17191d]",
+            "shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
           )}
         >
-          <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-            <span className="text-[13px] font-medium text-ink-primary">Notifications</span>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-white">Alerts</span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-[var(--rose)] px-1.5 py-px text-[10px] font-semibold text-white tabular-nums">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={markAllRead}
               disabled={unreadCount === 0}
-              className="flex items-center gap-1 text-[11px] text-ink-tertiary transition-colors hover:text-ink-primary disabled:opacity-40 disabled:hover:text-ink-tertiary"
+              className="text-[11px] text-[#6e7581] transition-colors hover:text-white disabled:opacity-40"
             >
-              <Check className="h-3 w-3" aria-hidden />
               Mark all read
             </button>
           </div>
 
+          {/* List */}
           <div className="max-h-[420px] overflow-y-auto">
             {items.length === 0 ? (
-              <div className="px-4 py-10 text-center text-[12px] text-ink-tertiary">
+              <div className="px-4 py-10 text-center text-[12px] text-[#6e7581]">
                 You&apos;re all caught up.
               </div>
             ) : (
@@ -136,6 +145,22 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
               </ul>
             )}
           </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
+            <Link
+              href="/activity-log"
+              className="text-[11px] text-[#6e7581] transition-colors hover:text-white"
+            >
+              View all activity
+            </Link>
+            <Link
+              href="/preferences#notifications"
+              className="text-[11px] text-[#6e7581] transition-colors hover:text-white"
+            >
+              Notification settings
+            </Link>
+          </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -150,28 +175,28 @@ function NotificationItem({
   onActivate: () => void;
 }) {
   const isUnread = !n.read_at;
+  const Icon = SEVERITY_ICON[n.severity];
+
   const body = (
     <div
       className={cn(
-        "flex gap-3 border-l-2 px-4 py-3 transition-colors",
-        severityBorder[n.severity],
-        isUnread ? "bg-blue-50/40" : "bg-transparent",
-        n.href && "hover:bg-neutral-50",
+        "flex gap-3 px-4 py-3 transition-colors",
+        isUnread ? "bg-white/[0.03]" : "bg-transparent",
+        n.href && "hover:bg-white/[0.05]",
       )}
     >
+      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", SEVERITY_COLOR[n.severity])} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-2">
-          <span className="flex-1 truncate text-[13px] font-medium text-ink-primary">
-            {n.title}
-          </span>
+          <span className="flex-1 text-[13px] font-medium text-white/90">{n.title}</span>
           {isUnread && (
-            <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--blue)]" />
           )}
         </div>
         {n.description && (
-          <p className="mt-0.5 line-clamp-1 text-[12px] text-ink-secondary">{n.description}</p>
+          <p className="mt-0.5 line-clamp-1 text-[12px] text-[#9aa1aa]">{n.description}</p>
         )}
-        <span className="mt-1 block text-[10px] text-ink-tertiary">
+        <span className="mt-1 block text-[10px] text-[#6e7581]">
           {relativeTime(n.created_at)}
         </span>
       </div>
@@ -179,7 +204,7 @@ function NotificationItem({
   );
 
   return (
-    <li className="border-b border-hairline last:border-b-0">
+    <li className="border-b border-white/[0.05] last:border-b-0">
       {n.href ? (
         <Link href={n.href} onClick={onActivate} className="block">
           {body}

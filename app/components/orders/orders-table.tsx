@@ -5,9 +5,10 @@ import { EmptyState } from "@/components/common/empty-state";
 
 type OrdersTableProps = {
   orders: OrderRowData[];
+  onOpenDrawer?: (order: OrderRowData) => void;
 };
 
-export function OrdersTable({ orders }: OrdersTableProps) {
+export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
   if (!orders.length) {
     return (
       <EmptyState
@@ -19,21 +20,24 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+    <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
       <table className="w-full border-collapse text-[13px]">
-        <thead>
-          <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
-            <th className="px-4 py-2 font-medium">Order</th>
-            <th className="px-3 py-2 font-medium">Customer</th>
-            <th className="w-20 px-3 py-2 text-center font-medium">Subs</th>
-            <th className="px-3 py-2 font-medium">Status summary</th>
-            <th className="px-3 py-2 text-right font-medium">Total</th>
-            <th className="px-3 py-2 font-medium">Alerts</th>
+        <thead className="sticky top-0 z-10">
+          <tr
+            className="border-b border-[var(--line)] text-left text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--muted)]"
+            style={{ background: "linear-gradient(180deg, #fbfaf7 0%, #f5f1e8 100%)" }}
+          >
+            <th className="px-4 py-2.5 font-semibold">Order</th>
+            <th className="px-3 py-2.5 font-semibold">Customer</th>
+            <th className="w-16 px-3 py-2.5 text-center font-semibold">Subs</th>
+            <th className="px-3 py-2.5 font-semibold">Status</th>
+            <th className="px-3 py-2.5 text-right font-semibold">Total</th>
+            <th className="px-3 py-2.5 font-semibold">Alerts</th>
           </tr>
         </thead>
         <tbody>
           {orders.map((o) => (
-            <OrderRow key={o.id} order={o} />
+            <OrderRow key={o.id} order={o} onOpenDrawer={onOpenDrawer} />
           ))}
         </tbody>
       </table>

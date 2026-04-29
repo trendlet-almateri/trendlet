@@ -8,6 +8,7 @@ import {
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { TeamLoadCard } from "@/components/dashboard/team-load-card";
 import { OrdersTable } from "@/components/orders/orders-table";
+import { OrdersPipeline } from "@/components/orders/orders-pipeline";
 import { formatCurrency } from "@/lib/utils/currency";
 import {
   LayoutList,
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
     fetchDashboardKpis(),
     fetchRevenueByCurrency(),
     fetchTeamLoad(),
-    fetchAdminOrders({ limit: 25 }),
+    fetchAdminOrders({ limit: 5 }),
   ]);
 
   const headlineRevenue = revenue[0];
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
           icon={AlertTriangle}
           label="Delayed"
           value={(kpis?.delayed_count ?? 0).toLocaleString("en-US")}
-          tone={kpis?.delayed_count ? "danger" : "default"}
+          tone={kpis?.delayed_count ? "warn" : "default"}
           hint={`SLA at risk: ${kpis?.at_risk_count ?? 0}`}
         />
         <KpiCard
@@ -141,15 +142,28 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Orders table */}
+      {/* Recent orders table (5 most recent) */}
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-hint uppercase text-ink-tertiary">Recent orders</h2>
-          <a href="/orders" className="text-[12px] text-navy hover:underline">
+          <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+            Recent orders
+          </h2>
+          <a
+            href="/orders"
+            className="text-[12px] text-[var(--accent)] hover:underline"
+          >
             View all →
           </a>
         </div>
         <OrdersTable orders={orders} />
+      </section>
+
+      {/* Pipeline — same 5 orders, drag-to-pan */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+          Pipeline · recent orders
+        </h2>
+        <OrdersPipeline orders={orders} />
       </section>
     </div>
   );
