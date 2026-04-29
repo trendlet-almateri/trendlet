@@ -53,6 +53,20 @@ export async function uploadSupplierInvoiceAction(
     return { ok: false, error: "Only PDF files are accepted." };
   }
 
+  // file.type is browser-supplied and easily spoofed; verify the actual
+  // bytes start with %PDF before we trust this is a PDF. The first 4
+  // characters of every legitimate PDF are %PDF (per ISO 32000-1).
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (
+    buffer.length < 4 ||
+    buffer[0] !== 0x25 ||
+    buffer[1] !== 0x50 ||
+    buffer[2] !== 0x44 ||
+    buffer[3] !== 0x46
+  ) {
+    return { ok: false, error: "File is not a valid PDF." };
+  }
+
   // Ownership check via the user-scoped client BEFORE we touch storage:
   // a non-admin caller can only attach a receipt to a sub-order they can
   // see through RLS (assigned to them, or their region). Without this gate,
@@ -84,8 +98,6 @@ export async function uploadSupplierInvoiceAction(
   const yyyymm = new Date().toISOString().slice(0, 7);
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   const storagePath = `${user.id}/${yyyymm}/${crypto.randomUUID()}-${safeName}`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await sb.storage
     .from("supplier-invoices")

@@ -55,6 +55,11 @@ export async function setSubOrderStatusAction(input: {
     console.error("[fulfillment] twilio notify failed", e);
   });
 
+  // Same SubOrderRow component renders in /fulfillment, /queue, /pipeline —
+  // revalidate all three so a status change in one view doesn't leave the
+  // others stale until a manual refresh.
   revalidatePath("/fulfillment");
+  revalidatePath("/queue");
+  revalidatePath("/pipeline");
   return { ok: true, error: null };
 }

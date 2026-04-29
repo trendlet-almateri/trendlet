@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   Loader2,
   AlertTriangle,
@@ -15,6 +15,7 @@ import {
   PlaneLanding,
   Bike,
   CheckCircle2,
+  X,
 } from "lucide-react";
 import { setSubOrderStatusAction } from "./actions";
 import { SupplierInvoiceDropzone } from "./supplier-invoice-dropzone";
@@ -71,10 +72,12 @@ export function SubOrderRow({
 }) {
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(row.status);
   const [pending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
   const palette = STATUS_BY_CODE[optimisticStatus]?.palette ?? "pending";
   const statusLabel = STATUS_BY_CODE[optimisticStatus]?.label ?? optimisticStatus;
 
   const advance = (target: string) => {
+    setActionError(null);
     startTransition(async () => {
       setOptimisticStatus(target);
       const result = await setSubOrderStatusAction({
@@ -83,8 +86,7 @@ export function SubOrderRow({
       });
       if (!result.ok) {
         // Optimistic state auto-reverts at transition end on error.
-        console.error("[fulfillment] status update failed", result.error);
-        alert(result.error ?? "Failed to update status.");
+        setActionError(result.error ?? "Failed to update status.");
       }
     });
   };
@@ -195,6 +197,23 @@ export function SubOrderRow({
           );
         })}
       </div>
+
+      {actionError && (
+        <div className="basis-full">
+          <div className="flex items-start gap-2 rounded-md border border-status-danger-border/40 bg-status-danger-bg/40 px-3 py-2 text-[12px] text-status-danger-fg">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            <span className="flex-1">{actionError}</span>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-md text-status-danger-fg/80 hover:bg-status-danger-bg"
+              aria-label="Dismiss error"
+            >
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

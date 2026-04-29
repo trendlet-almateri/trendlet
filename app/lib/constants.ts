@@ -4,6 +4,7 @@
 
 export const STATUSES = [
   { code: "pending", label: "Pending", palette: "pending", stage: "pending" },
+  { code: "assigned", label: "Assigned", palette: "pending", stage: "pending" },
   { code: "unassigned", label: "Unassigned", palette: "danger", stage: "pending" },
   { code: "under_review", label: "Under review", palette: "sourcing", stage: "sourcing" },
   { code: "in_progress", label: "In progress", palette: "sourcing", stage: "sourcing" },
