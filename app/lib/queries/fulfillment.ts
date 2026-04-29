@@ -73,12 +73,17 @@ export async function fetchFulfillmentQueue(opts: {
 }): Promise<FulfillmentRow[]> {
   const sb = opts.isAdmin ? createServiceClient() : createClient();
 
+  // !inner forces an inner join so the brand.region filter eliminates
+  // rows at the DB layer instead of returning them all and filtering
+  // in JS. Earlier code did the filter in JS because of a PostgREST
+  // quirk; the modern Supabase client supports `brand.region` filters
+  // when the join is explicit-inner.
   let query = sb
     .from("sub_orders")
     .select(`
       id, sub_order_number, product_title, variant_title, sku, quantity,
       product_image_url, status, status_changed_at, is_at_risk, is_delayed,
-      brand:brands ( id, name, region ),
+      brand:brands!inner ( id, name, region ),
       order:orders (
         id, shopify_order_number,
         customer:customers ( first_name, last_name, default_address )
@@ -86,6 +91,7 @@ export async function fetchFulfillmentQueue(opts: {
       supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id, linked_at )
     `)
     .in("status", ACTIVE_STATUSES)
+    .eq("brand.region", opts.region)
     .order("status_changed_at", { ascending: true });
 
   if (opts.assigneeFilter === "self") {
@@ -95,13 +101,7 @@ export async function fetchFulfillmentQueue(opts: {
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  // Filter by brand region in JS (PostgREST nested filtering is awkward
-  // for the .eq on joined relation in this version of @supabase/ssr).
   return (data ?? [])
-    .filter((row) => {
-      const brand = (row as { brand: { region: string | null } | null }).brand;
-      return brand?.region === opts.region;
-    })
     .map((row) => {
       const r = row as unknown as {
         id: string;
