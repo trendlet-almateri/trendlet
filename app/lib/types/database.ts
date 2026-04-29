@@ -214,6 +214,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          markup_percent: number
           name: string
           notes: string | null
           region: Database["public"]["Enums"]["region_code"] | null
@@ -224,6 +225,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          markup_percent?: number
           name: string
           notes?: string | null
           region?: Database["public"]["Enums"]["region_code"] | null
@@ -234,6 +236,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          markup_percent?: number
           name?: string
           notes?: string | null
           region?: Database["public"]["Enums"]["region_code"] | null

@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
   BarChart3,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/types/database";
@@ -46,6 +47,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/invoices", label: "Invoices", icon: Receipt, roles: ["admin"] },
       { href: "/shipments", label: "Shipments", icon: Truck, roles: ["admin"] },
       { href: "/returns", label: "Returns", icon: CornerDownLeft, roles: ["admin"] },
+      { href: "/admin/brands", label: "Brands", icon: Tag, roles: ["admin"] },
     ],
   },
   {
