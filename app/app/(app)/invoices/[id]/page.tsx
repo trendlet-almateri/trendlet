@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { ChevronRight, FileText, Brain } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getCustomerInvoiceSignedUrl } from "@/lib/storage/customer-invoices";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
 import { InvoiceActions } from "./invoice-actions";
+import { RegeneratePdfButton } from "./regenerate-pdf-button";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +92,10 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
     ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
     : "—";
   const customerEmail = inv.order?.customer?.email ?? null;
+  const pdfSignedUrl = inv.pdf_storage_path
+    ? await getCustomerInvoiceSignedUrl(inv.pdf_storage_path)
+    : null;
+  const canRegenerate = inv.status === "approved" || inv.status === "sent";
 
   return (
     <div className="flex flex-col gap-5">
@@ -129,20 +135,27 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
         {/* Left: PDF preview placeholder + AI reasoning */}
         <div className="flex flex-col gap-4">
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-              <FileText className="h-3 w-3" aria-hidden /> PDF preview
-            </h2>
-            {inv.pdf_storage_path ? (
-              <div className="text-[12px] text-[var(--ink-2)]">
-                PDF available at{" "}
-                <code className="mono rounded-sm bg-neutral-100 px-1 py-0.5 text-[11px]">
-                  {inv.pdf_storage_path}
-                </code>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                <FileText className="h-3 w-3" aria-hidden /> PDF preview
+              </h2>
+              {canRegenerate && <RegeneratePdfButton invoiceId={inv.id} />}
+            </div>
+            {pdfSignedUrl ? (
+              <iframe
+                src={pdfSignedUrl}
+                title={`Invoice ${inv.invoice_number} PDF`}
+                className="h-[640px] w-full rounded-md border border-[var(--line)] bg-white"
+              />
+            ) : inv.pdf_storage_path ? (
+              <div className="rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] px-6 py-12 text-center text-[12px] text-[var(--muted)]">
+                PDF stored at <code className="mono">{inv.pdf_storage_path}</code> —
+                couldn&apos;t generate signed URL. Try refreshing.
               </div>
             ) : (
               <div className="rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] px-6 py-12 text-center text-[12px] text-[var(--muted)]">
-                No PDF generated yet. Customer-facing PDF will be rendered when the
-                invoice is approved (Phase 2 of the build).
+                No PDF generated yet. The customer-facing PDF is rendered when the
+                invoice is approved.
               </div>
             )}
           </section>

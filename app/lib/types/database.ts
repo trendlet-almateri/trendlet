@@ -1,7 +1,3 @@
-// Auto-generated from Supabase project kfrjqpjprvvsibwmrqph on 2026-04-28.
-// Regenerate via Supabase MCP: generate_typescript_types(project_id="kfrjqpjprvvsibwmrqph").
-// Hand-written aliases (Role, Region, Currency) are appended below for app code that imports them.
-
 export type Json =
   | string
   | number
@@ -1688,6 +1684,7 @@ export type Database = {
       }
       supplier_invoices: {
         Row: {
+          barcode: string | null
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"] | null
           file_size_bytes: number | null
@@ -1708,6 +1705,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          barcode?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
           file_size_bytes?: number | null
@@ -1728,6 +1726,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          barcode?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"] | null
           file_size_bytes?: number | null
@@ -2516,6 +2515,7 @@ export const Constants = {
     },
   },
 } as const
+
 
 // Hand-written aliases used across the app (preserved from prior stub).
 export type Role = Database["public"]["Enums"]["user_role"];
