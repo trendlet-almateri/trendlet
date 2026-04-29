@@ -12,6 +12,7 @@ export type FulfillmentRow = {
   status_changed_at: string;
   is_at_risk: boolean;
   is_delayed: boolean;
+  has_supplier_receipt: boolean;
   brand: {
     id: string;
     name: string;
@@ -75,7 +76,8 @@ export async function fetchFulfillmentQueue(opts: {
       order:orders (
         id, shopify_order_number,
         customer:customers ( first_name, last_name, default_address )
-      )
+      ),
+      supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id )
     `)
     .in("status", ACTIVE_STATUSES)
     .order("status_changed_at", { ascending: true });
@@ -117,6 +119,7 @@ export async function fetchFulfillmentQueue(opts: {
             default_address: { city?: string | null } | null;
           } | null;
         } | null;
+        supplier_invoice_links: { supplier_invoice_id: string }[] | null;
       };
       const c = r.order?.customer;
       const fullName =
@@ -135,6 +138,7 @@ export async function fetchFulfillmentQueue(opts: {
         status_changed_at: r.status_changed_at,
         is_at_risk: r.is_at_risk,
         is_delayed: r.is_delayed,
+        has_supplier_receipt: (r.supplier_invoice_links?.length ?? 0) > 0,
         brand: r.brand,
         order: r.order
           ? {

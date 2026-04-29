@@ -1446,6 +1446,70 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_order_supplier_invoices: {
+        Row: {
+          linked_at: string
+          linked_by: string
+          sub_order_id: string
+          supplier_invoice_id: string
+        }
+        Insert: {
+          linked_at?: string
+          linked_by: string
+          sub_order_id: string
+          supplier_invoice_id: string
+        }
+        Update: {
+          linked_at?: string
+          linked_by?: string
+          sub_order_id?: string
+          supplier_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_order_supplier_invoices_linked_by_fkey"
+            columns: ["linked_by"]
+            isOneToOne: false
+            referencedRelation: "mv_team_performance_30d"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "sub_order_supplier_invoices_linked_by_fkey"
+            columns: ["linked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_order_supplier_invoices_sub_order_id_fkey"
+            columns: ["sub_order_id"]
+            isOneToOne: false
+            referencedRelation: "sub_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_order_supplier_invoices_sub_order_id_fkey"
+            columns: ["sub_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_sub_orders_employee"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_order_supplier_invoices_supplier_invoice_id_fkey"
+            columns: ["supplier_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_order_supplier_invoices_supplier_invoice_id_fkey"
+            columns: ["supplier_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_supplier_invoices_employee"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sub_orders: {
         Row: {
           assigned_employee_id: string | null

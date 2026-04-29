@@ -17,6 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { setSubOrderStatusAction } from "./actions";
+import { SupplierInvoiceDropzone } from "./supplier-invoice-dropzone";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { relativeTime } from "@/lib/utils/date";
@@ -62,9 +63,11 @@ function VARIANT_CLASS(v: "primary" | "secondary" | "danger"): string {
 export function SubOrderRow({
   row,
   nextStatuses,
+  canUploadReceipt = false,
 }: {
   row: FulfillmentRow;
   nextStatuses: StatusCode[];
+  canUploadReceipt?: boolean;
 }) {
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(row.status);
   const [pending, startTransition] = useTransition();
@@ -154,9 +157,15 @@ export function SubOrderRow({
         </div>
       </div>
 
-      {/* Status-advance buttons */}
+      {/* Status-advance buttons + receipt upload */}
       <div className="flex flex-wrap items-center gap-1.5 justify-self-end">
-        {nextStatuses.length === 0 && (
+        {canUploadReceipt && (
+          <SupplierInvoiceDropzone
+            subOrderId={row.id}
+            hasReceipt={row.has_supplier_receipt}
+          />
+        )}
+        {nextStatuses.length === 0 && !canUploadReceipt && (
           <span className="text-[11px] text-ink-tertiary">No actions</span>
         )}
         {nextStatuses.map((target) => {

@@ -63,18 +63,21 @@ export default async function FulfillmentPage() {
             emptyHint="Nothing to buy right now"
             items={groups.sourcing}
             role={role}
+            canUploadReceipt
           />
           <Group
             label="Warehouse"
             emptyHint="Nothing at the warehouse"
             items={groups.warehouse}
             role={role}
+            canUploadReceipt
           />
           <Group
             label="In transit / KSA"
             emptyHint="Nothing in transit"
             items={groups.transit}
             role={role}
+            canUploadReceipt
           />
         </div>
       )}
@@ -87,11 +90,13 @@ function Group({
   emptyHint,
   items,
   role,
+  canUploadReceipt = false,
 }: {
   label: string;
   emptyHint: string;
   items: Awaited<ReturnType<typeof fetchFulfillmentQueue>>;
   role: Role;
+  canUploadReceipt?: boolean;
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -113,6 +118,7 @@ function Group({
               key={row.id}
               row={row}
               nextStatuses={getNextStatuses(row.status, role, ROLE_STATUS_WHITELIST)}
+              canUploadReceipt={canUploadReceipt}
             />
           ))}
         </div>

@@ -68,12 +68,14 @@ export default async function SourcingQueuePage() {
             emptyHint="Nothing to buy right now"
             items={groups.toBuy}
             role={role}
+            canUploadReceipt
           />
           <Group
             label="Bought — hand off to warehouse"
             emptyHint="Nothing waiting for handoff"
             items={groups.bought}
             role={role}
+            canUploadReceipt
           />
           <Group
             label="Handed off"
@@ -94,12 +96,14 @@ function Group({
   items,
   role,
   readOnly = false,
+  canUploadReceipt = false,
 }: {
   label: string;
   emptyHint: string;
   items: Awaited<ReturnType<typeof fetchFulfillmentQueue>>;
   role: Role;
   readOnly?: boolean;
+  canUploadReceipt?: boolean;
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -123,6 +127,7 @@ function Group({
               nextStatuses={
                 readOnly ? [] : getNextStatuses(row.status, role, ROLE_STATUS_WHITELIST)
               }
+              canUploadReceipt={canUploadReceipt}
             />
           ))}
         </div>
