@@ -48,6 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/shipments", label: "Shipments", icon: Truck, roles: ["admin"] },
       { href: "/returns", label: "Returns", icon: CornerDownLeft, roles: ["admin"] },
       { href: "/admin/brands", label: "Brands", icon: Tag, roles: ["admin"] },
+      { href: "/admin/team", label: "Team", icon: Users, roles: ["admin"] },
     ],
   },
   {
