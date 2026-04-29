@@ -1769,7 +1769,7 @@ export type Database = {
           storage_path: string
           supplier_name: string | null
           updated_at: string
-          uploaded_by: string
+          uploaded_by: string | null
         }
         Insert: {
           barcode?: string | null
@@ -1790,7 +1790,7 @@ export type Database = {
           storage_path: string
           supplier_name?: string | null
           updated_at?: string
-          uploaded_by: string
+          uploaded_by?: string | null
         }
         Update: {
           barcode?: string | null
@@ -1811,7 +1811,7 @@ export type Database = {
           storage_path?: string
           supplier_name?: string | null
           updated_at?: string
-          uploaded_by?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
@@ -1955,6 +1955,42 @@ export type Database = {
           source?: string
           topic?: string | null
           webhook_id?: string
+        }
+        Relationships: []
+      }
+      zoho_inbound_messages: {
+        Row: {
+          account_id: string
+          attachment_count: number
+          error_message: string | null
+          from_address: string | null
+          message_id: string
+          processed_at: string
+          received_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          account_id: string
+          attachment_count?: number
+          error_message?: string | null
+          from_address?: string | null
+          message_id: string
+          processed_at?: string
+          received_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          account_id?: string
+          attachment_count?: number
+          error_message?: string | null
+          from_address?: string | null
+          message_id?: string
+          processed_at?: string
+          received_at?: string | null
+          status?: string
+          subject?: string | null
         }
         Relationships: []
       }

@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/pull-hubstaff",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/poll-zoho-inbound",
+      "schedule": "0 5 * * *"
     }
   ]
 }
