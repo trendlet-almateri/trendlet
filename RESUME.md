@@ -26,11 +26,15 @@ Resume the Trendlet Optify OMS build at the start of Phase 4e (supplier invoice 
 
 Sourcer / fulfiller drag-and-drops a PDF receipt onto a sub-order. The PDF is stored in the existing `supplier-invoices` bucket. A `supplier_invoices` row is created and `customer_invoices.supplier_invoice_id` is linked. No AI yet — that's Phase 4f.
 
+**Who can upload (locked):** `sourcing`, `fulfiller`, and `admin` only. Warehouse does NOT touch the PDF flow — they handle physical fulfillment status only. Sourcing uploads receipts for US brands; fulfiller uploads for EU brands; admin can do either.
+
 Scope:
-- Drag-and-drop component on the sub-order detail panel (or a dedicated upload page on the role views)
-- Server action `uploadSupplierInvoiceAction` — service-role storage upload, MIME validation, sub-order linking
+- Drag-and-drop component on the sub-order detail panel (mounted on /queue for sourcing, /fulfillment for fulfiller, NOT on /pipeline)
+- Server action `uploadSupplierInvoiceAction` — `requireRole(["sourcing","fulfiller","admin"])`, service-role storage upload, MIME validation, sub-order linking
 - File size limit 10MB, MIME `application/pdf` only
 - Path convention: `supplier-invoices/{user_id}/{yyyy-mm}/{uuid}-{filename}`
+
+**Phase 4f preview (next after 4e):** AI extraction (OpenRouter) reads the uploaded PDF, sourcer/fulfiller maps line items to sub-orders, clicks "Create customer invoice drafts." Drafts go to admin's `pending_review` queue. Admin approves → PDF renders (already built in Phase 2) → Zoho sends (already built in Phase 3, mock until env vars). 4f also builds the admin AI model picker at `/admin/invoice-settings` (admin-only page, choice stored in `settings` table, read by sourcing AND fulfiller's extraction calls). Manual-entry fallback when AI fails.
 
 **Locked design decisions (do not re-ask in future sessions):**
 - 3 disjoint roles: fulfiller (EU only), sourcing (US, brand-restricted), warehouse (US, sees all). KSA driver reserved for future shipping integration.

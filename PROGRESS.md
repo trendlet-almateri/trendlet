@@ -603,8 +603,9 @@ Total schema state: 31 tables, 22 migrations applied (was 19 at session start).
 - **Approve flow**: status flip is durable; PDF render is regenerable. If `approveInvoiceAction` succeeds at the status flip but PDF render fails, status stays `approved` and admin retries via the Regenerate button.
 - **Mark-sent flow**: in mock mode (no Zoho env vars), status flips to `sent` after logging api_logs as 'skipped'. In live mode, status flips ONLY if Zoho returns success — failure leaves status as `approved` so admin can retry.
 - **Phase 4-team**: admin user-creation UI is deferred. 3 test accounts unblock testing in the meantime; they live in production Auth and must be deleted before launch.
-- **AI model picker**: deferred to Phase 4f. Admin will pick OpenRouter model from `/admin/invoice-settings` (not yet built); the choice is stored in `settings` table and read at extraction time.
+- **AI model picker**: deferred to Phase 4f. Admin will pick OpenRouter model from `/admin/invoice-settings` (not yet built, admin-only); the choice is stored in `settings` table and read by sourcing AND fulfiller's extraction calls at runtime.
 - **AI extraction failure fallback**: manual data-entry form (deferred to 4f).
+- **PDF flow ownership**: 3 roles touch the PDF flow — sourcing (US receipts → drafts), fulfiller (EU receipts → drafts), admin (final review/approve/regenerate/send). **Warehouse does NOT touch the PDF flow** — purely physical handling. Phases 4e + 4f wire upload + extraction for sourcing AND fulfiller; warehouse views remain unchanged.
 
 ### Test accounts in live Supabase (DELETE BEFORE LAUNCH)
 | email | role | password |
