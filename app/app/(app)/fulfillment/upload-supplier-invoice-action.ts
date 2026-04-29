@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/require-role";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME = "application/pdf";
@@ -53,9 +53,32 @@ export async function uploadSupplierInvoiceAction(
     return { ok: false, error: "Only PDF files are accepted." };
   }
 
+  // Ownership check via the user-scoped client BEFORE we touch storage:
+  // a non-admin caller can only attach a receipt to a sub-order they can
+  // see through RLS (assigned to them, or their region). Without this gate,
+  // service-role bypass below would let any sourcer link a receipt to
+  // any sub-order's UUID.
+  const isAdmin = user.roles.includes("admin");
+  if (!isAdmin) {
+    const userScoped = createClient();
+    const { data: subOrder, error: ownerErr } = await userScoped
+      .from("sub_orders")
+      .select("id")
+      .eq("id", parsed.data.subOrderId)
+      .maybeSingle();
+
+    if (ownerErr) {
+      return { ok: false, error: `Sub-order lookup failed: ${ownerErr.message}` };
+    }
+    if (!subOrder) {
+      return { ok: false, error: "Sub-order not found or not accessible." };
+    }
+  }
+
   // Service-role client for storage upload + RLS-bypass insert. We've
-  // already proven the caller is sourcing/fulfiller/admin via requireRole,
-  // and we hard-code uploaded_by = user.id so the row stays correctly attributed.
+  // already proven the caller is sourcing/fulfiller/admin via requireRole
+  // AND that they can see the sub-order via RLS. uploaded_by is hard-coded
+  // to user.id so the row stays correctly attributed.
   const sb = createServiceClient();
 
   const yyyymm = new Date().toISOString().slice(0, 7);
@@ -106,6 +129,14 @@ export async function uploadSupplierInvoiceAction(
     });
 
   if (linkError) {
+    // Compensating cleanup: remove both the supplier_invoices row and
+    // the PDF in storage so we don't leak orphans on partial failure.
+    try {
+      await sb.from("supplier_invoices").delete().eq("id", invoiceRow.id);
+    } catch {}
+    try {
+      await sb.storage.from("supplier-invoices").remove([storagePath]);
+    } catch {}
     return { ok: false, error: `Failed to link to sub-order: ${linkError.message}` };
   }
 
