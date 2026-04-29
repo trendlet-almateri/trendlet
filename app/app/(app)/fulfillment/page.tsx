@@ -18,6 +18,8 @@ export default async function FulfillmentPage() {
     region: "EU",
     userId: user.id,
     isAdmin,
+    // Admin sees everyone's EU work; fulfiller sees only their own.
+    assigneeFilter: isAdmin ? "all" : "self",
   });
 
   // Pick the role we'll use to filter visible buttons. Fulfiller takes

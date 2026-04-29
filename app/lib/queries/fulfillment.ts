@@ -43,22 +43,26 @@ const ACTIVE_STATUSES = [
 ];
 
 /**
- * Fetch active sub-orders for the EU/fulfiller queue.
+ * Fetch active sub-orders for a region-scoped role queue.
  *
  * Filters:
- *   - brand.region = 'EU'
+ *   - brand.region = opts.region (EU for fulfiller, US for warehouse/sourcing)
  *   - status NOT terminal (delivered, returned, cancelled, out_of_stock, failed)
- *   - if `userId` is provided (non-admin): assigned_employee_id = userId
+ *   - if opts.assigneeFilter = "self" (non-admin AND brand-restricted role):
+ *       assigned_employee_id = opts.userId
+ *   - if opts.assigneeFilter = "all" (warehouse, admin):
+ *       no assignee filter — sees everyone's work in this region
  *
- * Admin sees the entire EU pipeline; the fulfiller sees only what's
- * theirs. RLS already scopes employee reads, but we add the explicit
- * `assigned_employee_id` filter to keep the query result consistent
- * with what's actually theirs to act on.
+ * Used by:
+ *   /fulfillment (region=EU, assigneeFilter=self for fulfiller, all for admin)
+ *   /pipeline    (region=US, assigneeFilter=all for warehouse + admin)
+ *   /queue       (region=US, assigneeFilter=self for sourcing, all for admin) — Phase 4d
  */
 export async function fetchFulfillmentQueue(opts: {
   region: Region;
   userId: string;
   isAdmin: boolean;
+  assigneeFilter: "self" | "all";
 }): Promise<FulfillmentRow[]> {
   const sb = opts.isAdmin ? createServiceClient() : createClient();
 
@@ -76,7 +80,7 @@ export async function fetchFulfillmentQueue(opts: {
     .in("status", ACTIVE_STATUSES)
     .order("status_changed_at", { ascending: true });
 
-  if (!opts.isAdmin) {
+  if (opts.assigneeFilter === "self") {
     query = query.eq("assigned_employee_id", opts.userId);
   }
 
