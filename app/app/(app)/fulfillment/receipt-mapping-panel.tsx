@@ -125,7 +125,7 @@ export function ReceiptMappingPanel({
     <div className="basis-full">
       <div className="rounded-md border border-hairline-strong bg-neutral-50/60 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[12px] text-ink-secondary">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-ink-secondary">
             <Sparkles className="h-3.5 w-3.5 text-ink-tertiary" aria-hidden />
             <span className="font-medium text-ink-primary">Receipt</span>
             {state.kind === "ready" && state.receipt.supplier_name && (
@@ -144,6 +144,17 @@ export function ReceiptMappingPanel({
                   </span>
                 </>
               )}
+            {state.kind === "ready" && state.receipt.barcode && (
+              <>
+                <span>·</span>
+                <span
+                  className="rounded-sm bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-ink-tertiary"
+                  title="Receipt barcode (read by AI)"
+                >
+                  {state.receipt.barcode}
+                </span>
+              </>
+            )}
           </div>
           <button
             type="button"

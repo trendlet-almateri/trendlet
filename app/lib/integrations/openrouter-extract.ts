@@ -79,7 +79,14 @@ export async function extractSupplierInvoice(input: {
           "barcode: string|null, items: { description: string, quantity: number, " +
           "unit_price: number, line_total: number, ai_confidence: 'high'|'medium'|'low', " +
           "ai_match_score: number (0..1), ai_reasoning: string }[] }. " +
-          "Use null for any field you can't confidently read. Never invent values.",
+          "Use null for any field you can't confidently read. Never invent values. " +
+          "BARCODE GUIDANCE: Every receipt usually prints ONE barcode at the bottom " +
+          "representing the whole transaction. Read the human-readable digits printed " +
+          "directly under the barcode bars (typically Code-128: 8-20 digits or " +
+          "alphanumerics, or EAN-13: exactly 13 digits). If you can't see the digits " +
+          "clearly, return null — do NOT guess from the bars alone. " +
+          "If the receipt has multiple barcodes, return the one closest to the total " +
+          "amount (the transaction barcode), not per-item product barcodes.",
       },
       {
         role: "user",
@@ -165,11 +172,31 @@ function mockExtract(input: { filename: string; modelId: string }): ExtractResul
       invoice_date: new Date().toISOString().slice(0, 10),
       invoice_total: Number(subtotal.toFixed(2)),
       currency: "USD",
-      barcode: `MOCK-${hash}`,
+      barcode: mockBarcode(hash),
       items,
     },
     error: null,
   };
+}
+
+/**
+ * Generate a plausible mock barcode. Even-hash → EAN-13 (13 digits),
+ * odd-hash → Code-128 alphanumeric. Both pass validateBarcode().
+ */
+function mockBarcode(hash: number): string {
+  if (hash % 2 === 0) {
+    // EAN-13: pad hash to 13 digits.
+    return String(hash).padStart(13, "0").slice(0, 13);
+  }
+  // Code-128 alphanumeric, 12 chars.
+  const alpha = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let out = "";
+  let h = hash;
+  for (let i = 0; i < 12; i++) {
+    out += i % 3 === 0 ? alpha[h % alpha.length] : String(h % 10);
+    h = Math.floor(h / 7) + 1;
+  }
+  return out;
 }
 
 function mockItem(description: string, qty: number, unit: number): ExtractedItem {
@@ -221,9 +248,27 @@ function normalize(raw: unknown): ExtractedInvoice {
     invoice_date: typeof r.invoice_date === "string" ? r.invoice_date : null,
     invoice_total: typeof r.invoice_total === "number" ? r.invoice_total : null,
     currency: typeof r.currency === "string" ? r.currency : null,
-    barcode: typeof r.barcode === "string" ? r.barcode : null,
+    barcode: validateBarcode(typeof r.barcode === "string" ? r.barcode : null),
     items,
   };
+}
+
+/**
+ * Phase 6: format-heuristic check on AI-read barcodes. Vision models can
+ * misread bars and emit a plausible-looking but wrong number. We reject
+ * anything that doesn't match common retail formats (EAN-13, EAN-8,
+ * UPC-A, or Code-128 alphanumeric of reasonable length). Length<6 or
+ * length>30 is rejected outright.
+ */
+function validateBarcode(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/\s+/g, "");
+  if (trimmed.length < 6 || trimmed.length > 30) return null;
+  // Allow only digits, uppercase letters, hyphens — typical receipt barcodes.
+  if (!/^[A-Z0-9-]+$/i.test(trimmed)) return null;
+  // Reject obvious mock/placeholder strings the model might hallucinate.
+  if (/^0+$/.test(trimmed) || /^1+$/.test(trimmed)) return null;
+  return trimmed.toUpperCase();
 }
 
 function normalizeItem(raw: unknown): ExtractedItem | null {
