@@ -54,8 +54,8 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "operations",
     label: "Operations",
     items: [
-      { href: "/queue", label: "Sourcing", icon: ShoppingBag, dot: "bg-status-sourcing-border", roles: ["sourcing", "fulfiller", "admin"] },
-      { href: "/pipeline", label: "Warehouse", icon: Warehouse, dot: "bg-status-warehouse-border", roles: ["warehouse", "fulfiller", "admin"] },
+      { href: "/queue", label: "Sourcing", icon: ShoppingBag, dot: "bg-status-sourcing-border", roles: ["sourcing", "admin"] },
+      { href: "/pipeline", label: "Warehouse", icon: Warehouse, dot: "bg-status-warehouse-border", roles: ["warehouse", "admin"] },
       { href: "/fulfillment", label: "EU fulfillment", icon: Globe, dot: "bg-status-transit-border", roles: ["fulfiller", "admin"] },
       { href: "/deliveries", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"] },
     ],

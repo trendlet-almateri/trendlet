@@ -24,7 +24,7 @@ type Row = {
 };
 
 export default async function WarehousePipelinePage() {
-  const user = await requireRole(["warehouse", "fulfiller", "admin"]);
+  const user = await requireRole(["warehouse", "admin"]);
   const sb = createServiceClient();
 
   let q = sb

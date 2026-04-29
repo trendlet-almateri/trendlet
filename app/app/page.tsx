@@ -12,6 +12,7 @@ export default async function RootPage() {
   // Admin → dashboard; non-admin employees → role-specific landing
   if (user.roles.includes("admin")) redirect("/dashboard");
   if (user.roles.includes("ksa_operator")) redirect("/deliveries");
+  if (user.roles.includes("fulfiller")) redirect("/fulfillment");
   if (user.roles.includes("warehouse")) redirect("/pipeline");
   redirect("/queue");
 }

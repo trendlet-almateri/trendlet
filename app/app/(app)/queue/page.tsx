@@ -28,7 +28,7 @@ type Row = {
 };
 
 export default async function SourcingQueuePage() {
-  const user = await requireRole(["sourcing", "fulfiller", "admin"]);
+  const user = await requireRole(["sourcing", "admin"]);
   const sb = createServiceClient();
 
   // Admin sees all sourcing-stage items; sourcing/fulfiller see only their assigned ones
