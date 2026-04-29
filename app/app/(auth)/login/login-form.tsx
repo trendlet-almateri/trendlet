@@ -8,6 +8,7 @@ import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BrandSpinnerInline } from "@/components/brand/brand-spinner";
 
 const initial: LoginState = { error: null };
 
@@ -15,8 +16,14 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      <span>{pending ? "Signing in…" : "Sign in"}</span>
-      {!pending && <ArrowRight className="h-4 w-4" aria-hidden />}
+      {pending ? (
+        <BrandSpinnerInline size={20} />
+      ) : (
+        <>
+          <span>Sign in</span>
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </>
+      )}
     </Button>
   );
 }

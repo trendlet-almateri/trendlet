@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { autoAssignAction, type AutoAssignState } from "./actions";
 import { Button } from "@/components/ui/button";
+import { BrandSpinnerInline } from "@/components/brand/brand-spinner";
 
 const initial: AutoAssignState = { error: null, assignedTo: null };
 
@@ -10,7 +11,7 @@ function Inner({ subOrderNumber }: { subOrderNumber: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="sm" variant="secondary" disabled={pending}>
-      {pending ? "Assigning…" : "Auto-assign"}
+      {pending ? <BrandSpinnerInline size={16} /> : "Auto-assign"}
       <span className="sr-only"> sub-order {subOrderNumber}</span>
     </Button>
   );
