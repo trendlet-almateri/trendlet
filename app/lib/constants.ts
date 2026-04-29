@@ -28,13 +28,20 @@ export const STATUS_BY_CODE: Record<string, (typeof STATUSES)[number]> = Object.
   STATUSES.map((s) => [s.code, s]),
 );
 
-// Per-role allowed transitions (admin bypasses)
+// Per-role allowed transitions (admin bypasses). Mirrors the
+// statuses.allowed_from_roles values in the DB; the DB trigger
+// enforce_status_whitelist is the source of truth, this is only used
+// to decide which buttons to render in the UI.
 export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
   sourcing: ["under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled"],
-  warehouse: ["delivered_to_warehouse", "preparing_for_shipment", "shipped"],
+  warehouse: [
+    "delivered_to_warehouse", "preparing_for_shipment", "shipped",
+    "arrived_in_ksa", "out_for_delivery", "delivered",
+  ],
   fulfiller: [
     "under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled",
     "delivered_to_warehouse", "preparing_for_shipment", "shipped",
+    "arrived_in_ksa", "out_for_delivery", "delivered",
   ],
   ksa_operator: ["arrived_in_ksa", "out_for_delivery", "delivered", "returned"],
 };
