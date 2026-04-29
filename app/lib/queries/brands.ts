@@ -62,27 +62,41 @@ export async function fetchBrandsForAdmin(): Promise<BrandRow[]> {
 /**
  * List active employees (any non-admin role + admins) eligible to be a
  * brand's primary assignee. Admin can self-assign per Q3.
+ *
+ * Two queries instead of an embedded join: `user_roles` has dual FKs to
+ * `profiles` (`user_id` and `granted_by`), which makes the PostgREST
+ * embed ambiguous and 500s.
  */
 export async function fetchAssigneeOptions(): Promise<AssigneeOption[]> {
   const sb = createServiceClient();
 
   const { data: profiles, error } = await sb
     .from("profiles")
-    .select(`
-      id, full_name, email,
-      user_roles ( role )
-    `)
+    .select("id, full_name, email")
     .eq("is_active", true)
     .order("full_name", { ascending: true });
   if (error) throw new Error(error.message);
 
-  return (profiles ?? []).map((p) => {
-    const rolesRel = (p as { user_roles?: { role: string }[] | null }).user_roles ?? [];
-    return {
-      id: (p as { id: string }).id,
-      full_name: (p as { full_name: string }).full_name,
-      email: (p as { email: string }).email,
-      roles: rolesRel.map((r) => r.role),
-    };
-  });
+  const profileIds = (profiles ?? []).map((p) => p.id);
+  let rolesByUser = new Map<string, string[]>();
+  if (profileIds.length > 0) {
+    const { data: roleRows, error: roleErr } = await sb
+      .from("user_roles")
+      .select("user_id, role")
+      .in("user_id", profileIds);
+    if (roleErr) throw new Error(roleErr.message);
+    rolesByUser = (roleRows ?? []).reduce((acc, r) => {
+      const list = acc.get(r.user_id) ?? [];
+      list.push(r.role);
+      acc.set(r.user_id, list);
+      return acc;
+    }, new Map<string, string[]>());
+  }
+
+  return (profiles ?? []).map((p) => ({
+    id: p.id,
+    full_name: p.full_name,
+    email: p.email,
+    roles: rolesByUser.get(p.id) ?? [],
+  }));
 }
