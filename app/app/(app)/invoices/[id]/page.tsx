@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileText, Brain } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
+import { InvoiceActions } from "./invoice-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ type InvoiceDetail = {
   generated_at: string | null;
   reviewed_at: string | null;
   rejection_reason: string | null;
+  sent_at: string | null;
+  sent_to_email: string | null;
   created_at: string;
   order: {
     id: string;
@@ -42,6 +45,14 @@ type InvoiceDetail = {
       default_address: { address1?: string; city?: string; country?: string } | null;
     } | null;
   } | null;
+};
+
+const STATUS_PILL: Record<InvoiceDetail["status"], string> = {
+  draft: "border-status-pending-border/40 bg-status-pending-bg text-status-pending-fg",
+  pending_review: "border-status-sourcing-border/40 bg-status-sourcing-bg text-status-sourcing-fg",
+  approved: "border-status-warehouse-border/40 bg-status-warehouse-bg text-status-warehouse-fg",
+  sent: "border-status-delivered-border/40 bg-status-delivered-bg text-status-delivered-fg",
+  rejected: "border-status-danger-border/40 bg-status-danger-bg text-status-danger-fg",
 };
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -66,7 +77,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
       cost, cost_currency, markup_percent, item_price, shipment_fee,
       tax_percent, tax_amount, total, total_currency,
       profit_amount, profit_percent, language, pdf_storage_path,
-      generated_at, reviewed_at, rejection_reason, created_at,
+      generated_at, reviewed_at, rejection_reason, sent_at, sent_to_email, created_at,
       order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name, email, default_address ) )
     `)
     .eq("id", params.id)
@@ -78,29 +89,37 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
   const customerName = inv.order?.customer
     ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
     : "—";
+  const customerEmail = inv.order?.customer?.email ?? null;
 
   return (
     <div className="flex flex-col gap-5">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-ink-tertiary">
-        <Link href="/invoices" className="hover:text-ink-primary">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-[var(--muted)]">
+        <Link href="/invoices" className="hover:text-[var(--ink)]">
           Invoices
         </Link>
         <ChevronRight className="h-3 w-3" aria-hidden />
-        <span className="text-ink-secondary">{inv.invoice_number}</span>
+        <span className="text-[var(--ink-2)]">{inv.invoice_number}</span>
       </nav>
 
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="rise-in flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-h1 text-ink-primary">{inv.invoice_number}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-h1 text-[var(--ink)]">{inv.invoice_number}</h1>
+            <span className={cn("pill border", STATUS_PILL[inv.status])}>
+              {inv.status.replace("_", " ")}
+            </span>
+          </div>
           {inv.generated_at && (
-            <span className="text-[12px] text-ink-tertiary">
+            <span className="text-[12px] text-[var(--muted)]">
               Generated {fullDateTime(inv.generated_at)}
             </span>
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className="text-hint uppercase text-ink-tertiary">Total</span>
-          <span className="text-[20px] font-medium tabular-nums text-ink-primary">
+          <span className="text-[10px] font-medium uppercase tracking-[0.4px] text-[var(--muted)]">
+            Total
+          </span>
+          <span className="mono text-[22px] font-semibold text-[var(--ink)]">
             {formatCurrency(inv.total, inv.total_currency)}
           </span>
         </div>
@@ -109,30 +128,38 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
         {/* Left: PDF preview placeholder + AI reasoning */}
         <div className="flex flex-col gap-4">
-          <section className="rounded-md border border-hairline bg-surface p-4">
-            <h2 className="text-hint mb-2 uppercase text-ink-tertiary">PDF preview</h2>
+          <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+              <FileText className="h-3 w-3" aria-hidden /> PDF preview
+            </h2>
             {inv.pdf_storage_path ? (
-              <div className="text-[12px] text-ink-secondary">
-                PDF rendering will arrive in Phase 6 (storage path: <code className="rounded-sm bg-neutral-100 px-1 py-0.5 text-[11px]">{inv.pdf_storage_path}</code>)
+              <div className="text-[12px] text-[var(--ink-2)]">
+                PDF available at{" "}
+                <code className="mono rounded-sm bg-neutral-100 px-1 py-0.5 text-[11px]">
+                  {inv.pdf_storage_path}
+                </code>
               </div>
             ) : (
-              <div className="rounded-md border border-dashed border-hairline-strong bg-neutral-50 px-6 py-12 text-center text-[12px] text-ink-tertiary">
-                No PDF generated yet. Will render via PDF template once approved.
+              <div className="rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] px-6 py-12 text-center text-[12px] text-[var(--muted)]">
+                No PDF generated yet. Customer-facing PDF will be rendered when the
+                invoice is approved (Phase 2 of the build).
               </div>
             )}
           </section>
 
           {inv.ai_reasoning?.items && inv.ai_reasoning.items.length > 0 && (
-            <section className="rounded-md border border-hairline bg-surface p-4">
-              <h2 className="text-hint mb-2 uppercase text-ink-tertiary">AI reasoning</h2>
+            <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+              <h2 className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                <Brain className="h-3 w-3" aria-hidden /> AI reasoning
+              </h2>
               <ul className="flex flex-col gap-2 text-[12px]">
                 {inv.ai_reasoning.items.map((item, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-ink-tertiary tabular-nums">
+                    <span className="mono text-[var(--muted)]">
                       {item.confidence != null ? `${item.confidence}%` : "—"}
                     </span>
-                    <span className="text-ink-secondary">
-                      <span className="font-medium text-ink-primary">{item.sku ?? "Item"}</span>
+                    <span className="text-[var(--ink-2)]">
+                      <span className="font-medium text-[var(--ink)]">{item.sku ?? "Item"}</span>
                       {item.reason ? <> — {item.reason}</> : null}
                     </span>
                   </li>
@@ -142,10 +169,21 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           )}
         </div>
 
-        {/* Right rail: calculation + customer */}
+        {/* Right rail: actions, calculation, customer */}
         <aside className="flex flex-col gap-4">
-          <section className="rounded-md border border-hairline bg-surface p-4">
-            <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Calculation</h2>
+          <InvoiceActions
+            invoiceId={inv.id}
+            status={inv.status}
+            rejectionReason={inv.rejection_reason}
+            sentAt={inv.sent_at}
+            sentToEmail={inv.sent_to_email}
+            customerEmail={customerEmail}
+          />
+
+          <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+              Calculation
+            </h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">
               {(() => {
                 // item_price is post-markup. Pre-markup converted cost is:
@@ -186,7 +224,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                         muted
                       />
                     )}
-                    <div className="my-1 border-t border-hairline" />
+                    <div className="my-1 border-t border-[var(--line)]" />
                     <Row label="Total" value={formatCurrency(inv.total, inv.total_currency)} bold />
                     {inv.profit_amount != null && (
                       <Row
@@ -195,7 +233,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                           <>
                             {formatCurrency(inv.profit_amount, inv.total_currency)}
                             {inv.profit_percent != null && (
-                              <span className="ml-1 text-ink-tertiary">
+                              <span className="ml-1 text-[var(--muted)]">
                                 ({Number(inv.profit_percent).toFixed(0)}%)
                               </span>
                             )}
@@ -209,15 +247,17 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
             </dl>
           </section>
 
-          <section className="rounded-md border border-hairline bg-surface p-4">
-            <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Customer</h2>
+          <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+              Customer
+            </h2>
             <div className="flex flex-col gap-1 text-[13px]">
-              <span className="font-medium text-ink-primary">{customerName}</span>
+              <span className="font-medium text-[var(--ink)]">{customerName}</span>
               {inv.order?.customer?.email && (
-                <span className="text-ink-secondary">{inv.order.customer.email}</span>
+                <span className="text-[var(--ink-2)]">{inv.order.customer.email}</span>
               )}
               {inv.order?.customer?.default_address && (
-                <span className="text-[12px] text-ink-secondary">
+                <span className="text-[12px] text-[var(--ink-2)]">
                   {inv.order.customer.default_address.address1}, {inv.order.customer.default_address.city},{" "}
                   {inv.order.customer.default_address.country}
                 </span>
@@ -225,7 +265,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
               {inv.order && (
                 <Link
                   href={`/orders/${inv.order.id}`}
-                  className="mt-1 text-[12px] text-navy hover:underline"
+                  className="mt-1 text-[12px] text-[var(--accent)] hover:underline"
                 >
                   View order {inv.order.shopify_order_number} →
                 </Link>
@@ -253,10 +293,16 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className={cn("text-ink-secondary", muted && "text-ink-tertiary", hint && "text-[11px] uppercase tracking-[0.4px] text-ink-tertiary")}>
+      <dt
+        className={cn(
+          "text-[var(--ink-2)]",
+          muted && "text-[var(--muted)]",
+          hint && "text-[11px] uppercase tracking-[0.4px] text-[var(--muted)]",
+        )}
+      >
         {label}
       </dt>
-      <dd className={cn("tabular-nums text-ink-primary", bold && "font-medium")}>{value}</dd>
+      <dd className={cn("mono text-[var(--ink)]", bold && "font-medium")}>{value}</dd>
     </div>
   );
 }

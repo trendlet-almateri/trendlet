@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Receipt } from "lucide-react";
+import {
+  Receipt,
+  Clock,
+  FileCheck,
+  Send,
+  DollarSign,
+  ChevronRight,
+} from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchInvoices, fetchInvoiceCounts, type InvoiceStatus } from "@/lib/queries/invoices";
 import { FilterTabs } from "@/components/orders/filter-tabs";
@@ -61,49 +68,65 @@ export default async function InvoicesPage({
   const otherCurrencyCount = Math.max(0, pendingBuckets.length - 1);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-h1 text-ink-primary">Invoices</h1>
+    <div className="flex flex-col gap-6">
+      {/* Header — title + subtitle + sync badge, matching dashboard */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-h1 text-[var(--ink)]">Invoices</h1>
+          <span className="text-[12px] text-[var(--muted)]">
+            {totalCount.toLocaleString("en-US")} {totalCount === 1 ? "invoice" : "invoices"}
+            {counts.pending_review > 0 && (
+              <> · {counts.pending_review} awaiting review</>
+            )}
+          </span>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
+          <Clock className="h-3 w-3" aria-hidden />
+          Synced 2 min ago
+        </span>
+      </header>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <div className="rounded-md border border-hairline bg-surface p-4">
-          <span className="text-hint uppercase text-ink-tertiary">Awaiting review</span>
-          <div className="mt-1 text-[24px] font-medium tabular-nums text-ink-primary">
-            {counts.pending_review}
-          </div>
-        </div>
-        <div className="rounded-md border border-hairline bg-surface p-4">
-          <span className="text-hint uppercase text-ink-tertiary">Approved</span>
-          <div className="mt-1 text-[24px] font-medium tabular-nums text-ink-primary">
-            {counts.approved}
-          </div>
-        </div>
-        <div className="rounded-md border border-hairline bg-surface p-4">
-          <span className="text-hint uppercase text-ink-tertiary">Sent</span>
-          <div className="mt-1 text-[24px] font-medium tabular-nums text-ink-primary">
-            {counts.sent}
-          </div>
-        </div>
-        <div className="rounded-md bg-navy-deep p-4 text-white">
-          <span className="text-hint uppercase text-white/60">Pending value</span>
-          <div className="mt-1 text-[24px] font-medium tabular-nums">
-            {pendingHeadline
+      {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-3">
+        <KpiTile
+          index={0}
+          icon={Clock}
+          label="Awaiting review"
+          value={counts.pending_review.toLocaleString("en-US")}
+          tone={counts.pending_review > 0 ? "warn" : "default"}
+        />
+        <KpiTile
+          index={1}
+          icon={FileCheck}
+          label="Approved"
+          value={counts.approved.toLocaleString("en-US")}
+        />
+        <KpiTile
+          index={2}
+          icon={Send}
+          label="Sent"
+          value={counts.sent.toLocaleString("en-US")}
+        />
+        <KpiTile
+          index={3}
+          hero
+          icon={DollarSign}
+          label="Pending value"
+          value={
+            pendingHeadline
               ? formatCurrency(pendingHeadline[1], pendingHeadline[0], { compact: true })
-              : "—"}
-          </div>
-          <div className="mt-0.5 text-[11px] text-white/70">
-            {counts.pending_review === 0
+              : "—"
+          }
+          hint={
+            counts.pending_review === 0
               ? "no drafts to review"
-              : (
-                  <>
-                    across {counts.pending_review} {counts.pending_review === 1 ? "draft" : "drafts"}
-                    {otherCurrencyCount > 0 && (
-                      <> · + {otherCurrencyCount} more {otherCurrencyCount === 1 ? "currency" : "currencies"}</>
-                    )}
-                  </>
-                )}
-          </div>
-        </div>
+              : `across ${counts.pending_review} ${counts.pending_review === 1 ? "draft" : "drafts"}${
+                  otherCurrencyCount > 0
+                    ? ` · + ${otherCurrencyCount} more ${otherCurrencyCount === 1 ? "currency" : "currencies"}`
+                    : ""
+                }`
+          }
+        />
       </div>
 
       <FilterTabs
@@ -126,7 +149,7 @@ export default async function InvoicesPage({
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {invoices.map((inv) => {
+          {invoices.map((inv, i) => {
             const customerName = inv.order?.customer
               ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
               : "—";
@@ -136,13 +159,14 @@ export default async function InvoicesPage({
                 key={inv.id}
                 href={`/invoices/${inv.id}`}
                 className={cn(
-                  "flex flex-wrap items-center gap-3 rounded-md border border-hairline border-l-2 bg-surface p-4 transition-colors hover:bg-neutral-50/50",
+                  "rise-in group flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] border-l-2 bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--hover)] active:scale-[0.998]",
                   CONFIDENCE_BORDER[confidence] ?? "border-l-status-pending-border",
                 )}
+                style={{ ["--stagger-index" as string]: Math.min(i, 12) }}
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-ink-primary">{inv.invoice_number}</span>
+                    <span className="mono font-medium text-[var(--ink)]">{inv.invoice_number}</span>
                     <span className={cn("pill border", STATUS_PILL[inv.status])}>
                       {inv.status.replace("_", " ")}
                     </span>
@@ -150,35 +174,112 @@ export default async function InvoicesPage({
                       <span
                         className={cn(
                           "pill border",
-                          inv.ai_confidence === "high" && "border-status-success-border/40 bg-status-success-bg text-status-success-fg",
-                          inv.ai_confidence === "medium" && "border-status-sourcing-border/40 bg-status-sourcing-bg text-status-sourcing-fg",
-                          (inv.ai_confidence === "low" || inv.ai_confidence === "failed") && "border-status-danger-border/40 bg-status-danger-bg text-status-danger-fg",
+                          inv.ai_confidence === "high" &&
+                            "border-status-success-border/40 bg-status-success-bg text-status-success-fg",
+                          inv.ai_confidence === "medium" &&
+                            "border-status-sourcing-border/40 bg-status-sourcing-bg text-status-sourcing-fg",
+                          (inv.ai_confidence === "low" || inv.ai_confidence === "failed") &&
+                            "border-status-danger-border/40 bg-status-danger-bg text-status-danger-fg",
                         )}
                       >
                         AI {inv.ai_confidence}
                       </span>
                     )}
                   </div>
-                  <div className="text-[12px] text-ink-secondary">
+                  <div className="text-[12px] text-[var(--ink-2)]">
                     {inv.order ? <>From order {inv.order.shopify_order_number} · </> : null}
                     {customerName}
                     {inv.generated_at ? <> · {relativeTime(inv.generated_at)}</> : null}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-0.5 text-right tabular-nums">
-                  <span className="font-medium text-ink-primary">
-                    {formatCurrency(inv.total, inv.total_currency)}
-                  </span>
-                  {inv.profit_amount != null && (
-                    <span className="text-[11px] text-ink-tertiary">
-                      Profit {formatCurrency(inv.profit_amount, inv.total_currency)}
-                      {inv.profit_percent != null && <> · {Number(inv.profit_percent).toFixed(0)}%</>}
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-end gap-0.5 text-right">
+                    <span className="mono font-medium text-[var(--ink)]">
+                      {formatCurrency(inv.total, inv.total_currency)}
                     </span>
-                  )}
+                    {inv.profit_amount != null && (
+                      <span className="mono text-[11px] text-[var(--muted)]">
+                        Profit {formatCurrency(inv.profit_amount, inv.total_currency)}
+                        {inv.profit_percent != null && (
+                          <> · {Number(inv.profit_percent).toFixed(0)}%</>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRight
+                    className="h-4 w-4 text-[var(--muted-2)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--ink-2)]"
+                    aria-hidden
+                  />
                 </div>
               </Link>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Local KPI tile (matches dashboard <KpiCard> visually but inlined to
+    avoid a cross-page coupling that would require touching the existing
+    dashboard component) ────────────────────────────────────────────────── */
+
+function KpiTile({
+  index,
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "default",
+  hero = false,
+}: {
+  index: number;
+  icon: typeof Clock;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "warn";
+  hero?: boolean;
+}) {
+  const isHero = hero;
+  const isWarn = !isHero && tone === "warn";
+
+  return (
+    <div
+      className={cn(
+        "rise-in relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
+        isHero && "bg-[#0f1419] text-white",
+        isWarn &&
+          "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
+        !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
+      )}
+      style={{ ["--stagger-index" as string]: index }}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
+          isHero ? "text-white/50" : isWarn ? "text-[var(--amber)]" : "text-[var(--muted)]",
+        )}
+      >
+        <Icon className="h-3 w-3" aria-hidden />
+        <span>{label}</span>
+      </div>
+      <span
+        className={cn(
+          "value-tick mono mt-1 text-[28px] font-semibold leading-none",
+          isHero ? "text-white" : isWarn ? "text-[var(--amber)]" : "text-[var(--ink)]",
+        )}
+      >
+        {value}
+      </span>
+      {hint && (
+        <div
+          className={cn(
+            "text-[11px]",
+            isHero ? "text-white/60" : isWarn ? "text-[var(--amber)]/80" : "text-[var(--muted)]",
+          )}
+        >
+          {hint}
         </div>
       )}
     </div>
