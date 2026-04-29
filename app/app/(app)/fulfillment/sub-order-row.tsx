@@ -163,6 +163,7 @@ export function SubOrderRow({
           <SupplierInvoiceDropzone
             subOrderId={row.id}
             hasReceipt={row.has_supplier_receipt}
+            supplierInvoiceId={row.latest_supplier_invoice_id}
           />
         )}
         {nextStatuses.length === 0 && !canUploadReceipt && (

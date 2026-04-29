@@ -13,6 +13,12 @@ export type FulfillmentRow = {
   is_at_risk: boolean;
   is_delayed: boolean;
   has_supplier_receipt: boolean;
+  /**
+   * Most recently linked supplier_invoice for this sub-order. The
+   * mapping panel (Phase 4f) opens this receipt when the badge is
+   * clicked. Null when no receipt has been uploaded.
+   */
+  latest_supplier_invoice_id: string | null;
   brand: {
     id: string;
     name: string;
@@ -77,7 +83,7 @@ export async function fetchFulfillmentQueue(opts: {
         id, shopify_order_number,
         customer:customers ( first_name, last_name, default_address )
       ),
-      supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id )
+      supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id, linked_at )
     `)
     .in("status", ACTIVE_STATUSES)
     .order("status_changed_at", { ascending: true });
@@ -119,7 +125,9 @@ export async function fetchFulfillmentQueue(opts: {
             default_address: { city?: string | null } | null;
           } | null;
         } | null;
-        supplier_invoice_links: { supplier_invoice_id: string }[] | null;
+        supplier_invoice_links:
+          | { supplier_invoice_id: string; linked_at: string }[]
+          | null;
       };
       const c = r.order?.customer;
       const fullName =
@@ -139,6 +147,7 @@ export async function fetchFulfillmentQueue(opts: {
         is_at_risk: r.is_at_risk,
         is_delayed: r.is_delayed,
         has_supplier_receipt: (r.supplier_invoice_links?.length ?? 0) > 0,
+        latest_supplier_invoice_id: pickLatestSupplierInvoiceId(r.supplier_invoice_links),
         brand: r.brand,
         order: r.order
           ? {
@@ -150,4 +159,15 @@ export async function fetchFulfillmentQueue(opts: {
           : null,
       };
     });
+}
+
+function pickLatestSupplierInvoiceId(
+  links: { supplier_invoice_id: string; linked_at: string }[] | null,
+): string | null {
+  if (!links || links.length === 0) return null;
+  let latest = links[0];
+  for (const l of links) {
+    if (l.linked_at > latest.linked_at) latest = l;
+  }
+  return latest.supplier_invoice_id;
 }

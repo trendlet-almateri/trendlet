@@ -3,33 +3,46 @@
 import { useRef, useState, useTransition } from "react";
 import { CheckCircle2, FileUp, Loader2, Paperclip, X } from "lucide-react";
 import { uploadSupplierInvoiceAction } from "./upload-supplier-invoice-action";
+import { ReceiptMappingPanel } from "./receipt-mapping-panel";
 import { cn } from "@/lib/utils";
 
 export function SupplierInvoiceDropzone({
   subOrderId,
   hasReceipt,
+  supplierInvoiceId,
 }: {
   subOrderId: string;
   hasReceipt: boolean;
+  supplierInvoiceId: string | null;
 }) {
+  const [panelOpen, setPanelOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Once a receipt is attached, show a non-interactive badge. Re-uploading
-  // is deferred to admin tooling — sourcers/fulfillers shouldn't silently
-  // overwrite a colleague's link.
-  if (hasReceipt) {
+  // Once a receipt is attached, the badge becomes a toggle that opens
+  // the mapping panel (Phase 4f). Click to extract / map / create drafts.
+  if (hasReceipt && supplierInvoiceId) {
     return (
-      <span
-        className="inline-flex h-7 items-center gap-1 rounded-md border border-status-delivered-border/40 bg-status-delivered-bg px-2 text-[11px] font-medium text-status-delivered-fg"
-        title="Supplier receipt attached"
-      >
-        <CheckCircle2 className="h-3 w-3" aria-hidden />
-        Receipt
-      </span>
+      <>
+        <button
+          type="button"
+          onClick={() => setPanelOpen((v) => !v)}
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-status-delivered-border/40 bg-status-delivered-bg px-2 text-[11px] font-medium text-status-delivered-fg transition-colors hover:bg-status-delivered-bg/80"
+          title="Open receipt mapping"
+        >
+          <CheckCircle2 className="h-3 w-3" aria-hidden />
+          {panelOpen ? "Hide receipt" : "Receipt"}
+        </button>
+        {panelOpen && (
+          <ReceiptMappingPanel
+            supplierInvoiceId={supplierInvoiceId}
+            onClose={() => setPanelOpen(false)}
+          />
+        )}
+      </>
     );
   }
 
