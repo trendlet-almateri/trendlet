@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { Sidebar } from "@/components/nav/sidebar";
@@ -11,12 +12,21 @@ import { MobileNavProvider } from "@/components/nav/mobile-nav-context";
 
 export const dynamic = "force-dynamic";
 
+async function NotificationsData({ userId, channelKey }: { userId: string; channelKey: string }) {
+  const notifications = await fetchRecentNotifications();
+  return (
+    <NotificationsPanel
+      initialNotifications={notifications}
+      userId={userId}
+      channelKey={channelKey}
+    />
+  );
+}
+
 /**
- * Authenticated app shell. Renders for all routes that require sign-in:
- *   /dashboard, /orders, /queue, /pipeline, /deliveries, ...
- *
- * Sidebar counts are still stub-zero — wired to real queries when sub-order
- * counts move into a shared layout query (Phase 6+).
+ * Authenticated app shell. getCurrentUser() is the only blocking await here —
+ * notifications stream in via Suspense so the sidebar renders immediately and
+ * the (app)/loading.tsx spinner is visible while page data loads.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -24,22 +34,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const counts: Record<string, number | null> = {};
   const unassignedCount = 0;
-
-  const initialNotifications = await fetchRecentNotifications();
-  const desktopNotifications = (
-    <NotificationsPanel
-      initialNotifications={initialNotifications}
-      userId={user.id}
-      channelKey="desktop"
-    />
-  );
-  const mobileNotifications = (
-    <NotificationsPanel
-      initialNotifications={initialNotifications}
-      userId={user.id}
-      channelKey="mobile"
-    />
-  );
 
   return (
     <MobileNavProvider>
@@ -52,11 +46,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         }}
         counts={counts}
         unassignedCount={unassignedCount}
-        notifications={desktopNotifications}
+        notifications={
+          <Suspense fallback={null}>
+            <NotificationsData userId={user.id} channelKey="desktop" />
+          </Suspense>
+        }
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <MobileTopbar notifications={mobileNotifications} />
+        <MobileTopbar
+          notifications={
+            <Suspense fallback={null}>
+              <NotificationsData userId={user.id} channelKey="mobile" />
+            </Suspense>
+          }
+        />
         <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
       </div>
 
