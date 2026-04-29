@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   CheckCircle,
   DollarSign,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -44,12 +46,27 @@ export default async function DashboardPage() {
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
 
+  const totalOrders = kpis?.total_orders_30d ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-h1 text-ink-primary">Dashboard</h1>
+      {/* Header — left-aligned with subtitle, sync badge top-right */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-h1 text-ink-primary">Dashboard</h1>
+          <span className="text-[12px] text-[var(--muted)]">
+            Operations overview · {totalOrders.toLocaleString("en-US")} {totalOrders === 1 ? "order" : "orders"} · last 30 days
+          </span>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
+          <Clock className="h-3 w-3" aria-hidden />
+          Synced 2 min ago
+          <RefreshCw className="h-3 w-3 cursor-pointer text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" aria-hidden />
+        </span>
+      </header>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {/* KPI row — asymmetric Bento (2fr 2fr 2fr 2fr 3fr) so the hero card visibly leads */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-3">
         <KpiCard
           icon={LayoutList}
           label="Total orders"
@@ -95,35 +112,44 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Revenue per currency (no FX aggregation per spec §14.4) */}
+      {/* Revenue per currency — one container with hairline-divided rows
+          (no FX aggregation per spec §14.4) */}
       {revenue.length > 1 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-hint uppercase text-ink-tertiary">Revenue · last 30 days</h2>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-            {revenue.map((r) => (
-              <div
-                key={r.currency}
-                className="flex flex-col gap-0.5 rounded-md border border-hairline bg-surface p-3"
-              >
-                <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
-                  {r.currency}
-                </span>
-                <span className="text-[16px] font-medium tabular-nums text-ink-primary">
-                  {formatCurrency(Number(r.total_30d), r.currency, { compact: true })}
-                </span>
-                <span className="text-[11px] text-ink-tertiary tabular-nums">
-                  {r.order_count_30d} {r.order_count_30d === 1 ? "order" : "orders"}
-                </span>
-              </div>
-            ))}
+          <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+            Revenue · last 30 days
+          </h2>
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
+            <ul className="divide-y divide-[var(--line)]">
+              {revenue.map((r) => (
+                <li
+                  key={r.currency}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
+                  <div className="flex items-baseline gap-4">
+                    <span className="w-12 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--muted)]">
+                      {r.currency}
+                    </span>
+                    <span className="mono text-[15px] font-medium text-[var(--ink)]">
+                      {formatCurrency(Number(r.total_30d), r.currency, { compact: false })}
+                    </span>
+                  </div>
+                  <span className="mono text-[11px] text-[var(--muted)]">
+                    {r.order_count_30d} {r.order_count_30d === 1 ? "order" : "orders"}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       )}
 
       {/* Team load */}
       <section className="flex flex-col gap-2">
-        <h2 className="text-hint uppercase text-ink-tertiary">Team load · today</h2>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+          Team load · today
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {TEAM_ORDER.map((key) => {
             const row = teamLoadByKey.get(key);
             const meta = TEAM_META[key];
