@@ -4,17 +4,17 @@
 
 @layer base {
   :root {
-    /* ── Legacy RGB triplets (Tailwind token refs) ── */
-    --color-page: 246 245 242;        /* #f6f5f2 warm cream */
+    /* ── RGB triplets for Tailwind opacity modifiers ── */
+    --color-page: 246 245 242;         /* #f6f5f2 warm cream */
     --color-surface: 255 255 255;
-    --color-ink-primary: 15 20 25;    /* #0f1419 */
-    --color-ink-secondary: 42 48 56;  /* #2a3038 */
-    --color-ink-tertiary: 107 114 128;/* #6b7280 */
-    --color-navy: 43 58 160;          /* #2b3aa0 accent */
-    --color-navy-deep: 20 30 100;
-    --color-accent: 180 112 10;       /* --amber repurposed */
+    --color-ink-primary: 15 20 25;     /* #0f1419 */
+    --color-ink-secondary: 42 48 56;   /* #2a3038 */
+    --color-ink-tertiary: 107 114 128; /* #6b7280 */
+    --color-navy: 12 68 124;           /* #0C447C — Direction C upgrade */
+    --color-navy-deep: 7 38 74;        /* #07264a */
+    --color-accent: 12 68 124;         /* #0C447C — aligns with --accent */
 
-    /* ── Optify design tokens (hex, used in arbitrary values) ── */
+    /* ── Optify design tokens (hex) ── */
     --bg:           #f6f5f2;
     --panel:        #ffffff;
     --ink:          #0f1419;
@@ -24,12 +24,23 @@
     --line:         #e7e5df;
     --line-2:       #efede7;
     --hover:        #f9f8f4;
-    --accent:       #2b3aa0;
+    --accent:       #0C447C;           /* upgraded from #2b3aa0 */
     --accent-ink:   #ffffff;
-    --accent-soft:  #ecedf7;
+    --accent-soft:  #ddeaf5;           /* updated to blue-tinted soft */
+
+    /* ── Role accent tokens (Phase 1 visual refresh) ── */
+    --role-sourcing:      #b4700a;
+    --role-sourcing-bg:   #fdf3dd;
+    --role-sourcing-fg:   #633806;
+    --role-warehouse:     #1d4ed8;
+    --role-warehouse-bg:  #E6F1FB;
+    --role-warehouse-fg:  #0C447C;
+    --role-fulfiller:     #6d28d9;
+    --role-fulfiller-bg:  #ece2fa;
+    --role-fulfiller-fg:  #3C3489;
 
     --amber:        #b4700a; --amber-bg:  #fdf3dd;
-    --blue:         #1d4ed8; --blue-bg:   #e2e8ff;
+    --blue:         #1d4ed8; --blue-bg:   #E6F1FB;
     --green:        #0e7c4a; --green-bg:  #dcf1e3;
     --rose:         #b42318; --rose-bg:   #fde3de;
     --slate:        #475569; --slate-bg:  #e9ecf1;
@@ -105,8 +116,8 @@
     color: #e2e4e8;
   }
   .sidebar-item-active {
-    background-color: rgba(122, 136, 255, 0.12);
-    color: #b8c1ff;
+    background-color: rgba(12, 68, 124, 0.18);  /* #0C447C tint */
+    color: #7ab3e0;
   }
 
   /* Status pills */
