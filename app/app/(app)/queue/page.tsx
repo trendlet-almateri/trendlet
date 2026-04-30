@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShoppingBag, Inbox } from "lucide-react";
+import { ShoppingBag, Inbox, SlidersHorizontal } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { EmptyState } from "@/components/common/empty-state";
@@ -71,14 +71,16 @@ export default async function SourcingQueuePage({
   visible = sortRows(visible, sortKey);
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">My sourcing tasks</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          US brands · {rows.length.toLocaleString("en-US")}{" "}
-          {rows.length === 1 ? "active sub-order" : "active sub-orders"}
-          {isAdmin && rows.length > 0 && " · admin view"}
-        </span>
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink-primary">
+            My sourcing tasks
+          </h1>
+          {isAdmin && rows.length > 0 && (
+            <span className="text-[12px] text-ink-tertiary">Admin view · all assignees</span>
+          )}
+        </div>
       </header>
 
       <FilterBar brands={brands} activeTab={activeTab} brandFilter={brandFilter} sortKey={sortKey} />
@@ -99,7 +101,7 @@ export default async function SourcingQueuePage({
           </div>
         )
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((row) => (
             <SubOrderRow
               key={row.id}
@@ -151,26 +153,33 @@ function Tabs({
   sortKey: "newest" | "oldest";
 }) {
   const dotColor: Record<TabKey, string> = {
-    todo: "bg-status-pending-border",
-    in_progress: "bg-status-sourcing-border",
-    completed: "bg-status-delivered-border",
+    todo: "bg-amber-400",
+    in_progress: "bg-sky-500",
+    completed: "bg-emerald-500",
   };
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border border-hairline bg-surface p-1 text-[12px]">
+    <div className="flex flex-wrap items-center gap-2 text-[13px]">
       {TAB_CONFIG.map((t) => (
         <Link
           key={t.key}
           href={`/queue${buildQuery({ tab: t.key, brand: brandFilter, sort: sortKey })}`}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 font-medium transition-colors",
+            "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-medium transition-colors",
             activeTab === t.key
-              ? "bg-neutral-100 text-ink-primary"
-              : "text-ink-tertiary hover:bg-neutral-50 hover:text-ink-primary",
+              ? "border-hairline-strong bg-surface text-ink-primary shadow-sm"
+              : "border-transparent text-ink-tertiary hover:bg-neutral-100 hover:text-ink-primary",
           )}
         >
           <span className={cn("h-1.5 w-1.5 rounded-full", dotColor[t.key])} aria-hidden />
           {t.label}
-          <span className="tabular-nums text-ink-tertiary">{counts[t.key]}</span>
+          <span
+            className={cn(
+              "tabular-nums",
+              activeTab === t.key ? "text-ink-secondary" : "text-ink-tertiary",
+            )}
+          >
+            {counts[t.key]}
+          </span>
         </Link>
       ))}
     </div>
@@ -188,41 +197,100 @@ function FilterBar({
   brandFilter: string;
   sortKey: "newest" | "oldest";
 }) {
+  const selectClass =
+    "h-8 appearance-none rounded-md border border-hairline bg-surface pl-3 pr-7 text-[12px] text-ink-primary transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-accent/40";
+
   return (
     <form
       method="GET"
       action="/queue"
-      className="flex flex-wrap items-center gap-2 text-[12px]"
+      className="flex flex-wrap items-center justify-between gap-3 text-[12px]"
     >
       <input type="hidden" name="tab" value={activeTab} />
-      <select
-        name="brand"
-        defaultValue={brandFilter}
-        className="h-7 rounded-md border border-hairline bg-surface px-2 text-[11px] text-ink-primary focus:outline-none focus:ring-1 focus:ring-ink-primary"
-        aria-label="Filter by brand"
-      >
-        <option value="all">All brands</option>
-        {brands.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
-      <select
-        name="sort"
-        defaultValue={sortKey}
-        className="h-7 rounded-md border border-hairline bg-surface px-2 text-[11px] text-ink-primary focus:outline-none focus:ring-1 focus:ring-ink-primary"
-        aria-label="Sort by"
-      >
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
-      <button
-        type="submit"
-        className="inline-flex h-7 items-center rounded-md border border-hairline bg-surface px-2 text-[11px] font-medium text-ink-primary hover:bg-neutral-50"
-      >
-        Apply
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-ink-tertiary">
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+          Filters
+        </span>
+        <SelectField
+          className={selectClass}
+          name="priority"
+          defaultValue="all"
+          aria-label="Filter by priority"
+          disabled
+          title="Priority filter — coming soon"
+        >
+          <option value="all">All priorities</option>
+        </SelectField>
+        <SelectField
+          className={selectClass}
+          name="region"
+          defaultValue="all"
+          aria-label="Filter by region"
+          disabled
+          title="Region filter — sourcing is locked to US"
+        >
+          <option value="all">All regions</option>
+        </SelectField>
+        <SelectField
+          className={selectClass}
+          name="brand"
+          defaultValue={brandFilter}
+          aria-label="Filter by brand"
+        >
+          <option value="all">All brands</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </SelectField>
+      </div>
+      <div className="flex items-center gap-2">
+        <SelectField
+          className={selectClass}
+          name="sort"
+          defaultValue={sortKey}
+          aria-label="Sort by"
+        >
+          <option value="newest">Sort: Newest first</option>
+          <option value="oldest">Sort: Oldest first</option>
+        </SelectField>
+        <button
+          type="submit"
+          className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-[12px] font-medium text-white shadow-sm hover:bg-navy-deep"
+        >
+          Apply
+        </button>
+      </div>
     </form>
+  );
+}
+
+function SelectField({
+  children,
+  className,
+  ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className="relative inline-flex items-center">
+      <select className={className} {...rest}>
+        {children}
+      </select>
+      <svg
+        className="pointer-events-none absolute right-2 h-3 w-3 text-ink-tertiary"
+        viewBox="0 0 12 12"
+        fill="none"
+        aria-hidden
+      >
+        <path
+          d="M3 4.5L6 7.5L9 4.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
   );
 }
