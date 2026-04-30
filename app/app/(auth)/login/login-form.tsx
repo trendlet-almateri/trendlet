@@ -8,16 +8,20 @@ import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BrandSpinnerInline } from "@/components/spinner/brand-spinner";
+import { BrandSpinnerInline, BrandSpinnerOverlay } from "@/components/spinner/brand-spinner";
 
 const initial: LoginState = { error: null };
+
+function PendingOverlay() {
+  const { pending } = useFormStatus();
+  return pending ? <BrandSpinnerOverlay message="Signing in…" /> : null;
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? <BrandSpinnerInline size={18} /> : null}
-      <span>{pending ? "Signing in…" : "Sign in"}</span>
+      <span>Sign in</span>
       {!pending && <ArrowRight className="h-4 w-4" aria-hidden />}
     </Button>
   );
@@ -29,6 +33,7 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
+      <PendingOverlay />
       <input type="hidden" name="next" value={next} />
 
       <div className="flex flex-col gap-1.5">
