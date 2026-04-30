@@ -10,12 +10,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand / accent
+        // Brand / accent  (Direction C: deep navy #0C447C)
         navy: {
-          DEFAULT: "#2b3aa0",   // Optify accent
-          deep: "#14205c",
+          DEFAULT: "#0C447C",   // upgraded from #2b3aa0
+          deep: "#07264a",
         },
-        accent: { DEFAULT: "#b4700a" }, // amber
+        accent: { DEFAULT: "#0C447C" }, // navy (aligns with --accent CSS var)
         // Surfaces
         page:    "rgb(var(--color-page) / <alpha-value>)",
         surface: "rgb(var(--color-surface) / <alpha-value>)",
@@ -27,11 +27,11 @@ const config: Config = {
           secondary: "rgb(var(--color-ink-secondary) / <alpha-value>)",
           tertiary:  "rgb(var(--color-ink-tertiary)  / <alpha-value>)",
         },
-        // Optify semantic tokens (used in arbitrary values but also handy as classes)
-        line:        "#e7e5df",
-        hover:       "#f9f8f4",
-        "accent-soft": "#ecedf7",
-        // Status palette
+        // Optify semantic tokens
+        line:          "#e7e5df",
+        hover:         "#f9f8f4",
+        "accent-soft": "#ddeaf5",   // updated to blue-tinted soft (was purple-tinted)
+        // Status palette — no changes
         status: {
           sourcing:  { bg: "#fdf3dd", fg: "#633806", border: "#EF9F27" },
           warehouse: { bg: "#E6F1FB", fg: "#0C447C", border: "#378ADD" },
@@ -41,9 +41,19 @@ const config: Config = {
           danger:    { bg: "#fde3de", fg: "#791F1F", border: "#F09595" },
           success:   { bg: "#dcf1e3", fg: "#0F6E56", border: "#5DCAA5" },
         },
-        // Semantic tokens matching Optify palette
-        amber:  { DEFAULT: "#b4700a", bg: "#fdf3dd" },
-        blue:   { DEFAULT: "#1d4ed8", bg: "#e2e8ff" },
+        // Role accent tokens (Phase 1 visual refresh)
+        "role-sourcing":     "#b4700a",
+        "role-sourcing-bg":  "#fdf3dd",
+        "role-sourcing-fg":  "#633806",
+        "role-warehouse":    "#1d4ed8",
+        "role-warehouse-bg": "#E6F1FB",
+        "role-warehouse-fg": "#0C447C",
+        "role-fulfiller":    "#6d28d9",
+        "role-fulfiller-bg": "#ece2fa",
+        "role-fulfiller-fg": "#3C3489",
+        // Semantic color pairs
+        amber:  { DEFAULT: "#b4700a", bg: "#fdf3dd", fg: "#633806" },
+        blue:   { DEFAULT: "#1d4ed8", bg: "#E6F1FB", fg: "#0C447C" },
         green:  { DEFAULT: "#0e7c4a", bg: "#dcf1e3" },
         rose:   { DEFAULT: "#b42318", bg: "#fde3de" },
         slate:  { DEFAULT: "#475569", bg: "#e9ecf1" },
