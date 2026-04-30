@@ -34,11 +34,11 @@ export const STATUS_BY_CODE: Record<string, (typeof STATUSES)[number]> = Object.
 // enforce_status_whitelist is the source of truth, this is only used
 // to decide which buttons to render in the UI.
 export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
-  sourcing: ["under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled"],
-  warehouse: [
-    "delivered_to_warehouse", "preparing_for_shipment", "shipped",
-    "arrived_in_ksa", "out_for_delivery", "delivered",
+  sourcing: [
+    "under_review", "in_progress", "purchased_online", "purchased_in_store",
+    "out_of_stock", "delivered_to_warehouse", "cancelled",
   ],
+  warehouse: ["delivered_to_warehouse", "preparing_for_shipment", "shipped", "arrived_in_ksa"],
   fulfiller: [
     "under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled",
     "delivered_to_warehouse", "preparing_for_shipment", "shipped",
