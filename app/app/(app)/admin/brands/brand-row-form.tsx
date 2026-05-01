@@ -28,7 +28,8 @@ export function BrandRowForm({
   return (
     <form
       action={dispatch}
-      className="grid grid-cols-[1.5fr_0.7fr_0.7fr_1.4fr_auto] items-center gap-3 rounded-md border border-hairline bg-surface p-3"
+      id={`brand-row-${brand.id}`}
+      className="grid grid-cols-[1.5fr_0.7fr_0.7fr_1.4fr_auto] items-center gap-3 rounded-md border border-hairline bg-surface p-3 scroll-mt-24"
     >
       <input type="hidden" name="brand_id" value={brand.id} />
 

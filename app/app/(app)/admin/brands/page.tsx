@@ -1,7 +1,12 @@
 import { requireAdmin } from "@/lib/auth/require-role";
-import { fetchBrandsForAdmin, fetchAssigneeOptions } from "@/lib/queries/brands";
+import {
+  fetchBrandsForAdmin,
+  fetchAssigneeOptions,
+  fetchAssignmentsByEmployee,
+} from "@/lib/queries/brands";
 import { BrandRowForm } from "./brand-row-form";
 import { NewBrandForm } from "./new-brand-form";
+import { AssignmentsByEmployee } from "./assignments-by-employee";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +15,10 @@ export const metadata = { title: "Brands · Trendslet Operations" };
 export default async function AdminBrandsPage() {
   await requireAdmin();
 
-  const [brands, assignees] = await Promise.all([
+  const [brands, assignees, assignmentsByEmployee] = await Promise.all([
     fetchBrandsForAdmin(),
     fetchAssigneeOptions(),
+    fetchAssignmentsByEmployee(),
   ]);
 
   const eu = brands.filter((b) => b.region === "EU").length;
@@ -63,6 +69,8 @@ export default async function AdminBrandsPage() {
         <code>delivered_to_warehouse</code>. Brands without a primary assignee
         land in the <code>/orders/unassigned</code> queue.
       </div>
+
+      <AssignmentsByEmployee rows={assignmentsByEmployee} />
     </div>
   );
 }

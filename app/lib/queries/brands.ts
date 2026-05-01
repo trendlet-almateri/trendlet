@@ -18,6 +18,15 @@ export type AssigneeOption = {
   roles: string[];
 };
 
+export type AssignmentByEmployee = {
+  user_id: string;
+  full_name: string;
+  email: string;
+  roles: string[];
+  region: "US" | "EU" | "KSA" | "GLOBAL" | null;
+  brands: { brand_id: string; name: string; region: "US" | "EU" | "KSA" | "GLOBAL" | null }[];
+};
+
 /**
  * List every brand with its primary assignee resolved. Service-role read —
  * called from the admin /admin/brands page only.
@@ -60,12 +69,8 @@ export async function fetchBrandsForAdmin(): Promise<BrandRow[]> {
 }
 
 /**
- * List active employees (any non-admin role + admins) eligible to be a
- * brand's primary assignee. Admin can self-assign per Q3.
- *
- * Two queries instead of an embedded join: `user_roles` has dual FKs to
- * `profiles` (`user_id` and `granted_by`), which makes the PostgREST
- * embed ambiguous and 500s.
+ * List active employees eligible to be a brand's primary assignee.
+ * Admins are excluded — only sourcing / fulfiller / warehouse roles can be primaries.
  */
 export async function fetchAssigneeOptions(): Promise<AssigneeOption[]> {
   const sb = createServiceClient();
@@ -93,10 +98,79 @@ export async function fetchAssigneeOptions(): Promise<AssigneeOption[]> {
     }, new Map<string, string[]>());
   }
 
-  return (profiles ?? []).map((p) => ({
-    id: p.id,
-    full_name: p.full_name,
-    email: p.email,
-    roles: rolesByUser.get(p.id) ?? [],
-  }));
+  return (profiles ?? [])
+    .map((p) => ({
+      id: p.id,
+      full_name: p.full_name,
+      email: p.email,
+      roles: rolesByUser.get(p.id) ?? [],
+    }))
+    .filter((p) => p.roles.some((r) => r !== "admin"));
+}
+
+/**
+ * Group every non-admin active employee with the brands they're primary on.
+ * Employees with no brands still appear (empty brand list) so admin sees who is free.
+ */
+export async function fetchAssignmentsByEmployee(): Promise<AssignmentByEmployee[]> {
+  const sb = createServiceClient();
+
+  const { data: profiles, error: profErr } = await sb
+    .from("profiles")
+    .select("id, full_name, email, region")
+    .eq("is_active", true)
+    .order("full_name", { ascending: true });
+  if (profErr) throw new Error(profErr.message);
+
+  const profileIds = (profiles ?? []).map((p) => p.id);
+  if (profileIds.length === 0) return [];
+
+  const { data: roleRows, error: roleErr } = await sb
+    .from("user_roles")
+    .select("user_id, role")
+    .in("user_id", profileIds);
+  if (roleErr) throw new Error(roleErr.message);
+
+  const rolesByUser = new Map<string, string[]>();
+  for (const r of roleRows ?? []) {
+    const list = rolesByUser.get(r.user_id) ?? [];
+    list.push(r.role);
+    rolesByUser.set(r.user_id, list);
+  }
+
+  const { data: assignments, error: assignErr } = await sb
+    .from("brand_assignments")
+    .select("user_id, brand:brands ( id, name, region )")
+    .eq("is_primary", true)
+    .in("user_id", profileIds);
+  if (assignErr) throw new Error(assignErr.message);
+
+  const brandsByUser = new Map<
+    string,
+    AssignmentByEmployee["brands"]
+  >();
+  for (const a of assignments ?? []) {
+    const brand = (a as { brand?: { id: string; name: string; region: string | null } | null }).brand;
+    if (!brand) continue;
+    const list = brandsByUser.get((a as { user_id: string }).user_id) ?? [];
+    list.push({
+      brand_id: brand.id,
+      name: brand.name,
+      region: (brand.region as AssignmentByEmployee["region"]) ?? null,
+    });
+    brandsByUser.set((a as { user_id: string }).user_id, list);
+  }
+
+  return (profiles ?? [])
+    .map((p) => ({
+      user_id: p.id,
+      full_name: p.full_name,
+      email: p.email,
+      region: (p.region as AssignmentByEmployee["region"]) ?? null,
+      roles: rolesByUser.get(p.id) ?? [],
+      brands: (brandsByUser.get(p.id) ?? []).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    }))
+    .filter((p) => p.roles.some((r) => r !== "admin"));
 }
