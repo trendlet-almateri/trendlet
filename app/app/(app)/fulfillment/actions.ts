@@ -40,11 +40,20 @@ export async function setSubOrderStatusAction(input: {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const sb = user.roles.includes("admin") ? createServiceClient() : createClient();
+  const isAdmin = user.roles.includes("admin");
+  const sb = isAdmin ? createServiceClient() : createClient();
+
+  // The service-role client has no auth.uid(), so the enforce_status_whitelist
+  // trigger can't auto-populate status_changed_by. Set it explicitly when
+  // we're acting as admin via the service client.
+  const update: { status: string; status_changed_by?: string } = {
+    status: parsed.data.status,
+  };
+  if (isAdmin) update.status_changed_by = user.id;
 
   const { error } = await sb
     .from("sub_orders")
-    .update({ status: parsed.data.status })
+    .update(update)
     .eq("id", parsed.data.subOrderId);
 
   if (error) return { ok: false, error: error.message };
