@@ -27,6 +27,11 @@ export type AssignmentByEmployee = {
   brands: { brand_id: string; name: string; region: "US" | "EU" | "KSA" | "GLOBAL" | null }[];
 };
 
+export type OrphanBrand = {
+  brand_name_raw: string;
+  sub_order_count: number;
+};
+
 /**
  * List every brand with its primary assignee resolved. Service-role read —
  * called from the admin /admin/brands page only.
@@ -37,6 +42,7 @@ export async function fetchBrandsForAdmin(): Promise<BrandRow[]> {
   const { data: brands, error } = await sb
     .from("brands")
     .select("id, name, region, is_active, markup_percent")
+    .eq("is_active", true)
     .order("name", { ascending: true });
   if (error) throw new Error(error.message);
 
@@ -173,4 +179,30 @@ export async function fetchAssignmentsByEmployee(): Promise<AssignmentByEmployee
       ),
     }))
     .filter((p) => p.roles.some((r) => r !== "admin"));
+}
+
+/**
+ * List distinct brand_name_raw values from sub_orders that have no
+ * brand_id link, with how many sub_orders each represents. These are
+ * the "orphan" brands the admin needs to either create or alias.
+ */
+export async function fetchOrphanBrands(): Promise<OrphanBrand[]> {
+  const sb = createServiceClient();
+
+  const { data, error } = await sb
+    .from("sub_orders")
+    .select("brand_name_raw")
+    .is("brand_id", null);
+  if (error) throw new Error(error.message);
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const raw = ((row as { brand_name_raw: string | null }).brand_name_raw ?? "").trim();
+    if (!raw) continue;
+    counts.set(raw, (counts.get(raw) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([brand_name_raw, sub_order_count]) => ({ brand_name_raw, sub_order_count }))
+    .sort((a, b) => b.sub_order_count - a.sub_order_count);
 }

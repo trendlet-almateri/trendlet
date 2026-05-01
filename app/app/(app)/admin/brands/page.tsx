@@ -3,10 +3,12 @@ import {
   fetchBrandsForAdmin,
   fetchAssigneeOptions,
   fetchAssignmentsByEmployee,
+  fetchOrphanBrands,
 } from "@/lib/queries/brands";
 import { BrandRowForm } from "./brand-row-form";
 import { NewBrandForm } from "./new-brand-form";
 import { AssignmentsByEmployee } from "./assignments-by-employee";
+import { OrphanBrandsPanel } from "./orphan-brands";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +17,11 @@ export const metadata = { title: "Brands · Trendslet Operations" };
 export default async function AdminBrandsPage() {
   await requireAdmin();
 
-  const [brands, assignees, assignmentsByEmployee] = await Promise.all([
+  const [brands, assignees, assignmentsByEmployee, orphans] = await Promise.all([
     fetchBrandsForAdmin(),
     fetchAssigneeOptions(),
     fetchAssignmentsByEmployee(),
+    fetchOrphanBrands(),
   ]);
 
   const eu = brands.filter((b) => b.region === "EU").length;
@@ -40,15 +43,18 @@ export default async function AdminBrandsPage() {
         </div>
       </header>
 
+      <OrphanBrandsPanel orphans={orphans} />
+
       <NewBrandForm assignees={assignees} />
 
       {/* Column headers (only when at least one brand exists) */}
       {brands.length > 0 && (
-        <div className="grid grid-cols-[1.5fr_0.7fr_0.7fr_1.4fr_auto] items-center gap-3 px-3 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+        <div className="grid grid-cols-[1.5fr_0.7fr_0.7fr_1.4fr_auto_auto] items-center gap-3 px-3 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
           <span>Brand</span>
           <span>Region</span>
           <span className="text-right">Markup</span>
           <span>Primary assignee</span>
+          <span className="justify-self-end">&nbsp;</span>
           <span className="justify-self-end">&nbsp;</span>
         </div>
       )}
