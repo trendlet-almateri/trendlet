@@ -78,11 +78,13 @@ export async function updateBrandAction(
     .eq("id", parsed.data.brand_id);
   if (brandErr) return { ok: false, error: brandErr.message };
 
-  // 2. Reset all primary flags on this brand. (Keeps non-primary
-  //    assignment rows intact — only the primary flag is cleared.)
+  // 2. Remove the existing primary assignment row(s) on this brand.
+  //    Using DELETE instead of UPDATE because the enforce_brand_region
+  //    trigger fires on UPDATE and would reject when the brand's region
+  //    was just changed to one that no longer matches the old user.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: clearErr } = await (sb.from("brand_assignments") as any)
-    .update({ is_primary: false })
+    .delete()
     .eq("brand_id", parsed.data.brand_id)
     .eq("is_primary", true);
   if (clearErr) return { ok: false, error: clearErr.message };
@@ -102,6 +104,37 @@ export async function updateBrandAction(
       );
     if (upsertErr) return { ok: false, error: upsertErr.message };
   }
+
+  revalidatePath("/admin/brands");
+  return { ok: true, error: null };
+}
+
+/**
+ * Clear the primary assignee on a single brand. Used by the
+ * "Assignments by employee" table to remove a brand from an employee's
+ * list with one click. Other (non-primary) assignment rows are left
+ * intact, in case they're used elsewhere.
+ */
+const unassignSchema = z.object({ brand_id: z.string().uuid() });
+
+export async function unassignBrandAction(
+  _prev: BrandActionState,
+  formData: FormData,
+): Promise<BrandActionState> {
+  await requireAdmin();
+
+  const parsed = unassignSchema.safeParse({ brand_id: formData.get("brand_id") });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const sb = createServiceClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (sb.from("brand_assignments") as any)
+    .delete()
+    .eq("brand_id", parsed.data.brand_id)
+    .eq("is_primary", true);
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/brands");
   return { ok: true, error: null };
