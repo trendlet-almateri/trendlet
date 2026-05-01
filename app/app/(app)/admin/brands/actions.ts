@@ -105,6 +105,10 @@ export async function updateBrandAction(
     if (upsertErr) return { ok: false, error: upsertErr.message };
   }
 
+  // 4. Backfill: if the brand's name changed, link orphans matching
+  //    the new name. Cheap: skips entirely when no orphans match.
+  await rematchOrphansForBrand(sb, parsed.data.brand_id, parsed.data.name);
+
   revalidatePath("/admin/brands");
   return { ok: true, error: null };
 }
@@ -138,6 +142,64 @@ export async function unassignBrandAction(
 
   revalidatePath("/admin/brands");
   return { ok: true, error: null };
+}
+
+/**
+ * Soft-delete a brand: flip is_active=false. Existing sub_orders keep
+ * their brand_id so order history stays intact, but the brand no longer
+ * appears in admin lists or orphan-match logic. Reversible by an admin
+ * directly in the DB if needed.
+ */
+const removeSchema = z.object({ brand_id: z.string().uuid() });
+
+export async function removeBrandAction(
+  _prev: BrandActionState,
+  formData: FormData,
+): Promise<BrandActionState> {
+  await requireAdmin();
+
+  const parsed = removeSchema.safeParse({ brand_id: formData.get("brand_id") });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const sb = createServiceClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: deactivateErr } = await (sb.from("brands") as any)
+    .update({ is_active: false })
+    .eq("id", parsed.data.brand_id);
+  if (deactivateErr) return { ok: false, error: deactivateErr.message };
+
+  // Drop the primary assignment so existing sub_orders stop being routed
+  // by the deactivated brand and surface in /orders/unassigned.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: clearErr } = await (sb.from("brand_assignments") as any)
+    .delete()
+    .eq("brand_id", parsed.data.brand_id)
+    .eq("is_primary", true);
+  if (clearErr) return { ok: false, error: clearErr.message };
+
+  revalidatePath("/admin/brands");
+  return { ok: true, error: null };
+}
+
+/**
+ * Link any orphan sub_orders (brand_id IS NULL) whose brand_name_raw
+ * matches the given brand's name (case-insensitive). Called after a new
+ * brand is created so historical orders that arrived before the brand
+ * existed get auto-linked.
+ */
+async function rematchOrphansForBrand(
+  sb: ReturnType<typeof createServiceClient>,
+  brandId: string,
+  brandName: string,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (sb.from("sub_orders") as any)
+    .update({ brand_id: brandId })
+    .is("brand_id", null)
+    .ilike("brand_name_raw", brandName);
 }
 
 /**
@@ -193,6 +255,12 @@ export async function createBrandAction(
       is_primary: true,
     });
     if (assignErr) return { ok: false, error: assignErr.message };
+  }
+
+  // 3. Backfill: link any orphan sub_orders whose brand_name_raw matches
+  //    the new brand's name. Runs case-insensitive.
+  if (brand?.id) {
+    await rematchOrphansForBrand(sb, brand.id, parsed.data.name);
   }
 
   revalidatePath("/admin/brands");
