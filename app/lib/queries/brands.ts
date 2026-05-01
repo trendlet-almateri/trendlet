@@ -183,22 +183,31 @@ export async function fetchAssignmentsByEmployee(): Promise<AssignmentByEmployee
 
 /**
  * List distinct brand_name_raw values from sub_orders that have no
- * brand_id link, with how many sub_orders each represents. These are
- * the "orphan" brands the admin needs to either create or alias.
+ * brand_id link AND whose name doesn't already match an active brand
+ * (case-insensitive). Names that already exist as a brand belong in
+ * the unassigned-orders queue, not in this "unknown brands" panel —
+ * the brand_id needs a backfill, not a new brand row.
  */
 export async function fetchOrphanBrands(): Promise<OrphanBrand[]> {
   const sb = createServiceClient();
 
-  const { data, error } = await sb
-    .from("sub_orders")
-    .select("brand_name_raw")
-    .is("brand_id", null);
-  if (error) throw new Error(error.message);
+  const [{ data: rawRows, error: rawErr }, { data: activeBrands, error: brandErr }] =
+    await Promise.all([
+      sb.from("sub_orders").select("brand_name_raw").is("brand_id", null),
+      sb.from("brands").select("name").eq("is_active", true),
+    ]);
+  if (rawErr) throw new Error(rawErr.message);
+  if (brandErr) throw new Error(brandErr.message);
+
+  const knownLower = new Set(
+    (activeBrands ?? []).map((b) => (b.name as string).trim().toLowerCase()),
+  );
 
   const counts = new Map<string, number>();
-  for (const row of data ?? []) {
+  for (const row of rawRows ?? []) {
     const raw = ((row as { brand_name_raw: string | null }).brand_name_raw ?? "").trim();
     if (!raw) continue;
+    if (knownLower.has(raw.toLowerCase())) continue;
     counts.set(raw, (counts.get(raw) ?? 0) + 1);
   }
 
