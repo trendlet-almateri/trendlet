@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchAdminOrders } from "@/lib/queries/orders";
-import { FilterTabs } from "@/components/orders/filter-tabs";
 import { OrdersView } from "@/components/orders/orders-view";
+import { PageHeader, TabPills } from "@/components/system";
 
 export const dynamic = "force-dynamic";
 
@@ -53,11 +53,10 @@ export default async function OrdersPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-h1 text-ink-primary">Orders</h1>
+      <PageHeader title="Orders" />
 
-      <FilterTabs
-        basePath="/orders"
-        active={filter}
+      <TabPills
+        activeKey={filter}
         tabs={[
           { key: "all", label: "All orders", count: counts.all },
           { key: "active", label: "Active", count: counts.active },
@@ -65,6 +64,7 @@ export default async function OrdersPage({
           { key: "done", label: "Completed", count: counts.done },
           { key: "unassigned", label: "Unassigned", count: counts.unassigned },
         ]}
+        hrefFor={(key) => (key === "all" ? "/orders" : `/orders?filter=${key}`)}
       />
 
       <OrdersView orders={filtered} totalCount={counts.all} />
