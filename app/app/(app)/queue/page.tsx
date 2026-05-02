@@ -14,8 +14,14 @@ export const metadata = { title: "Sourcing · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-const TODO_STAGE = new Set(["pending", "assigned", "unassigned", "in_progress"]);
-const IN_PROGRESS_STAGE = new Set(["purchased_in_store", "purchased_online"]);
+// Tabs reflect the operator's mental model. "To do" = nothing started yet,
+// "In progress" = the operator is actively sourcing or has just purchased
+// (the row still needs the "delivered to warehouse" handoff), "Completed"
+// = handed off and now warehouse / KSA-side. Keeping in_progress in the
+// In progress tab matches the status pill so the operator's not confused
+// by "status: In progress" appearing under the To-do filter.
+const TODO_STAGE = new Set(["pending", "assigned", "unassigned"]);
+const IN_PROGRESS_STAGE = new Set(["in_progress", "purchased_in_store", "purchased_online"]);
 const COMPLETED_STAGE = new Set([
   "delivered_to_warehouse",
   "under_review",

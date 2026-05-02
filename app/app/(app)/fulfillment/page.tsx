@@ -14,8 +14,10 @@ export const metadata = { title: "EU fulfillment · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-const TODO_STAGE = new Set(["pending", "assigned", "unassigned", "in_progress"]);
-const IN_PROGRESS_STAGE = new Set(["purchased_in_store", "purchased_online"]);
+// Mirror /queue: status_code in_progress lives in the "In progress" tab
+// so the pill on the card matches the tab the row sits under.
+const TODO_STAGE = new Set(["pending", "assigned", "unassigned"]);
+const IN_PROGRESS_STAGE = new Set(["in_progress", "purchased_in_store", "purchased_online"]);
 const COMPLETED_STAGE = new Set([
   "delivered_to_warehouse",
   "under_review",
