@@ -1,9 +1,6 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { useCountUp } from "@/lib/hooks/use-count-up";
 
 type KpiCardProps = {
   label: string;
@@ -18,9 +15,6 @@ type KpiCardProps = {
   miniChart?: boolean;
   /** Stagger index for entrance — pass 0..N from parent so cards cascade in */
   index?: number;
-  /** Opt-in count-up: pass the underlying number + a formatter. Falls back to `value` while animating. */
-  numericValue?: number;
-  format?: (n: number) => string;
 };
 
 const MINI_BARS = [3, 5, 4, 7, 6, 8, 9, 7, 10, 8, 11, 9, 12, 10];
@@ -35,18 +29,12 @@ export function KpiCard({
   hero = false,
   miniChart = false,
   index = 0,
-  numericValue,
-  format,
 }: KpiCardProps) {
   const tone = hero ? "hero" : toneProp;
-  const animatedRaw = useCountUp(numericValue ?? 0);
-  const displayValue =
-    numericValue != null && format ? format(animatedRaw) : value;
 
   const isHero = tone === "hero";
   const isWarn = tone === "warn";
 
-  // Card shell
   const cardCls = cn(
     "rise-in lift relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
     isHero && "bg-[linear-gradient(135deg,#0f1419_0%,#1a2230_100%)] text-white",
@@ -54,7 +42,6 @@ export function KpiCard({
     !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
   );
 
-  // Label row
   const labelCls = cn(
     "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
     isHero ? "text-white/50"
@@ -63,7 +50,6 @@ export function KpiCard({
     : "text-[var(--muted)]",
   );
 
-  // Value — slow opacity tick gives a "live data" feel without being distracting
   const valueCls = cn(
     "value-tick mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none",
     "[font-variant-numeric:tabular-nums]",
@@ -75,7 +61,6 @@ export function KpiCard({
     : "text-[var(--ink)]",
   );
 
-  // Bottom row
   const bottomCls = cn(
     "flex flex-wrap items-center gap-1.5 text-[11px]",
     isHero ? "text-white/60"
@@ -88,16 +73,13 @@ export function KpiCard({
       className={cardCls}
       style={{ ["--stagger-index" as string]: String(index) }}
     >
-      {/* Label row */}
       <div className={labelCls}>
         {Icon && <Icon className="h-3 w-3" aria-hidden />}
         <span>{label}</span>
       </div>
 
-      {/* Value */}
-      <span className={valueCls}>{displayValue}</span>
+      <span className={valueCls}>{value}</span>
 
-      {/* Mini chart */}
       {miniChart && (
         <div className="spark-wave flex h-7 items-end gap-[2px]">
           {MINI_BARS.map((h, i) => (
@@ -117,7 +99,6 @@ export function KpiCard({
         </div>
       )}
 
-      {/* Trend + hint */}
       <div className={bottomCls}>
         {trend && (
           <span
