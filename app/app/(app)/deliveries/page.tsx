@@ -90,7 +90,14 @@ export default async function DeliveriesPage() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className="text-[11px] text-ink-tertiary">{relativeTime(r.status_changed_at)}</span>
-                  <DeliveryActions subOrderId={r.id} currentStatus={r.status} />
+                  <DeliveryActions
+                    subOrderId={r.id}
+                    currentStatus={r.status}
+                    subOrderNumber={r.sub_order_number}
+                    productTitle={r.product_title}
+                    customerName={customerName || null}
+                    customerPhone={r.order?.customer?.phone ?? null}
+                  />
                 </div>
               </li>
             );
