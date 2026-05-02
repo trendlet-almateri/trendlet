@@ -1,6 +1,9 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 
 type KpiCardProps = {
   label: string;
@@ -15,6 +18,9 @@ type KpiCardProps = {
   miniChart?: boolean;
   /** Stagger index for entrance — pass 0..N from parent so cards cascade in */
   index?: number;
+  /** Opt-in count-up: pass the underlying number + a formatter. Falls back to `value` while animating. */
+  numericValue?: number;
+  format?: (n: number) => string;
 };
 
 const MINI_BARS = [3, 5, 4, 7, 6, 8, 9, 7, 10, 8, 11, 9, 12, 10];
@@ -29,16 +35,21 @@ export function KpiCard({
   hero = false,
   miniChart = false,
   index = 0,
+  numericValue,
+  format,
 }: KpiCardProps) {
   const tone = hero ? "hero" : toneProp;
+  const animatedRaw = useCountUp(numericValue ?? 0);
+  const displayValue =
+    numericValue != null && format ? format(animatedRaw) : value;
 
   const isHero = tone === "hero";
   const isWarn = tone === "warn";
 
   // Card shell
   const cardCls = cn(
-    "rise-in relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
-    isHero && "bg-[#0f1419] text-white",
+    "rise-in lift relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
+    isHero && "bg-[linear-gradient(135deg,#0f1419_0%,#1a2230_100%)] text-white",
     isWarn && "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
     !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
   );
@@ -84,7 +95,7 @@ export function KpiCard({
       </div>
 
       {/* Value */}
-      <span className={valueCls}>{value}</span>
+      <span className={valueCls}>{displayValue}</span>
 
       {/* Mini chart */}
       {miniChart && (
