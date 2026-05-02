@@ -254,6 +254,13 @@ export function SubOrderRow({
                 </button>
               );
             })}
+            {nextStatuses.length > 1 && (
+              <StatusJumpSelect
+                options={nextStatuses}
+                disabled={pending}
+                onSelect={(target) => requestAdvance(target as StatusCode)}
+              />
+            )}
             {!primaryTarget && !cancelTarget && !oosTarget && !canUploadReceipt && (
               <span className="text-[11px] text-ink-tertiary">No actions</span>
             )}
@@ -385,6 +392,14 @@ export function SubOrderRow({
         ) : !canUploadReceipt ? (
           <span className="text-[11px] text-ink-tertiary">No actions</span>
         ) : null}
+        {nextStatuses.length > 1 && (
+          <StatusJumpSelect
+            options={nextStatuses}
+            disabled={pending}
+            onSelect={(target) => requestAdvance(target as StatusCode)}
+            compact
+          />
+        )}
       </div>
 
       {actionError && (
@@ -428,6 +443,68 @@ function initials(name: string | undefined | null): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/**
+ * Power-user shortcut: jump to any allowed next status without scanning
+ * the per-status buttons. Resets to the empty option after each pick so
+ * the same status can be selected twice in a row (the optimistic state
+ * may briefly mismatch the server). Routes through the same
+ * requestAdvance → ConfirmStatusModal path as the buttons, so the
+ * WhatsApp-preview rule is preserved.
+ */
+function StatusJumpSelect({
+  options,
+  disabled,
+  onSelect,
+  compact = false,
+}: {
+  options: string[];
+  disabled?: boolean;
+  onSelect: (target: string) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className="relative inline-flex items-center">
+      <select
+        value=""
+        disabled={disabled}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v) onSelect(v);
+          e.currentTarget.value = "";
+        }}
+        className={cn(
+          "appearance-none rounded-md border border-hairline bg-surface pr-7 font-medium text-ink-primary transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:opacity-50",
+          compact ? "h-7 pl-2 text-[11px]" : "h-8 pl-3 text-[12px]",
+        )}
+        aria-label="Change status"
+      >
+        <option value="" disabled>
+          Change status…
+        </option>
+        {options.map((target) => (
+          <option key={target} value={target}>
+            {STATUS_BY_CODE[target]?.label ?? target}
+          </option>
+        ))}
+      </select>
+      <svg
+        className="pointer-events-none absolute right-2 h-3 w-3 text-ink-tertiary"
+        viewBox="0 0 12 12"
+        fill="none"
+        aria-hidden
+      >
+        <path
+          d="M3 4.5L6 7.5L9 4.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  );
 }
 
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
