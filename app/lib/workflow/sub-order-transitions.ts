@@ -38,8 +38,8 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
   purchased_online: ["delivered_to_warehouse"],
 
   // At warehouse
-  delivered_to_warehouse: ["under_review", "preparing_for_shipment"],
-  under_review: ["preparing_for_shipment"],
+  delivered_to_warehouse: ["shipped", "under_review", "preparing_for_shipment"],
+  under_review: ["preparing_for_shipment", "shipped"],
   preparing_for_shipment: ["shipped"],
 
   // In transit + KSA
