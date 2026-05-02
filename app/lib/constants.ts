@@ -38,7 +38,7 @@ export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
     "under_review", "in_progress", "purchased_online", "purchased_in_store",
     "out_of_stock", "delivered_to_warehouse", "cancelled",
   ],
-  warehouse: ["delivered_to_warehouse", "preparing_for_shipment", "shipped", "arrived_in_ksa"],
+  warehouse: ["delivered_to_warehouse", "preparing_for_shipment", "shipped", "delivered"],
   fulfiller: [
     "under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled",
     "delivered_to_warehouse", "preparing_for_shipment", "shipped",
