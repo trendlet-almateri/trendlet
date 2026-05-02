@@ -26,23 +26,6 @@ const STATUS_PALETTE: Record<string, string> = {
   danger: "bg-status-danger-bg text-status-danger-fg border-status-danger-border/40",
 };
 
-// Per-status primary-CTA label. The button advances the sub-order to the
-// status's first canonical "next" — see lib/workflow/sub-order-transitions.
-const PRIMARY_CTA_LABEL: Record<string, string> = {
-  pending: "Start sourcing",
-  assigned: "Start sourcing",
-  unassigned: "Start sourcing",
-  in_progress: "Mark purchased",
-  purchased_in_store: "Hand off",
-  purchased_online: "Hand off",
-  delivered_to_warehouse: "Start review",
-  under_review: "Start prep",
-  preparing_for_shipment: "Mark shipped",
-  shipped: "Arrived in KSA",
-  arrived_in_ksa: "Mark delivered",
-  out_for_delivery: "Mark delivered",
-};
-
 export function SubOrderRow({
   row,
   nextStatuses,
@@ -98,7 +81,6 @@ export function SubOrderRow({
     const forwardTargets = nextStatuses.filter(
       (s) => s !== "cancelled" && s !== "out_of_stock",
     );
-    const primaryTarget = forwardTargets[0];
     const isUrgent = row.is_delayed || row.is_at_risk;
     const brandInitials = initials(row.brand?.name);
 
@@ -222,46 +204,18 @@ export function SubOrderRow({
                 Cancel order
               </button>
             )}
-            {forwardTargets.map((target, idx) => {
-              const isPrimary = target === primaryTarget;
-              const label =
-                // PRIMARY_CTA_LABEL is the friendly verb for the *only* forward
-                // option (e.g. pending → "Start sourcing"). When there's a real
-                // branch (in_progress → online vs in-store) we'd lose the
-                // distinction by collapsing them under one label, so fall back
-                // to the per-target STATUS_BY_CODE label whenever forwardTargets
-                // has more than one entry.
-                (isPrimary && forwardTargets.length === 1 && PRIMARY_CTA_LABEL[optimisticStatus]) ??
-                STATUS_BY_CODE[target]?.label ??
-                target;
-              return (
-                <button
-                  key={target}
-                  type="button"
-                  disabled={pending}
-                  onClick={() => requestAdvance(target)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors disabled:opacity-50",
-                    isPrimary
-                      ? "bg-accent text-white hover:bg-navy-deep"
-                      : "border border-hairline-strong bg-surface text-ink-primary hover:bg-neutral-50",
-                  )}
-                >
-                  {pending && idx === 0 ? (
-                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                  ) : null}
-                  {label}
-                </button>
-              );
-            })}
-            {nextStatuses.length > 1 && (
+            {forwardTargets.length > 0 && (
               <StatusJumpSelect
-                options={nextStatuses}
+                options={forwardTargets}
                 disabled={pending}
                 onSelect={(target) => requestAdvance(target as StatusCode)}
+                primary
               />
             )}
-            {!primaryTarget && !cancelTarget && !oosTarget && !canUploadReceipt && (
+            {pending && (
+              <Loader2 className="h-3 w-3 animate-spin text-ink-tertiary" aria-hidden />
+            )}
+            {forwardTargets.length === 0 && !cancelTarget && !oosTarget && !canUploadReceipt && (
               <span className="text-[11px] text-ink-tertiary">No actions</span>
             )}
           </div>
@@ -355,51 +309,52 @@ export function SubOrderRow({
             supplierInvoiceId={row.latest_supplier_invoice_id}
           />
         )}
-        {nextStatuses.length > 0 ? (
-          nextStatuses.map((target) => {
-            const isCancel = target === "cancelled";
-            const isOos = target === "out_of_stock";
-            const forwards = nextStatuses.filter((s) => s !== "cancelled" && s !== "out_of_stock");
-            const isPrimary = !isCancel && !isOos && target === forwards[0];
-            const label =
-              // Only collapse to PRIMARY_CTA_LABEL when there's a single forward
-              // option. Branches (e.g. in_progress → online vs in-store) keep
-              // their own per-target labels so the operator sees the choice.
-              (isPrimary && forwards.length === 1 && PRIMARY_CTA_LABEL[optimisticStatus]) ??
-              STATUS_BY_CODE[target]?.label ??
-              target;
-            return (
-              <button
-                key={target}
-                type="button"
-                disabled={pending}
-                onClick={() => requestAdvance(target)}
-                className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50",
-                  isCancel
-                    ? "border border-status-danger-border/40 bg-surface text-status-danger-fg hover:bg-status-danger-bg/50"
-                    : isOos
-                    ? "border border-hairline bg-surface text-status-danger-fg/80 hover:text-status-danger-fg hover:bg-neutral-50"
-                    : isPrimary
-                    ? "bg-accent text-white shadow-sm hover:bg-navy-deep"
-                    : "border border-hairline bg-surface text-ink-primary hover:bg-neutral-50",
-                )}
-              >
-                {label}
-              </button>
+        {(() => {
+          const cancelT = nextStatuses.find((s) => s === "cancelled");
+          const oosT = nextStatuses.find((s) => s === "out_of_stock");
+          const forwards = nextStatuses.filter((s) => s !== "cancelled" && s !== "out_of_stock");
+          if (nextStatuses.length === 0) {
+            return canUploadReceipt ? null : (
+              <span className="text-[11px] text-ink-tertiary">No actions</span>
             );
-          })
-        ) : !canUploadReceipt ? (
-          <span className="text-[11px] text-ink-tertiary">No actions</span>
-        ) : null}
-        {nextStatuses.length > 1 && (
-          <StatusJumpSelect
-            options={nextStatuses}
-            disabled={pending}
-            onSelect={(target) => requestAdvance(target as StatusCode)}
-            compact
-          />
-        )}
+          }
+          return (
+            <>
+              {oosT && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => requestAdvance(oosT as StatusCode)}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md border border-hairline bg-surface px-2.5 text-[11px] font-medium text-status-danger-fg/80 transition-colors hover:text-status-danger-fg hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  Out of stock
+                </button>
+              )}
+              {cancelT && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => requestAdvance(cancelT as StatusCode)}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md border border-status-danger-border/40 bg-surface px-2.5 text-[11px] font-medium text-status-danger-fg transition-colors hover:bg-status-danger-bg/50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              )}
+              {forwards.length > 0 && (
+                <StatusJumpSelect
+                  options={forwards}
+                  disabled={pending}
+                  onSelect={(target) => requestAdvance(target as StatusCode)}
+                  compact
+                  primary
+                />
+              )}
+              {pending && (
+                <Loader2 className="h-3 w-3 animate-spin text-ink-tertiary" aria-hidden />
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {actionError && (
@@ -458,11 +413,14 @@ function StatusJumpSelect({
   disabled,
   onSelect,
   compact = false,
+  primary = false,
 }: {
   options: string[];
   disabled?: boolean;
   onSelect: (target: string) => void;
   compact?: boolean;
+  /** Render as the accent (primary) action — the only forward CTA. */
+  primary?: boolean;
 }) {
   return (
     <div className="relative inline-flex items-center">
@@ -475,7 +433,10 @@ function StatusJumpSelect({
           e.currentTarget.value = "";
         }}
         className={cn(
-          "appearance-none rounded-md border border-hairline bg-surface pr-7 font-medium text-ink-primary transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:opacity-50",
+          "appearance-none rounded-md pr-7 font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:opacity-50",
+          primary
+            ? "bg-accent text-white shadow-sm hover:bg-navy-deep"
+            : "border border-hairline bg-surface text-ink-primary hover:bg-neutral-50",
           compact ? "h-7 pl-2 text-[11px]" : "h-8 pl-3 text-[12px]",
         )}
         aria-label="Change status"
@@ -490,7 +451,10 @@ function StatusJumpSelect({
         ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-2 h-3 w-3 text-ink-tertiary"
+        className={cn(
+          "pointer-events-none absolute right-2 h-3 w-3",
+          primary ? "text-white/80" : "text-ink-tertiary",
+        )}
         viewBox="0 0 12 12"
         fill="none"
         aria-hidden
