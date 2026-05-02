@@ -35,14 +35,13 @@ export const STATUS_BY_CODE: Record<string, (typeof STATUSES)[number]> = Object.
 // to decide which buttons to render in the UI.
 export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
   sourcing: [
-    "under_review", "in_progress", "purchased_online", "purchased_in_store",
-    "out_of_stock", "delivered_to_warehouse", "cancelled",
+    "in_progress", "purchased_online", "purchased_in_store",
+    "out_of_stock", "delivered_to_warehouse",
   ],
-  warehouse: ["delivered_to_warehouse", "preparing_for_shipment", "shipped", "delivered"],
+  warehouse: ["delivered_to_warehouse", "shipped", "delivered"],
   fulfiller: [
-    "under_review", "in_progress", "purchased_online", "purchased_in_store", "out_of_stock", "cancelled",
-    "delivered_to_warehouse", "preparing_for_shipment", "shipped",
-    "arrived_in_ksa", "out_for_delivery", "delivered",
+    "in_progress", "purchased_online", "purchased_in_store", "out_of_stock",
+    "delivered_to_warehouse", "shipped", "delivered",
   ],
   ksa_operator: ["arrived_in_ksa", "out_for_delivery", "delivered", "returned"],
 };
