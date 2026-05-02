@@ -291,3 +291,97 @@
     transform: none;
   }
 }
+
+/* ── Premium polish layer ───────────────────────────────────────────── */
+
+::selection {
+  background: rgba(12, 68, 124, 0.15);
+  color: var(--accent);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 20, 25, 0.18);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(15, 20, 25, 0.28); }
+
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Card mount for login (and any other one-shot mount surface) */
+@keyframes cardMount {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.card-mount {
+  animation: cardMount 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Success pulse for status pill on successful change */
+@keyframes successPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.success-pulse {
+  animation: successPulse 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-mount, .success-pulse { animation: none; opacity: 1; transform: none; }
+}
+
+/* Hover lift utility for clickable cards/KPI tiles */
+.lift {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(15, 20, 25, 0.06);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift, .lift:hover { transform: none; }
+}
+
+/* ── Glassmorphism utilities (overlay/transient surfaces only) ─────── */
+
+.glass-popover {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(15, 20, 25, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 8px 32px rgba(15, 20, 25, 0.10),
+    0 2px 8px rgba(15, 20, 25, 0.05);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 0.5px solid rgba(15, 20, 25, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.glass-tooltip {
+  background: rgba(15, 20, 25, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-popover { background: rgba(255, 255, 255, 0.96); }
+  .glass-pill    { background: rgba(255, 255, 255, 0.92); }
+  .glass-tooltip { background: rgba(15, 20, 25, 0.96); }
+}

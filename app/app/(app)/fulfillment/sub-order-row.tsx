@@ -433,10 +433,10 @@ function StatusJumpSelect({
           e.currentTarget.value = "";
         }}
         className={cn(
-          "appearance-none rounded-md pr-7 font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:opacity-50",
+          "appearance-none rounded-md pr-7 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 cursor-pointer",
           primary
-            ? "bg-accent text-white shadow-sm hover:bg-navy-deep"
-            : "border border-hairline bg-surface text-ink-primary hover:bg-neutral-50",
+            ? "bg-accent text-white shadow-sm hover:bg-navy-deep hover:shadow-md hover:-translate-y-px"
+            : "border border-hairline bg-surface text-ink-primary hover:bg-neutral-50 hover:border-hairline-strong",
           compact ? "h-7 pl-2 text-[11px]" : "h-8 pl-3 text-[12px]",
         )}
         aria-label="Change status"
