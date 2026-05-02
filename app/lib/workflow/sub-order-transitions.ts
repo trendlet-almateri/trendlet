@@ -43,7 +43,11 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
   preparing_for_shipment: ["shipped"],
 
   // In transit + KSA
-  shipped: ["arrived_in_ksa"],
+  // shipped→delivered direct path lets warehouse close out fulfilment when
+  // they're the ones handing off to the KSA customer; the silent
+  // arrived_in_ksa waypoint stays available for orders that go through the
+  // KSA operator workflow.
+  shipped: ["arrived_in_ksa", "delivered"],
   arrived_in_ksa: ["out_for_delivery", "delivered"],
   out_for_delivery: ["delivered", "returned"],
 
