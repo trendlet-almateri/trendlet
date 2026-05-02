@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchInvoices, fetchInvoiceCounts, type InvoiceStatus } from "@/lib/queries/invoices";
-import { FilterTabs } from "@/components/orders/filter-tabs";
+import { PageHeader, TabPills } from "@/components/system";
 import { EmptyState } from "@/components/common/empty-state";
 import { formatCurrency } from "@/lib/utils/currency";
 import { relativeTime } from "@/lib/utils/date";
@@ -69,22 +69,21 @@ export default async function InvoicesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header — title + subtitle + sync badge, matching dashboard */}
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-h1 text-[var(--ink)]">Invoices</h1>
-          <span className="text-[12px] text-[var(--muted)]">
+      <PageHeader
+        title="Invoices"
+        subtitle={
+          <>
             {totalCount.toLocaleString("en-US")} {totalCount === 1 ? "invoice" : "invoices"}
-            {counts.pending_review > 0 && (
-              <> · {counts.pending_review} awaiting review</>
-            )}
+            {counts.pending_review > 0 && <> · {counts.pending_review} awaiting review</>}
+          </>
+        }
+        actions={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
+            <Clock className="h-3 w-3" aria-hidden />
+            Synced 2 min ago
           </span>
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
-          <Clock className="h-3 w-3" aria-hidden />
-          Synced 2 min ago
-        </span>
-      </header>
+        }
+      />
 
       {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-3">
@@ -129,9 +128,8 @@ export default async function InvoicesPage({
         />
       </div>
 
-      <FilterTabs
-        basePath="/invoices"
-        active={filter}
+      <TabPills
+        activeKey={filter}
         tabs={[
           { key: "all", label: "All", count: totalCount },
           { key: "pending_review", label: "Pending review", count: counts.pending_review },
@@ -139,6 +137,7 @@ export default async function InvoicesPage({
           { key: "sent", label: "Sent", count: counts.sent },
           { key: "rejected", label: "Rejected", count: counts.rejected },
         ]}
+        hrefFor={(key) => (key === "all" ? "/invoices" : `/invoices?filter=${key}`)}
       />
 
       {invoices.length === 0 ? (
