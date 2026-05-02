@@ -29,6 +29,7 @@ export type FulfillmentRow = {
     shopify_order_number: string | null;
     customer_name: string;
     customer_city: string | null;
+    customer_phone: string | null;
   } | null;
 };
 
@@ -86,7 +87,7 @@ export async function fetchFulfillmentQueue(opts: {
       brand:brands!inner ( id, name, region ),
       order:orders (
         id, shopify_order_number,
-        customer:customers ( first_name, last_name, default_address )
+        customer:customers ( first_name, last_name, phone, default_address )
       ),
       supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id, linked_at )
     `)
@@ -122,6 +123,7 @@ export async function fetchFulfillmentQueue(opts: {
           customer: {
             first_name: string | null;
             last_name: string | null;
+            phone: string | null;
             default_address: { city?: string | null } | null;
           } | null;
         } | null;
@@ -155,6 +157,7 @@ export async function fetchFulfillmentQueue(opts: {
               shopify_order_number: r.order.shopify_order_number,
               customer_name: fullName,
               customer_city: c?.default_address?.city ?? null,
+              customer_phone: c?.phone ?? null,
             }
           : null,
       };

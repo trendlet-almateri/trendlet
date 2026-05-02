@@ -35,11 +35,19 @@ export async function setDeliveryStatusAction(input: {
   // Use regular client for non-admins so RLS narrows to their own rows;
   // admins use service-role for the same reason as elsewhere in the app
   // (their JWT may not yet carry the role claim on first sign-in).
-  const sb = user.roles.includes("admin") ? createServiceClient() : createClient();
+  const isAdmin = user.roles.includes("admin");
+  const sb = isAdmin ? createServiceClient() : createClient();
+
+  // Service-role client has no auth.uid(); set status_changed_by explicitly
+  // so enforce_status_whitelist's auto-populate fallback isn't needed.
+  const update: { status: string; status_changed_by?: string } = {
+    status: parsed.data.status,
+  };
+  if (isAdmin) update.status_changed_by = user.id;
 
   const { error } = await sb
     .from("sub_orders")
-    .update({ status: parsed.data.status })
+    .update(update)
     .eq("id", parsed.data.subOrderId);
 
   if (error) return { error: error.message, ok: false };
