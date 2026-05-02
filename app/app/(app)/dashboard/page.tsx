@@ -10,6 +10,7 @@ import { TeamLoadCard } from "@/components/dashboard/team-load-card";
 import { OrdersTable } from "@/components/orders/orders-table";
 import { OrdersPipeline } from "@/components/orders/orders-pipeline";
 import { formatCurrency } from "@/lib/utils/currency";
+import { PageHeader } from "@/components/system";
 import {
   LayoutList,
   Activity,
@@ -50,20 +51,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header — left-aligned with subtitle, sync badge top-right */}
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-h1 text-ink-primary">Dashboard</h1>
-          <span className="text-[12px] text-[var(--muted)]">
+      <PageHeader
+        title="Dashboard"
+        subtitle={
+          <>
             Operations overview · {totalOrders.toLocaleString("en-US")} {totalOrders === 1 ? "order" : "orders"} · last 30 days
+          </>
+        }
+        actions={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
+            <Clock className="h-3 w-3" aria-hidden />
+            Synced 2 min ago
+            <RefreshCw className="h-3 w-3 cursor-pointer text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" aria-hidden />
           </span>
-        </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
-          <Clock className="h-3 w-3" aria-hidden />
-          Synced 2 min ago
-          <RefreshCw className="h-3 w-3 cursor-pointer text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" aria-hidden />
-        </span>
-      </header>
+        }
+      />
 
       {/* KPI row — asymmetric Bento (2fr 2fr 2fr 2fr 3fr) so the hero card visibly leads */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-3">
