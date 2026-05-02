@@ -225,7 +225,13 @@ export function SubOrderRow({
             {forwardTargets.map((target, idx) => {
               const isPrimary = target === primaryTarget;
               const label =
-                (isPrimary && PRIMARY_CTA_LABEL[optimisticStatus]) ??
+                // PRIMARY_CTA_LABEL is the friendly verb for the *only* forward
+                // option (e.g. pending → "Start sourcing"). When there's a real
+                // branch (in_progress → online vs in-store) we'd lose the
+                // distinction by collapsing them under one label, so fall back
+                // to the per-target STATUS_BY_CODE label whenever forwardTargets
+                // has more than one entry.
+                (isPrimary && forwardTargets.length === 1 && PRIMARY_CTA_LABEL[optimisticStatus]) ??
                 STATUS_BY_CODE[target]?.label ??
                 target;
               return (
@@ -346,9 +352,13 @@ export function SubOrderRow({
           nextStatuses.map((target) => {
             const isCancel = target === "cancelled";
             const isOos = target === "out_of_stock";
-            const isPrimary = !isCancel && !isOos && target === nextStatuses.find((s) => s !== "cancelled" && s !== "out_of_stock");
+            const forwards = nextStatuses.filter((s) => s !== "cancelled" && s !== "out_of_stock");
+            const isPrimary = !isCancel && !isOos && target === forwards[0];
             const label =
-              (isPrimary && PRIMARY_CTA_LABEL[optimisticStatus]) ??
+              // Only collapse to PRIMARY_CTA_LABEL when there's a single forward
+              // option. Branches (e.g. in_progress → online vs in-store) keep
+              // their own per-target labels so the operator sees the choice.
+              (isPrimary && forwards.length === 1 && PRIMARY_CTA_LABEL[optimisticStatus]) ??
               STATUS_BY_CODE[target]?.label ??
               target;
             return (
