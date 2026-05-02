@@ -86,7 +86,7 @@ export function KpiCard({
   return (
     <div
       className={cardCls}
-      style={{ ["--stagger-index" as string]: index }}
+      style={{ ["--stagger-index" as string]: String(index) }}
     >
       {/* Label row */}
       <div className={labelCls}>

@@ -26,7 +26,7 @@ export function TeamLoadCard({
   return (
     <div
       className="rise-in flex flex-col gap-2.5 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
-      style={{ ["--stagger-index" as string]: index }}
+      style={{ ["--stagger-index" as string]: String(index) }}
     >
       {/* Team name + dot — dot breathes when team has active items */}
       <div className="flex items-center gap-2">

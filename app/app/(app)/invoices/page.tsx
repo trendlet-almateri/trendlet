@@ -161,7 +161,7 @@ export default async function InvoicesPage({
                   "rise-in group flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] border-l-2 bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--hover)] active:scale-[0.998]",
                   CONFIDENCE_BORDER[confidence] ?? "border-l-status-pending-border",
                 )}
-                style={{ ["--stagger-index" as string]: Math.min(i, 12) }}
+                style={{ ["--stagger-index" as string]: String(Math.min(i, 12)) }}
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -252,7 +252,7 @@ function KpiTile({
           "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
         !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
       )}
-      style={{ ["--stagger-index" as string]: index }}
+      style={{ ["--stagger-index" as string]: String(index) }}
     >
       <div
         className={cn(
