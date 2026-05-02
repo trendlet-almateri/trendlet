@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { EmptyState } from "@/components/common/empty-state";
 import { SubOrderRow } from "./sub-order-row";
+import { MyAssignedHero } from "@/components/queue/my-assigned-hero";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
 import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,8 @@ export default async function FulfillmentPage({
           )}
         </div>
       </header>
+
+      {!isAdmin && <MyAssignedHero rows={rows} pageHref="/fulfillment" />}
 
       <FilterBar brands={brands} activeTab={activeTab} brandFilter={brandFilter} sortKey={sortKey} />
 
