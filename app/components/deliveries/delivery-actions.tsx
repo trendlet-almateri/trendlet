@@ -10,12 +10,17 @@ import {
   listQueuedMutations,
   type QueuedMutation,
 } from "@/lib/offline/queue";
+import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 
 type Status = QueuedMutation["status"];
 
 type Props = {
   subOrderId: string;
   currentStatus: Status | string;
+  subOrderNumber: string;
+  productTitle: string;
+  customerName: string | null;
+  customerPhone: string | null;
 };
 
 const NEXT_ACTIONS: Record<string, { label: string; status: Status; tone: "primary" | "danger" }[]> = {
@@ -36,11 +41,19 @@ const NEXT_ACTIONS: Record<string, { label: string; status: Status; tone: "prima
  * optimistic transient) is the persistent IDB-backed state that survives
  * remounts and reflects across sessions until the next successful flush.
  */
-export function DeliveryActions({ subOrderId, currentStatus }: Props) {
+export function DeliveryActions({
+  subOrderId,
+  currentStatus,
+  subOrderNumber,
+  productTitle,
+  customerName,
+  customerPhone,
+}: Props) {
   const router = useRouter();
   const [, startTransition] = React.useTransition();
   // Persistent queued status — survives remounts via IDB.
   const [queuedStatus, setQueuedStatus] = React.useState<Status | null>(null);
+  const [pendingTarget, setPendingTarget] = React.useState<Status | null>(null);
 
   // The base status the UI reflects: queued takes precedence over the
   // server-authoritative currentStatus while a mutation is parked.
@@ -117,7 +130,7 @@ export function DeliveryActions({ subOrderId, currentStatus }: Props) {
         <button
           key={a.status}
           type="button"
-          onClick={() => commit(a.status)}
+          onClick={() => setPendingTarget(a.status)}
           className={
             a.tone === "primary"
               ? "h-8 rounded-md bg-navy-deep px-3 text-[12px] font-medium text-white transition-colors hover:bg-navy disabled:opacity-50"
@@ -134,6 +147,22 @@ export function DeliveryActions({ subOrderId, currentStatus }: Props) {
         >
           Queued
         </span>
+      )}
+
+      {pendingTarget && (
+        <ConfirmStatusModal
+          target={pendingTarget}
+          subOrderNumber={subOrderNumber}
+          productTitle={productTitle}
+          customerName={customerName}
+          customerPhone={customerPhone}
+          onCancel={() => setPendingTarget(null)}
+          onConfirm={() => {
+            const target = pendingTarget;
+            setPendingTarget(null);
+            commit(target);
+          }}
+        />
       )}
     </div>
   );
