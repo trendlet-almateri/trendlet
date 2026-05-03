@@ -56,7 +56,11 @@ export function BrandSpinnerOverlay({ message, label = "Loading" }: OverlayProps
         WebkitBackdropFilter: "blur(10px)",
       }}
     >
-      <BrandSpinner size={96} label={label} />
+      <span
+        aria-hidden
+        className="brand-ring-spinner"
+        style={{ width: 56, height: 56 }}
+      />
       {message && (
         <p
           className="font-[family-name:var(--font-inter)] text-[14px] font-medium tracking-[0.02em]"

@@ -212,8 +212,25 @@
   animation: brandGlow 2s ease-in-out infinite;
 }
 
+/* CSS-only ring spinner — gold arc on a faint track, used in the
+   full-screen loading overlay (BrandSpinnerOverlay). No image asset,
+   so no "first-frame square" flash on slow connections. */
+.brand-ring-spinner {
+  display: inline-block;
+  border-radius: 9999px;
+  border: 3px solid rgba(245, 208, 99, 0.18);
+  border-top-color: #f5d063;
+  animation: ringSpin 0.9s linear infinite;
+  filter: drop-shadow(0 0 12px rgba(245, 208, 99, 0.35));
+}
+
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brand-spinner-glow { animation: none; }
+  .brand-ring-spinner { animation: none; }
 }
 
 /* Live dot */
