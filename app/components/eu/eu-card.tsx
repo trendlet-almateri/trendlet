@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Clock, Package, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "lucide-react";
+import { Clock, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils/date";
@@ -63,49 +63,6 @@ const STATUS_PALETTE: Record<string, string> = {
   danger:    "border-[rgba(239,68,68,0.25)] bg-red-50 text-red-600",
 };
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-const SUPPLIERS = ["Local agent", "Brand direct", "EU distributor", "Marketplace", "Wholesaler EU"];
-const CURRENCIES = ["EUR", "GBP", "CHF", "DKK"];
-const NOTES = [
-  "Brand replied — invoice pending.",
-  "Second attempt — first supplier was OOS.",
-  "Confirm size before purchase.",
-  null,
-  null,
-];
-const MOCK_ASSIGNEES = [
-  { name: "Ahmed",  initials: "AA" },
-  { name: "Priya",  initials: "PS" },
-  { name: "Kori",   initials: "KY" },
-  { name: "Elena",  initials: "EV" },
-  { name: "Fatima", initials: "FA" },
-  { name: "Marco",  initials: "MR" },
-];
-const BIN_LOCATIONS = [
-  "EU-A1", "EU-A2", "EU-A3", "EU-B1", "EU-B2", "EU-B3",
-  "EU-C1", "EU-C2", "EU-C3", "EU-D1", "EU-D2", "EU-D3",
-];
-
-function h(id: string) {
-  let v = 0;
-  for (let i = 0; i < id.length; i++) v = (v * 31 + id.charCodeAt(i)) >>> 0;
-  return v;
-}
-
-function mockEu(row: FulfillmentRow) {
-  const n = h(row.id);
-  const brandSlug = (row.brand?.name ?? "brand").toLowerCase().replace(/[^a-z]/g, "");
-  return {
-    supplier:     SUPPLIERS[n % SUPPLIERS.length],
-    currency:     CURRENCIES[(n >>> 4) % CURRENCIES.length],
-    cost:         (((n >>> 8) % 800) + 100 + ((n >>> 16) % 99) / 100).toFixed(2),
-    brandContact: `${brandSlug}@brand.eu`,
-    note:         NOTES[(n >>> 12) % NOTES.length],
-    assignee:     MOCK_ASSIGNEES[(n >>> 2) % MOCK_ASSIGNEES.length],
-    bin:          BIN_LOCATIONS[(n >>> 3) % BIN_LOCATIONS.length],
-  };
-}
-
 // ─── Types ─────────────────────────────────────────────────────────────────────
 export type EuToast = {
   id: string;
@@ -140,7 +97,6 @@ export function EuCard({
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const mock = mockEu(row);
   const isUrgent = row.is_delayed || row.is_at_risk;
   const isWarehouseStage = WAREHOUSE_STAGE.has(optimisticStatus);
   const palette = STATUS_BY_CODE[optimisticStatus]?.palette ?? "pending";
@@ -148,7 +104,7 @@ export function EuCard({
 
   const assignee = selfName
     ? { name: selfName, initials: selfInitials ?? selfName.slice(0, 2).toUpperCase() }
-    : mock.assignee;
+    : null;
 
   const forwardTargets = isReadOnly ? [] : getEuActions(optimisticStatus);
 
@@ -282,37 +238,15 @@ export function EuCard({
             </p>
           </div>
 
-          {/* ── Info rows (stage-dependent) ── */}
-          <div className="border-t border-[var(--line)] pt-2.5">
-            <div className="flex flex-col gap-1.5">
-              {isWarehouseStage ? (
-                <>
-                  <InfoRow
-                    icon={<ScanBarcode className="h-3 w-3 text-[var(--muted)]" />}
-                    label="SKU"
-                    value={row.sku ?? "—"}
-                  />
-                  <InfoRow label="Bin" value={mock.bin} />
-                </>
-              ) : (
-                <>
-                  <InfoRow
-                    icon={<Package className="h-3 w-3 text-[var(--muted)]" />}
-                    label="Supplier"
-                    value={mock.supplier}
-                  />
-                  <InfoRow label="Target cost" value={`${mock.currency} ${mock.cost}`} />
-                  <InfoRow label="Brand contact" value={mock.brandContact} />
-                </>
-              )}
+          {/* ── SKU row (warehouse stage, real schema field) ── */}
+          {isWarehouseStage && row.sku && (
+            <div className="border-t border-[var(--line)] pt-2.5">
+              <InfoRow
+                icon={<ScanBarcode className="h-3 w-3 text-[var(--muted)]" />}
+                label="SKU"
+                value={row.sku}
+              />
             </div>
-          </div>
-
-          {/* ── Note (sourcing stage only) ── */}
-          {!isWarehouseStage && mock.note && (
-            <p className="border-t border-[var(--line)] pt-2 text-[12px] italic text-[var(--muted)]">
-              {mock.note}
-            </p>
           )}
 
           {/* ── Footer ── */}
@@ -320,13 +254,17 @@ export function EuCard({
             <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
               <Clock className="h-3 w-3 shrink-0" aria-hidden />
               <span>{relativeTime(row.status_changed_at)}</span>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[9px] font-semibold text-[var(--accent)]">
-                  {assignee.initials}
-                </span>
-                {assignee.name}
-              </span>
+              {assignee && (
+                <>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[9px] font-semibold text-[var(--accent)]">
+                      {assignee.initials}
+                    </span>
+                    {assignee.name}
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Action buttons — shown when selected */}

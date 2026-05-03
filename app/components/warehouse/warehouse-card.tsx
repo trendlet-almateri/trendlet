@@ -9,35 +9,6 @@ import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 
-// ─── Mock bin locations ────────────────────────────────────────────────────────
-const BIN_LOCATIONS = [
-  "A-1", "A-2", "A-3", "A-4", "A-5", "A-6",
-  "A-7", "A-8", "A-9", "A-10", "A-11", "A-12",
-];
-
-const MOCK_ASSIGNEES = [
-  { name: "Ahmed",  initials: "AA" },
-  { name: "Priya",  initials: "PS" },
-  { name: "Kori",   initials: "KY" },
-  { name: "Elena",  initials: "EV" },
-  { name: "Fatima", initials: "FA" },
-  { name: "Marco",  initials: "MR" },
-];
-
-function h(id: string) {
-  let v = 0;
-  for (let i = 0; i < id.length; i++) v = (v * 31 + id.charCodeAt(i)) >>> 0;
-  return v;
-}
-
-function mockWarehouse(row: FulfillmentRow) {
-  const n = h(row.id);
-  return {
-    bin:      BIN_LOCATIONS[(n >>> 3) % BIN_LOCATIONS.length],
-    assignee: MOCK_ASSIGNEES[(n >>> 2) % MOCK_ASSIGNEES.length],
-  };
-}
-
 // ─── Status label overrides ───────────────────────────────────────────────────
 const STATUS_LABELS: Partial<Record<string, string>> = {
   delivered_to_warehouse: "At warehouse",
@@ -107,7 +78,6 @@ export function WarehouseCard({
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const mock = mockWarehouse(row);
   const isUrgent = row.is_delayed || row.is_at_risk;
   const palette = STATUS_BY_CODE[optimisticStatus]?.palette ?? "warehouse";
   const statusLabel =
@@ -117,7 +87,7 @@ export function WarehouseCard({
 
   const assignee = selfName
     ? { name: selfName, initials: selfInitials ?? selfName.slice(0, 2).toUpperCase() }
-    : mock.assignee;
+    : null;
 
   const forwardTargets = isReadOnly ? [] : getWarehouseActions(optimisticStatus);
 
@@ -248,17 +218,16 @@ export function WarehouseCard({
             </p>
           </div>
 
-          {/* ── Info rows ── */}
-          <div className="border-t border-[var(--line)] pt-2.5">
-            <div className="flex flex-col gap-1.5">
+          {/* ── SKU row (real schema field) ── */}
+          {row.sku && (
+            <div className="border-t border-[var(--line)] pt-2.5">
               <InfoRow
                 icon={<ScanBarcode className="h-3 w-3 text-[var(--muted)]" />}
                 label="SKU"
-                value={row.sku ?? "—"}
+                value={row.sku}
               />
-              <InfoRow label="Bin" value={mock.bin} />
             </div>
-          </div>
+          )}
 
           {/* ── Footer ── */}
           <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--line)] pt-2.5">
