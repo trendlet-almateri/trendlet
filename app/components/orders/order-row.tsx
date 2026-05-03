@@ -255,21 +255,37 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                       >
                         {/* Product */}
                         <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--line)] bg-[var(--hover)]">
-                            <svg viewBox="0 0 20 20" className="h-4 w-4 text-[var(--muted-2)]" fill="none" stroke="currentColor" strokeWidth="1.2">
-                              <rect x="3" y="3" width="14" height="14" rx="2" />
-                              <line x1="3" y1="3" x2="17" y2="17" />
-                              <line x1="17" y1="3" x2="3" y2="17" />
-                            </svg>
-                          </span>
+                          {so.product_image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={so.product_image_url}
+                              alt=""
+                              className="h-9 w-9 shrink-0 rounded-md border border-[var(--line)] bg-[var(--hover)] object-cover"
+                            />
+                          ) : (
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--line)] bg-[var(--hover)]">
+                              <svg viewBox="0 0 20 20" className="h-4 w-4 text-[var(--muted-2)]" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                <rect x="3" y="3" width="14" height="14" rx="2" />
+                                <line x1="3" y1="3" x2="17" y2="17" />
+                                <line x1="17" y1="3" x2="3" y2="17" />
+                              </svg>
+                            </span>
+                          )}
                           <div className="flex min-w-0 flex-col gap-0.5">
                             <span className="truncate text-[13px] font-medium text-[var(--ink)]">
-                              {so.brand_name_raw ?? "—"}
+                              {so.product_title}
+                              {so.quantity > 1 && (
+                                <span className="ml-1.5 text-[var(--muted)]">× {so.quantity}</span>
+                              )}
                             </span>
                             <div className="flex items-center gap-1.5">
                               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-navy text-[9px] font-bold text-white">
                                 {brandLetter}
                               </span>
+                              <span className="truncate text-[11px] text-[var(--muted)]">
+                                {so.brand_name_raw ?? "—"}
+                              </span>
+                              <span className="text-[var(--muted)]">·</span>
                               <span className="font-[family-name:var(--font-jetbrains,monospace)] truncate text-[11px] tabular-nums text-[var(--muted)]">
                                 {subNum}
                               </span>
