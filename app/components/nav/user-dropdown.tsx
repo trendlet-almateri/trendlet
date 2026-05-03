@@ -27,6 +27,7 @@ import { StoresModal } from "@/components/modals/stores-modal";
 import { CarriersModal } from "@/components/modals/carriers-modal";
 import { IntegrationsModal } from "@/components/modals/integrations-modal";
 import { SecurityModal } from "@/components/modals/security-modal";
+import { UnassignedModal } from "@/components/modals/unassigned-modal";
 
 type UserDropdownProps = {
   fullName: string;
@@ -45,7 +46,7 @@ export function UserDropdown({
 }: UserDropdownProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
-  const [activeModal, setActiveModal] = React.useState<null | "team" | "brands" | "profile" | "preferences" | "stores" | "carriers" | "integrations" | "security">(null);
+  const [activeModal, setActiveModal] = React.useState<null | "team" | "brands" | "profile" | "preferences" | "stores" | "carriers" | "integrations" | "security" | "unassigned">(null);
 
   async function signOut() {
     if (signingOut) return;
@@ -66,6 +67,7 @@ export function UserDropdown({
     {activeModal === "carriers" && <CarriersModal onClose={() => setActiveModal(null)} />}
     {activeModal === "integrations" && <IntegrationsModal onClose={() => setActiveModal(null)} />}
     {activeModal === "security" && <SecurityModal email={email} onClose={() => setActiveModal(null)} />}
+    {activeModal === "unassigned" && <UnassignedModal onClose={() => setActiveModal(null)} />}
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className={cn(
@@ -127,9 +129,8 @@ export function UserDropdown({
 
           {/* QUEUE */}
           <SectionLabel>Queue</SectionLabel>
-          <Item
+          <ItemButton
             icon={AlertTriangle}
-            href="/orders/unassigned"
             right={
               unassignedCount > 0 ? (
                 <span className="rounded-full bg-[#791F1F] px-1.5 py-px text-[10px] font-medium text-white tabular-nums">
@@ -138,9 +139,10 @@ export function UserDropdown({
               ) : null
             }
             tone={unassignedCount > 0 ? "danger" : undefined}
+            onSelect={() => setActiveModal("unassigned")}
           >
             Unassigned sub-orders
-          </Item>
+          </ItemButton>
 
           <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
@@ -232,18 +234,21 @@ type ItemButtonProps = {
   children: React.ReactNode;
   right?: React.ReactNode;
   onSelect: () => void;
+  tone?: "danger";
 };
 
-function ItemButton({ icon: Icon, children, right, onSelect }: ItemButtonProps) {
+function ItemButton({ icon: Icon, children, right, onSelect, tone }: ItemButtonProps) {
   return (
     <DropdownMenu.Item
       onSelect={onSelect}
       className={cn(
         "flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
-        "text-neutral-200 hover:bg-white/[0.06] focus:bg-white/[0.06]",
+        tone === "danger"
+          ? "bg-[#791F1F]/15 text-[#FCD3D3] hover:bg-[#791F1F]/25 focus:bg-[#791F1F]/25"
+          : "text-neutral-200 hover:bg-white/[0.06] focus:bg-white/[0.06]",
       )}
     >
-      <Icon className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
+      <Icon className={cn("h-4 w-4 shrink-0", tone === "danger" ? "text-[#F09595]" : "text-neutral-400")} aria-hidden />
       <span className="flex-1 truncate">{children}</span>
       {right && <span className="shrink-0 text-[11px] text-neutral-500">{right}</span>}
     </DropdownMenu.Item>
