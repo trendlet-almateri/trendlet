@@ -20,9 +20,9 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-wrap items-end justify-between gap-3", className)}>
+    <header className={cn("flex min-h-20 flex-wrap items-center justify-between gap-3 md:min-h-0 md:items-end", className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h1 className="truncate text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink-primary">
+        <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink-primary md:text-[28px]">
           {title}
         </h1>
         {subtitle && (
