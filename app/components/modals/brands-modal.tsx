@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Tag, ExternalLink } from "lucide-react";
+import { X, Search, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type BrandRow = {
@@ -145,23 +145,14 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
                 Manage brand routing rules and primary assignees per region.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <a
-                href="/admin/brands"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 text-[12px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)]"
-              >
-                <ExternalLink className="h-3 w-3" aria-hidden />
-                Full view
-              </a>
-              <button
-                type="button"
-                onClick={onClose}
-                className="grid h-7 w-7 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-7 w-7 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
           </div>
 
           {/* Search */}
