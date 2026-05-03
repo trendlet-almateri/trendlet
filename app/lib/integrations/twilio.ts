@@ -30,6 +30,19 @@ export async function notifyCustomerOnStatusChange(
   subOrderId: string,
   newStatus: string,
 ): Promise<NotifyResult> {
+  // Global kill-switch for testing status flows without spamming customers.
+  // Set TWILIO_NOTIFICATIONS_ENABLED=false on the deployment (or omit, since
+  // unset is treated as enabled). When disabled, every status change logs
+  // as 'skipped' and no Twilio call is made.
+  if (process.env.TWILIO_NOTIFICATIONS_ENABLED === "false") {
+    await logSkipped({
+      service: "twilio",
+      endpoint: "/Messages",
+      reason: `notifications disabled (TWILIO_NOTIFICATIONS_ENABLED=false), status='${newStatus}'`,
+    });
+    return { mode: "skipped", message_sid: null, error: null };
+  }
+
   const sb = createServiceClient();
 
   // 1) Look up the template SID and customer details in one go
