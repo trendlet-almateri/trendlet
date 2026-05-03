@@ -41,11 +41,11 @@ function mockSourcing(row: FulfillmentRow) {
   const brandSlug = (row.brand?.name ?? "brand").toLowerCase().replace(/[^a-z]/g, "");
   return {
     supplier: SUPPLIERS[n % SUPPLIERS.length],
-    currency: CURRENCIES[(n >> 4) % CURRENCIES.length],
-    cost: (((n >> 8) % 800) + 100 + ((n >> 16) % 99) / 100).toFixed(2),
+    currency: CURRENCIES[(n >>> 4) % CURRENCIES.length],
+    cost: (((n >>> 8) % 800) + 100 + ((n >>> 16) % 99) / 100).toFixed(2),
     brandContact: `${brandSlug}@brand.cc`,
-    note: NOTES[(n >> 12) % NOTES.length],
-    assignee: MOCK_ASSIGNEES[(n >> 2) % MOCK_ASSIGNEES.length],
+    note: NOTES[(n >>> 12) % NOTES.length],
+    assignee: MOCK_ASSIGNEES[(n >>> 2) % MOCK_ASSIGNEES.length],
   };
 }
 
