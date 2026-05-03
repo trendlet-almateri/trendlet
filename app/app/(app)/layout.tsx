@@ -12,6 +12,11 @@ import { MobileNavProvider } from "@/components/nav/mobile-nav-context";
 
 export const dynamic = "force-dynamic";
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
 async function NotificationsData({ userId, channelKey }: { userId: string; channelKey: string }) {
   const notifications = await fetchRecentNotifications();
   return (
@@ -64,7 +69,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
       </div>
 
-      <BottomNav />
+      <BottomNav
+        roles={user.roles}
+        fullName={user.fullName ?? user.email}
+        email={user.email}
+        primaryRole={user.roles[0] ?? "user"}
+        initials={getInitials(user.fullName ?? user.email)}
+        unassignedCount={unassignedCount}
+      />
       <CommandPalette />
       <ServiceWorkerRegister />
     </div>
