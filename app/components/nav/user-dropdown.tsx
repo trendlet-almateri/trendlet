@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { TeamRolesModal } from "@/components/modals/team-roles-modal";
+import { BrandsModal } from "@/components/modals/brands-modal";
 
 type UserDropdownProps = {
   fullName: string;
@@ -37,6 +39,7 @@ export function UserDropdown({
 }: UserDropdownProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
+  const [activeModal, setActiveModal] = React.useState<null | "team" | "brands">(null);
 
   async function signOut() {
     if (signingOut) return;
@@ -48,6 +51,9 @@ export function UserDropdown({
   }
 
   return (
+    <>
+    {activeModal === "team" && <TeamRolesModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "brands" && <BrandsModal onClose={() => setActiveModal(null)} />}
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className={cn(
@@ -131,12 +137,12 @@ export function UserDropdown({
           <Item icon={Store} href="/setup/stores" right="0 active">
             Stores
           </Item>
-          <Item icon={Tag} href="/setup/brands" right="0 brands">
+          <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
             Brands & assignments
-          </Item>
-          <Item icon={Users} href="/setup/team" right="1 member">
+          </ItemButton>
+          <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>
             Team & roles
-          </Item>
+          </ItemButton>
           <Item icon={Truck} href="/setup/carriers" right="3 active">
             Carriers
           </Item>
@@ -168,6 +174,7 @@ export function UserDropdown({
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+    </>
   );
 }
 
@@ -204,6 +211,29 @@ function Item({ icon: Icon, href, children, right, tone }: ItemProps) {
           <span className="shrink-0 text-[11px] text-neutral-500">{right}</span>
         )}
       </Link>
+    </DropdownMenu.Item>
+  );
+}
+
+type ItemButtonProps = {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  right?: React.ReactNode;
+  onSelect: () => void;
+};
+
+function ItemButton({ icon: Icon, children, right, onSelect }: ItemButtonProps) {
+  return (
+    <DropdownMenu.Item
+      onSelect={onSelect}
+      className={cn(
+        "flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
+        "text-neutral-200 hover:bg-white/[0.06] focus:bg-white/[0.06]",
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
+      <span className="flex-1 truncate">{children}</span>
+      {right && <span className="shrink-0 text-[11px] text-neutral-500">{right}</span>}
     </DropdownMenu.Item>
   );
 }
