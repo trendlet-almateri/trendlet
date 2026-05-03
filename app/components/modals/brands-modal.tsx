@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Search, Tag, Check, Loader2, ChevronDown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Region = "US" | "EU" | "KSA" | "GLOBAL";
+type Region = "US" | "EU";
 
 type BrandRow = {
   id: string;
@@ -26,11 +26,9 @@ type Assignee = {
 const REGION_CLS: Record<string, string> = {
   US: "bg-blue-100 text-blue-700",
   EU: "bg-violet-100 text-violet-700",
-  KSA: "bg-emerald-100 text-emerald-700",
-  GLOBAL: "bg-[var(--hover)] text-[var(--muted)]",
 };
 
-const REGIONS: Region[] = ["US", "EU", "KSA", "GLOBAL"];
+const REGIONS: Region[] = ["US", "EU"];
 
 const AVATAR_COLORS = [
   "bg-violet-500", "bg-blue-500", "bg-emerald-500",
@@ -119,8 +117,6 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
   const regionCounts = {
     US: brands.filter((b) => b.region === "US").length,
     EU: brands.filter((b) => b.region === "EU").length,
-    KSA: brands.filter((b) => b.region === "KSA").length,
-    GLOBAL: brands.filter((b) => b.region === "GLOBAL").length,
   };
   const unassignedCount = brands.filter((b) => !b.primary_assignee).length;
 
@@ -361,8 +357,8 @@ function BrandRowItem({
         <span className="truncate text-[13px] font-medium text-[var(--ink)]">{b.name}</span>
       </div>
 
-      {/* Region — segmented control */}
-      <RegionSegmented
+      {/* Region dropdown */}
+      <RegionSelect
         value={b.region}
         onChange={(region) => save({ region })}
         disabled={saveState === "saving"}
@@ -389,7 +385,7 @@ function BrandRowItem({
   );
 }
 
-function RegionSegmented({
+function RegionSelect({
   value,
   onChange,
   disabled,
@@ -399,27 +395,29 @@ function RegionSegmented({
   disabled?: boolean;
 }) {
   return (
-    <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] p-0.5">
-      {REGIONS.map((r) => {
-        const active = value === r;
-        return (
-          <button
-            key={r}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(active ? null : r)}
-            className={cn(
-              "rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-              active
-                ? REGION_CLS[r]
-                : "text-[var(--muted)] hover:bg-[var(--hover)]",
-            )}
-            title={active ? `Click to clear region` : `Set region to ${r}`}
-          >
+    <div className="relative inline-block w-[88px]">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange((e.target.value || null) as Region | null)}
+        disabled={disabled}
+        className={cn(
+          "h-7 w-full appearance-none truncate rounded-[var(--radius-sm)] border bg-[var(--panel)] pl-2 pr-6 text-[12px] font-semibold uppercase tracking-[0.4px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-60",
+          value
+            ? `${REGION_CLS[value]} border-transparent`
+            : "border-[var(--line)] text-[var(--muted)]",
+        )}
+      >
+        <option value="">—</option>
+        {REGIONS.map((r) => (
+          <option key={r} value={r}>
             {r}
-          </button>
-        );
-      })}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]"
+        aria-hidden
+      />
     </div>
   );
 }
