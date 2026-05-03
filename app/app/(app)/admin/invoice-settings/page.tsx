@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isZohoInboundConfigured } from "@/lib/integrations/zoho-mail-inbound";
+import { PageHeader } from "@/components/system";
 import { ModelPickerForm } from "./model-picker-form";
 import { InboundPollCard } from "./inbound-poll-card";
 
@@ -45,12 +46,10 @@ export default async function InvoiceSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-0.5">
-        <h1 className="text-h1 text-ink-primary">Invoice settings</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          Choose which AI model extracts line items from supplier receipts.
-        </span>
-      </header>
+      <PageHeader
+        title="Invoice settings"
+        subtitle="Choose which AI model extracts line items from supplier receipts."
+      />
 
       <ModelPickerForm
         currentModelId={currentModelId}

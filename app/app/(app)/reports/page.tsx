@@ -1,5 +1,6 @@
 import { BarChart3 } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { fetchRevenueByCurrency } from "@/lib/queries/orders";
 import { EmptyState } from "@/components/common/empty-state";
@@ -46,17 +47,12 @@ export default async function ReportsPage() {
   const maxBrandRevenue = topBrands.length ? Math.max(...topBrands.map((b) => Number(b.revenue))) : 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">Reports</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          Revenue, profit, and team performance · last 30 days
-        </span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Reports" subtitle="Revenue, profit, and team performance · last 30 days" />
 
       {/* Revenue by currency */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-hint uppercase text-ink-tertiary">Revenue by currency</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Revenue by currency</h2>
         {revenue.length === 0 ? (
           <EmptyState
             icon={BarChart3}
@@ -64,10 +60,10 @@ export default async function ReportsPage() {
             description="Revenue data populates as orders are completed."
           />
         ) : (
-          <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                   <th className="px-4 py-2 font-medium">Currency</th>
                   <th className="px-3 py-2 text-right font-medium">Orders 30d</th>
                   <th className="px-3 py-2 text-right font-medium">Revenue 30d</th>
@@ -79,7 +75,7 @@ export default async function ReportsPage() {
                 {revenue.map((r) => {
                   const change = r.prev_total > 0 ? ((Number(r.total_30d) - Number(r.prev_total)) / Number(r.prev_total)) * 100 : null;
                   return (
-                    <tr key={r.currency} className="border-b border-hairline last:border-0">
+                    <tr key={r.currency} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                       <td className="px-4 py-3 font-medium text-ink-primary">{r.currency}</td>
                       <td className="px-3 py-3 text-right tabular-nums text-ink-primary">{r.order_count_30d}</td>
                       <td className="px-3 py-3 text-right tabular-nums text-ink-primary">
@@ -108,12 +104,12 @@ export default async function ReportsPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Top brands */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-hint uppercase text-ink-tertiary">Top brands · last 30 days</h2>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Top brands · last 30 days</h2>
           {topBrands.length === 0 ? (
             <EmptyState icon={BarChart3} title="No brand revenue yet" />
           ) : (
-            <div className="rounded-md border border-hairline bg-surface p-4">
+            <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
               <ul className="flex flex-col gap-3">
                 {topBrands.map((b) => {
                   const pct = maxBrandRevenue > 0 ? (Number(b.revenue) / maxBrandRevenue) * 100 : 0;
@@ -126,7 +122,7 @@ export default async function ReportsPage() {
                           <span className="ml-1 text-[11px] text-ink-tertiary">· {b.items_count} items</span>
                         </span>
                       </div>
-                      <div className="h-1 overflow-hidden rounded-full bg-neutral-100">
+                      <div className="h-1 overflow-hidden rounded-full bg-[var(--line)]">
                         <span className="block h-full bg-navy" style={{ width: `${pct}%` }} />
                       </div>
                     </li>
@@ -138,8 +134,8 @@ export default async function ReportsPage() {
         </section>
 
         {/* Team performance */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-hint uppercase text-ink-tertiary">Team performance · last 30 days</h2>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Team performance · last 30 days</h2>
           {perf.length === 0 ? (
             <EmptyState
               icon={BarChart3}
@@ -150,7 +146,7 @@ export default async function ReportsPage() {
             <div className="rounded-md border border-hairline bg-surface">
               <ul className="flex flex-col">
                 {perf.map((p) => (
-                  <li key={p.employee_id} className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3 last:border-0">
+                  <li key={p.employee_id} className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3 last:border-0 hover:bg-[var(--hover)]">
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="text-[13px] font-medium text-ink-primary">{p.full_name}</span>
                       <span className="text-[11px] capitalize text-ink-tertiary">

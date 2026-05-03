@@ -96,7 +96,7 @@ export function OrdersView({ orders, totalCount }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Top bar: search + chips + toggle + sort/columns */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
@@ -107,7 +107,7 @@ export function OrdersView({ orders, totalCount }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search orders…"
-            className="h-8 rounded-md border border-[var(--line)] bg-[var(--panel)] pl-8 pr-10 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:outline-none"
+            className="h-8 min-w-[200px] rounded-md border border-[var(--line)] bg-[var(--panel)] pl-8 pr-10 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
           />
           <kbd className="absolute right-2 rounded border border-[var(--line)] px-1 py-px font-[family-name:var(--font-jetbrains,_monospace)] text-[9px] text-[var(--muted)]">
             ⌘K
@@ -200,7 +200,7 @@ export function OrdersView({ orders, totalCount }: Props) {
           <OrdersTable orders={pageItems} onOpenDrawer={setDrawer} />
 
           {/* Pagination footer */}
-          <div className="flex items-center justify-between py-1">
+          <div className="flex items-center justify-between border-t border-[var(--line)] pt-3">
             <span className="font-[family-name:var(--font-jetbrains,_monospace)] text-[11px] tabular-nums text-[var(--muted)]">
               {displayed.length === 0
                 ? "No orders"

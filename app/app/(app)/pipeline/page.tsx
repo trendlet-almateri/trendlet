@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { SubOrderRow } from "../fulfillment/sub-order-row";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
 import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
+import { PageHeader } from "@/components/system";
 
 export const dynamic = "force-dynamic";
 
@@ -43,16 +44,10 @@ export default async function WarehousePipelinePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-h1 text-ink-primary">Warehouse</h1>
-          <span className="text-[12px] text-ink-tertiary">
-            US brands · {total.toLocaleString("en-US")}{" "}
-            {total === 1 ? "active sub-order" : "active sub-orders"}
-            {isAdmin && total > 0 && " · admin view"}
-          </span>
-        </div>
-      </header>
+      <PageHeader
+        title="Warehouse"
+        subtitle={<>US brands · {total.toLocaleString("en-US")} {total === 1 ? "active sub-order" : "active sub-orders"}{isAdmin && total > 0 && " · admin view"}</>}
+      />
 
       {total === 0 ? (
         <EmptyState
@@ -101,15 +96,15 @@ function Group({
   readOnly?: boolean;
 }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+    <section className="flex flex-col gap-3">
+      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
         {label}
-        <span className="rounded-sm bg-neutral-100 px-1.5 py-0.5 tabular-nums">
+        <span className="rounded-sm bg-[var(--hover)] px-1.5 py-0.5 tabular-nums text-[var(--muted)]">
           {items.length}
         </span>
       </h2>
       {items.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-hairline-strong bg-neutral-50 px-3 py-3 text-[12px] text-ink-tertiary">
+        <div className="flex items-center gap-2 rounded-md border border-dashed border-[var(--line)] bg-[var(--hover)] px-3 py-3 text-[12px] text-[var(--muted)]">
           <Inbox className="h-3 w-3" aria-hidden />
           {emptyHint}
         </div>

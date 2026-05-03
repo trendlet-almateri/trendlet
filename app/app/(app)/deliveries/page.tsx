@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusPill } from "@/components/status/status-pill";
@@ -46,13 +47,11 @@ export default async function DeliveriesPage() {
   const rows = (data ?? []) as unknown as Row[];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">KSA last-mile</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          {rows.length} {rows.length === 1 ? "delivery" : "deliveries"} in KSA
-        </span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="KSA last-mile"
+        subtitle={<>{rows.length} {rows.length === 1 ? "delivery" : "deliveries"} in KSA</>}
+      />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -70,7 +69,7 @@ export default async function DeliveriesPage() {
             return (
               <li
                 key={r.id}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-hairline bg-surface p-4"
+                className="flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">

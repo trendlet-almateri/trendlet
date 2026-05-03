@@ -1,5 +1,6 @@
 import { Truck } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { fullDateTime } from "@/lib/utils/date";
@@ -46,11 +47,8 @@ export default async function ShipmentsPage() {
   const rows = (data ?? []) as unknown as ShipmentRow[];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">Shipments</h1>
-        <span className="text-[12px] text-ink-tertiary">Outbound bulk + last-mile · all stages</span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -59,10 +57,10 @@ export default async function ShipmentsPage() {
           description="Shipments are created when warehouse marks sub-orders as shipped. Bulk outbound to KSA and last-mile within KSA both land here."
         />
       ) : (
-        <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+        <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <th className="px-4 py-2 font-medium">Tracking</th>
                 <th className="px-3 py-2 font-medium">Type</th>
                 <th className="px-3 py-2 font-medium">Carrier</th>
@@ -73,7 +71,7 @@ export default async function ShipmentsPage() {
             </thead>
             <tbody>
               {rows.map((s) => (
-                <tr key={s.id} className="border-b border-hairline last:border-0 hover:bg-neutral-50/50">
+                <tr key={s.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                   <td className="px-4 py-3 font-medium tabular-nums text-ink-primary">
                     {s.tracking_number ?? "—"}
                   </td>

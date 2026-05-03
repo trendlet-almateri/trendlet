@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
+import { PageHeader } from "@/components/system";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
@@ -48,13 +49,11 @@ export default async function UnassignedQueuePage() {
   const rows = (data ?? []) as unknown as UnassignedRow[];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-h1 text-ink-primary">Unassigned queue</h1>
-        <span className="text-[12px] text-ink-secondary">
-          {rows.length} {rows.length === 1 ? "sub-order" : "sub-orders"}
-        </span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Unassigned queue"
+        subtitle={<>{rows.length} {rows.length === 1 ? "sub-order" : "sub-orders"}</>}
+      />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -63,10 +62,10 @@ export default async function UnassignedQueuePage() {
           description="When a Shopify order arrives without a recognized brand, it lands here for manual triage."
         />
       ) : (
-        <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+        <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <th className="px-4 py-2 font-medium">Sub-order</th>
                 <th className="px-3 py-2 font-medium">Product</th>
                 <th className="px-3 py-2 font-medium">Brand (raw)</th>

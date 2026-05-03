@@ -19,6 +19,7 @@ import {
   DollarSign,
   Clock,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
   const totalOrders = kpis?.total_orders_30d ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <PageHeader
         title="Dashboard"
         subtitle={
@@ -68,7 +69,7 @@ export default async function DashboardPage() {
       />
 
       {/* KPI row — asymmetric Bento (2fr 2fr 2fr 2fr 3fr) so the hero card visibly leads */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-4">
         <KpiCard
           index={0}
           icon={LayoutList}
@@ -122,8 +123,8 @@ export default async function DashboardPage() {
       {/* Revenue per currency — one container with hairline-divided rows
           (no FX aggregation per spec §14.4) */}
       {revenue.length > 1 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Revenue · last 30 days
           </h2>
           <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
@@ -131,10 +132,10 @@ export default async function DashboardPage() {
               {revenue.map((r) => (
                 <li
                   key={r.currency}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--hover)]"
                 >
                   <div className="flex items-baseline gap-4">
-                    <span className="w-12 text-[11px] font-medium uppercase tracking-[0.4px] text-[var(--muted)]">
+                    <span className="w-12 text-[11px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
                       {r.currency}
                     </span>
                     <span className="mono text-[15px] font-medium text-[var(--ink)]">
@@ -152,11 +153,11 @@ export default async function DashboardPage() {
       )}
 
       {/* Team load */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           Team load · today
         </h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {TEAM_ORDER.map((key, i) => {
             const row = teamLoadByKey.get(key);
             const meta = TEAM_META[key];
@@ -177,24 +178,25 @@ export default async function DashboardPage() {
       </section>
 
       {/* Recent orders table (5 most recent) */}
-      <section className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Recent orders
           </h2>
           <a
             href="/orders"
-            className="text-[12px] text-[var(--accent)] hover:underline"
+            className="inline-flex items-center gap-0.5 text-[12px] font-medium text-[var(--accent)] transition-opacity hover:opacity-70"
           >
-            View all →
+            View all
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
           </a>
         </div>
         <OrdersTable orders={orders} />
       </section>
 
       {/* Pipeline — same 5 orders, drag-to-pan */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           Pipeline · recent orders
         </h2>
         <OrdersPipeline orders={orders} />

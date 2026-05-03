@@ -51,9 +51,9 @@ export function UserDropdown({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors",
-          "hover:bg-white/5 focus:bg-white/5 focus:outline-none",
-          "data-[state=open]:bg-white/5",
+          "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
+          "hover:bg-white/[0.07] focus:bg-white/[0.07] focus:outline-none",
+          "data-[state=open]:bg-white/[0.07]",
         )}
         aria-label="Open account menu"
       >
@@ -69,15 +69,16 @@ export function UserDropdown({
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          side="top"
-          align="start"
-          sideOffset={8}
+          side="right"
+          align="end"
+          sideOffset={12}
+          alignOffset={0}
           className={cn(
-            "z-50 w-[260px] rounded-xl border border-white/[0.08] bg-[#232323] p-1.5",
-            "shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+            "z-50 w-[280px] rounded-xl border border-white/[0.08] bg-[#1a1d22] p-1.5",
+            "shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-            "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+            "data-[state=open]:slide-in-from-left-2 data-[state=closed]:slide-out-to-left-2",
           )}
         >
           {/* Profile header */}
@@ -172,7 +173,7 @@ export function UserDropdown({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-2.5 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-[0.5px] text-neutral-500">
+    <div className="px-2.5 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-neutral-500">
       {children}
     </div>
   );

@@ -52,7 +52,7 @@ export default async function OrdersPage({
             : all.filter((o) => o.sub_orders.some((s) => s.is_unassigned));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <PageHeader title="Orders" />
 
       <TabPills

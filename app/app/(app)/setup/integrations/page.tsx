@@ -1,6 +1,7 @@
 import { CheckCircle2, AlertCircle, MinusCircle, XCircle, Circle } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { checkAll, type HealthStatus } from "@/lib/integrations/health";
+import { PageHeader } from "@/components/system";
 import { RecheckButton } from "./recheck-button";
 
 export const dynamic = "force-dynamic";
@@ -61,16 +62,12 @@ export default async function IntegrationsPage() {
   const okCount = results.filter((r) => r.status === "ok").length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-h1 text-ink-primary">Integrations</h1>
-          <span className="text-[12px] text-ink-tertiary">
-            {okCount} of {results.length} services connected · checks log to api_logs
-          </span>
-        </div>
-        <RecheckButton />
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Integrations"
+        subtitle={`${okCount} of ${results.length} services connected · checks log to api_logs`}
+        actions={<RecheckButton />}
+      />
 
       <ul className="flex flex-col gap-2">
         {results.map((r) => {
@@ -80,7 +77,7 @@ export default async function IntegrationsPage() {
           return (
             <li
               key={r.service}
-              className="flex flex-wrap items-center gap-3 rounded-md border border-hairline bg-surface p-4"
+              className="flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
             >
               <Icon className={`h-4 w-4 shrink-0 ${meta.iconClass}`} aria-hidden />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">

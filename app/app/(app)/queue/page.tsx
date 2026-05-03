@@ -7,6 +7,7 @@ import { SubOrderRow } from "../fulfillment/sub-order-row";
 import { MyAssignedHero } from "@/components/queue/my-assigned-hero";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
 import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
+import { PageHeader } from "@/components/system";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -79,16 +80,10 @@ export default async function SourcingQueuePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink-primary">
-            My sourcing tasks
-          </h1>
-          {isAdmin && rows.length > 0 && (
-            <span className="text-[12px] text-ink-tertiary">Admin view · all assignees</span>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title="My sourcing tasks"
+        subtitle={isAdmin && rows.length > 0 ? "Admin view · all assignees" : undefined}
+      />
 
       {!isAdmin && <MyAssignedHero rows={rows} pageHref="/queue" />}
 
@@ -104,7 +99,7 @@ export default async function SourcingQueuePage({
             description="Items appear here when Shopify orders come in for US brands assigned to you. Check /admin/brands to confirm brand assignments."
           />
         ) : (
-          <div className="flex items-center gap-2 rounded-md border border-dashed border-hairline-strong bg-neutral-50 px-3 py-6 text-[12px] text-ink-tertiary">
+          <div className="flex items-center gap-2 rounded-md border border-dashed border-[var(--line)] bg-[var(--hover)] px-3 py-6 text-[12px] text-[var(--muted)]">
             <Inbox className="h-3 w-3" aria-hidden />
             Nothing in this view{brandFilter !== "all" ? " for the selected brand" : ""}.
           </div>
@@ -176,7 +171,7 @@ function Tabs({
             "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-medium transition-colors",
             activeTab === t.key
               ? "border-hairline-strong bg-surface text-ink-primary shadow-sm"
-              : "border-transparent text-ink-tertiary hover:bg-neutral-100 hover:text-ink-primary",
+              : "border-transparent text-ink-tertiary hover:bg-[var(--hover)] hover:text-ink-primary",
           )}
         >
           <span className={cn("h-1.5 w-1.5 rounded-full", dotColor[t.key])} aria-hidden />
@@ -207,7 +202,7 @@ function FilterBar({
   sortKey: "newest" | "oldest";
 }) {
   const selectClass =
-    "h-8 appearance-none rounded-md border border-hairline bg-surface pl-3 pr-7 text-[12px] text-ink-primary transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-accent/40";
+    "h-8 appearance-none rounded-md border border-[var(--line)] bg-[var(--panel)] pl-3 pr-7 text-[12px] text-ink-primary transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-1 focus:ring-accent/40";
 
   return (
     <form
@@ -217,7 +212,7 @@ function FilterBar({
     >
       <input type="hidden" name="tab" value={activeTab} />
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-ink-tertiary">
+        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-[var(--muted)]">
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           Filters
         </span>

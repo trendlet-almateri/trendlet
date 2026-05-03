@@ -86,7 +86,7 @@ export default async function InvoicesPage({
       />
 
       {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-4">
         <KpiTile
           index={0}
           icon={Clock}
@@ -147,7 +147,7 @@ export default async function InvoicesPage({
           description="Customer invoices are generated after a supplier invoice is uploaded and items are mapped."
         />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {invoices.map((inv, i) => {
             const customerName = inv.order?.customer
               ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
@@ -165,7 +165,7 @@ export default async function InvoicesPage({
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="mono font-medium text-[var(--ink)]">{inv.invoice_number}</span>
+                    <span className="mono text-[13px] font-semibold text-[var(--ink)]">{inv.invoice_number}</span>
                     <span className={cn("pill border", STATUS_PILL[inv.status])}>
                       {inv.status.replace("_", " ")}
                     </span>
@@ -185,7 +185,7 @@ export default async function InvoicesPage({
                       </span>
                     )}
                   </div>
-                  <div className="text-[12px] text-[var(--ink-2)]">
+                  <div className="mt-0.5 text-[12px] text-[var(--ink-2)]">
                     {inv.order ? <>From order {inv.order.shopify_order_number} · </> : null}
                     {customerName}
                     {inv.generated_at ? <> · {relativeTime(inv.generated_at)}</> : null}
@@ -256,7 +256,7 @@ function KpiTile({
     >
       <div
         className={cn(
-          "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
+          "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.6px]",
           isHero ? "text-white/50" : isWarn ? "text-[var(--amber)]" : "text-[var(--muted)]",
         )}
       >

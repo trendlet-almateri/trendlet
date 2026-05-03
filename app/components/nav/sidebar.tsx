@@ -33,10 +33,10 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
 
   const navContent = (
     <>
-      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-2 pb-3 pt-4">
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-3 pt-4">
         {sections.map((section) => (
           <div key={section.id} className="flex flex-col gap-0.5">
-            <div className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[#6e7581]">
+            <div className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e7581]">
               {section.label}
             </div>
             {section.items.map((item) => {
@@ -56,7 +56,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
       </nav>
 
       {/* Footer: user dropdown */}
-      <div className="border-t border-white/[0.06] px-2 py-2">
+      <div className="border-t border-white/[0.06] px-2 py-3">
         <UserDropdown
           fullName={user.fullName}
           email={user.email}

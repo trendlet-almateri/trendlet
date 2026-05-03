@@ -1,5 +1,6 @@
 import { Activity } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { fullDateTime, relativeTime } from "@/lib/utils/date";
@@ -52,11 +53,8 @@ export default async function ActivityLogPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">Activity log</h1>
-        <span className="text-[12px] text-ink-tertiary">Every action across the system · last 90 days</span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Activity log" subtitle="Every action across the system · last 90 days" />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -75,8 +73,8 @@ export default async function ActivityLogPage() {
             const isYesterday = format(yesterdayDate, "yyyy-MM-dd") === day;
             const label = isToday ? "Today" : isYesterday ? "Yesterday" : format(date, "EEEE · MMM d");
             return (
-              <section key={day} className="flex flex-col gap-2">
-                <h2 className="text-hint uppercase text-ink-tertiary">{label}</h2>
+              <section key={day} className="flex flex-col gap-3">
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{label}</h2>
                 <ul className="flex flex-col gap-1">
                   {items.map((r) => {
                     const userName = r.user?.full_name ?? r.user?.email ?? "System";
@@ -84,7 +82,7 @@ export default async function ActivityLogPage() {
                     return (
                       <li
                         key={r.id}
-                        className="flex items-start gap-3 rounded-md border border-hairline bg-surface px-3 py-2.5"
+                        className="flex items-start gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 shadow-[var(--shadow-sm)]"
                       >
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-navy text-[11px] font-medium text-white">
                           {initials}

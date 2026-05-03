@@ -1,5 +1,6 @@
 import { Activity } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { cn } from "@/lib/utils";
@@ -51,13 +52,8 @@ export default async function SlaHealthPage() {
   const totalDelayed = rows.filter((r) => r.is_delayed).length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">SLA health</h1>
-        <span className="text-[12px] text-ink-tertiary">
-          On-time performance across the workflow · last 30 days
-        </span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="SLA health" subtitle="On-time performance across the workflow · last 30 days" />
 
       {totalActive === 0 ? (
         <EmptyState
@@ -67,24 +63,24 @@ export default async function SlaHealthPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <div className="rounded-md border border-hairline bg-surface p-4">
-              <span className="text-hint uppercase text-ink-tertiary">Active</span>
-              <div className="mt-1 text-[24px] font-medium tabular-nums text-ink-primary">{totalActive}</div>
-              <div className="text-[11px] text-ink-tertiary">across all stages</div>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Active</span>
+              <div className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--ink)]">{totalActive}</div>
+              <div className="text-[11px] text-[var(--muted)]">across all stages</div>
             </div>
-            <div className="rounded-md border border-hairline bg-surface p-4">
-              <span className="text-hint uppercase text-ink-tertiary">At risk</span>
-              <div className={cn("mt-1 text-[24px] font-medium tabular-nums", totalAtRisk > 0 ? "text-status-sourcing-fg" : "text-ink-primary")}>{totalAtRisk}</div>
-              <div className="text-[11px] text-ink-tertiary">approaching SLA</div>
+            <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">At risk</span>
+              <div className={cn("mt-1 text-[24px] font-semibold tabular-nums", totalAtRisk > 0 ? "text-status-sourcing-fg" : "text-[var(--ink)]")}>{totalAtRisk}</div>
+              <div className="text-[11px] text-[var(--muted)]">approaching SLA</div>
             </div>
-            <div className="rounded-md border border-hairline bg-surface p-4">
-              <span className="text-hint uppercase text-ink-tertiary">Delayed</span>
-              <div className={cn("mt-1 text-[24px] font-medium tabular-nums", totalDelayed > 0 ? "text-status-danger-fg" : "text-ink-primary")}>{totalDelayed}</div>
-              <div className="text-[11px] text-ink-tertiary">past SLA</div>
+            <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Delayed</span>
+              <div className={cn("mt-1 text-[24px] font-semibold tabular-nums", totalDelayed > 0 ? "text-status-danger-fg" : "text-[var(--ink)]")}>{totalDelayed}</div>
+              <div className="text-[11px] text-[var(--muted)]">past SLA</div>
             </div>
-            <div className="rounded-md bg-navy-deep p-4 text-white">
-              <span className="text-hint uppercase text-white/60">On time</span>
+            <div className="rounded-[var(--radius)] bg-navy-deep p-4 text-white shadow-[var(--shadow-sm)]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">On time</span>
               <div className="mt-1 text-[24px] font-medium tabular-nums">
                 {totalActive > 0 ? `${Math.round(((totalActive - totalAtRisk - totalDelayed) / totalActive) * 100)}%` : "—"}
               </div>
@@ -92,12 +88,12 @@ export default async function SlaHealthPage() {
             </div>
           </div>
 
-          <section className="flex flex-col gap-2">
-            <h2 className="text-hint uppercase text-ink-tertiary">By stage</h2>
-            <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">By stage</h2>
+            <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+                  <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                     <th className="px-4 py-2 font-medium">Stage</th>
                     <th className="px-3 py-2 text-right font-medium">Active</th>
                     <th className="px-3 py-2 text-right font-medium">At risk</th>
@@ -110,7 +106,7 @@ export default async function SlaHealthPage() {
                     const b = buckets[s.key];
                     const onTime = b.total > 0 ? Math.round(((b.total - b.at_risk - b.delayed) / b.total) * 100) : null;
                     return (
-                      <tr key={s.key} className="border-b border-hairline last:border-0">
+                      <tr key={s.key} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                         <td className="px-4 py-3">
                           <span className="flex items-center gap-2">
                             <span className={cn("h-1.5 w-1.5 rounded-full", s.accent)} aria-hidden />
@@ -129,7 +125,7 @@ export default async function SlaHealthPage() {
             </div>
             {totalDelayed === 0 && totalAtRisk === 0 && (
               <p className="text-[11px] text-ink-tertiary">
-                Note: SLA evaluation runs every 10 minutes via pg_cron and depends on <code className="rounded-sm bg-neutral-100 px-1 py-0.5">sub_orders.sla_due_at</code> being populated. Mock data has no due dates set, so no items are flagged.
+                Note: SLA evaluation runs every 10 minutes via pg_cron and depends on <code className="rounded-sm bg-[var(--hover)] px-1 py-0.5">sub_orders.sla_due_at</code> being populated. Mock data has no due dates set, so no items are flagged.
               </p>
             )}
           </section>

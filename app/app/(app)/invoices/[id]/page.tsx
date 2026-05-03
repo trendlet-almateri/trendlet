@@ -124,7 +124,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className="text-[10px] font-medium uppercase tracking-[0.4px] text-[var(--muted)]">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Total
           </span>
           <span className="mono text-[22px] font-semibold text-[var(--ink)]">
@@ -138,7 +138,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
         <div className="flex flex-col gap-4">
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+              <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <FileText className="h-3 w-3" aria-hidden /> PDF preview
               </h2>
               {canRegenerate && <RegeneratePdfButton invoiceId={inv.id} />}
@@ -164,7 +164,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
           {inv.ai_reasoning?.items && inv.ai_reasoning.items.length > 0 && (
             <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-              <h2 className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <Brain className="h-3 w-3" aria-hidden /> AI reasoning
               </h2>
               <ul className="flex flex-col gap-2 text-[12px]">
@@ -197,7 +197,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           />
 
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
               Calculation
             </h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">
@@ -264,7 +264,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           </section>
 
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
               Customer
             </h2>
             <div className="flex flex-col gap-1 text-[13px]">

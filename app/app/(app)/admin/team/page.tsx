@@ -1,6 +1,7 @@
 import { Mail } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchTeamMembers, fetchPendingInvitations } from "@/lib/queries/team";
+import { PageHeader } from "@/components/system";
 import { InviteForm } from "./invite-form";
 import { TeamRow } from "./team-row";
 
@@ -20,20 +21,20 @@ export default async function AdminTeamPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-0.5">
-        <h1 className="text-h1 text-ink-primary">Team</h1>
-        <span className="text-[12px] text-ink-tertiary">
+      <PageHeader
+        title="Team"
+        subtitle={<>
           {active.length} active
           {inactive.length > 0 && ` · ${inactive.length} inactive`}
           {pending.length > 0 && ` · ${pending.length} pending invite${pending.length === 1 ? "" : "s"}`}
-        </span>
-      </header>
+        </>}
+      />
 
       <InviteForm />
 
       {/* Column headers */}
       {members.length > 0 && (
-        <div className="grid grid-cols-[1.7fr_1.3fr_1.2fr_0.8fr_1.2fr_auto] items-center gap-3 px-3 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+        <div className="grid grid-cols-[1.7fr_1.3fr_1.2fr_0.8fr_1.2fr_auto] items-center gap-3 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           <span>Member</span>
           <span>Roles</span>
           <span>Region</span>
@@ -53,10 +54,10 @@ export default async function AdminTeamPage() {
 
       {pending.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+          <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             <Mail className="h-3 w-3" aria-hidden /> Pending invitations
           </h2>
-          <div className="flex flex-col divide-y divide-hairline rounded-md border border-hairline">
+          <div className="flex flex-col divide-y divide-[var(--line)] rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
             {pending.map((p) => (
               <div
                 key={p.id}

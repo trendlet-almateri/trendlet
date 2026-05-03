@@ -107,7 +107,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
     : "Guest";
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-ink-tertiary">
         <Link href="/orders" className="hover:text-ink-primary">
@@ -126,7 +126,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
           </span>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className="text-hint uppercase text-ink-tertiary">Total</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Total</span>
           <span className="text-[20px] font-medium tabular-nums text-ink-primary">
             {formatCurrency(order.total ?? 0, order.currency)}
           </span>
@@ -137,8 +137,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         {/* Main column */}
         <div className="flex flex-col gap-4">
           {/* Sub-orders */}
-          <section className="flex flex-col gap-2">
-            <h2 className="text-hint uppercase text-ink-tertiary">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
               Sub-orders ({order.sub_orders.length})
             </h2>
             <div className="flex flex-col gap-2">
@@ -148,7 +148,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 return (
                   <article
                     key={s.id}
-                    className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-hairline bg-surface p-4"
+                    className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
                   >
                     <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex items-center gap-2">
@@ -195,15 +195,15 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
           {/* Status history */}
           {history.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h2 className="text-hint uppercase text-ink-tertiary">Status history</h2>
+            <section className="flex flex-col gap-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Status history</h2>
               <ul className="flex flex-col gap-2">
                 {history.map((h) => {
                   const sub = order.sub_orders.find((s) => s.id === h.sub_order_id);
                   return (
                     <li
                       key={h.id}
-                      className="flex flex-wrap items-center gap-2 rounded-md border border-hairline bg-surface px-3 py-2 text-[12px]"
+                      className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-[12px] shadow-[var(--shadow-sm)]"
                     >
                       <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
                         {sub?.sub_order_number ?? h.sub_order_id.slice(0, 8)}
@@ -232,8 +232,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
         {/* Right rail */}
         <aside className="flex flex-col gap-4">
           {/* Customer */}
-          <section className="rounded-md border border-hairline bg-surface p-4">
-            <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Customer</h2>
+          <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Customer</h2>
             <div className="flex flex-col gap-1 text-[13px]">
               <span className="font-medium text-ink-primary">{customerName}</span>
               {order.customer?.email && (
@@ -252,8 +252,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
           {/* Shipping */}
           {order.shipping_address && (
-            <section className="rounded-md border border-hairline bg-surface p-4">
-              <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Ship to</h2>
+            <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+              <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Ship to</h2>
               <div className="flex flex-col gap-0.5 text-[13px] text-ink-secondary">
                 {order.shipping_address.address1 && <span>{order.shipping_address.address1}</span>}
                 {(order.shipping_address.city || order.shipping_address.zip) && (
@@ -268,8 +268,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
           )}
 
           {/* Totals */}
-          <section className="rounded-md border border-hairline bg-surface p-4">
-            <h2 className="text-hint mb-2 uppercase text-ink-tertiary">Totals</h2>
+          <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Totals</h2>
             <dl className="flex flex-col gap-1 text-[13px]">
               <div className="flex items-center justify-between">
                 <dt className="text-ink-secondary">Subtotal</dt>
@@ -277,7 +277,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                   {formatCurrency(order.subtotal ?? 0, order.currency)}
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-t border-hairline pt-2">
+              <div className="flex items-center justify-between border-t border-[var(--line)] pt-2">
                 <dt className="font-medium text-ink-primary">Total</dt>
                 <dd className="tabular-nums font-medium text-ink-primary">
                   {formatCurrency(order.total ?? 0, order.currency)}
@@ -287,7 +287,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
           </section>
 
           {/* Meta */}
-          <section className="rounded-md border border-hairline bg-surface p-4 text-[12px] text-ink-tertiary">
+          <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 text-[12px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
             <div>Order ID: <span className="tabular-nums">{order.shopify_order_id}</span></div>
             <div>Created: {shortDate(order.shopify_created_at)}</div>
           </section>

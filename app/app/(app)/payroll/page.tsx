@@ -2,6 +2,7 @@ import { Wallet } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { EmptyState } from "@/components/common/empty-state";
 import { SyncHubstaffButton } from "./sync-button";
+import { PageHeader } from "@/components/system";
 
 export const dynamic = "force-dynamic";
 
@@ -11,16 +12,12 @@ export default async function PayrollPage() {
   await requireAdmin();
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-2">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-h1 text-ink-primary">Payroll</h1>
-          <span className="text-[12px] text-ink-tertiary">
-            Hubstaff hours · hourly rate × tracked time
-          </span>
-        </div>
-        <SyncHubstaffButton />
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Payroll"
+        subtitle="Hubstaff hours · hourly rate × tracked time"
+        actions={<SyncHubstaffButton />}
+      />
 
       <EmptyState
         icon={Wallet}

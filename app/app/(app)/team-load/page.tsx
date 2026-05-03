@@ -1,5 +1,6 @@
 import { Users } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
+import { PageHeader } from "@/components/system";
 import { fetchTeamLoad } from "@/lib/queries/orders";
 import { createServiceClient } from "@/lib/supabase/server";
 import { TeamLoadCard } from "@/components/dashboard/team-load-card";
@@ -41,15 +42,12 @@ export default async function TeamLoadPage() {
   const totalActive = teamLoad.reduce((sum, r) => sum + (r.active_items ?? 0), 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1 text-ink-primary">Team load</h1>
-        <span className="text-[12px] text-ink-tertiary">Workload distribution across teams · live</span>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Team load" subtitle="Workload distribution across teams · live" />
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-hint uppercase text-ink-tertiary">By team</h2>
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">By team</h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {TEAM_ORDER.map((key) => {
             const row = teamLoadByKey.get(key);
             const meta = TEAM_META[key];
@@ -73,8 +71,8 @@ export default async function TeamLoadPage() {
         )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-hint uppercase text-ink-tertiary">By employee · last 30 days</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">By employee · last 30 days</h2>
         {perf.length === 0 ? (
           <EmptyState
             icon={Users}
@@ -82,10 +80,10 @@ export default async function TeamLoadPage() {
             description="Performance metrics populate as employees complete sub-orders."
           />
         ) : (
-          <div className="overflow-hidden rounded-md border border-hairline bg-surface">
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-hairline bg-neutral-50/50 text-left text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
+                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                   <th className="px-4 py-2 font-medium">Employee</th>
                   <th className="px-3 py-2 font-medium">Role</th>
                   <th className="px-3 py-2 font-medium">Region</th>
@@ -95,7 +93,7 @@ export default async function TeamLoadPage() {
               </thead>
               <tbody>
                 {perf.map((p) => (
-                  <tr key={p.employee_id} className="border-b border-hairline last:border-0">
+                  <tr key={p.employee_id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                     <td className="px-4 py-3 font-medium text-ink-primary">{p.full_name}</td>
                     <td className="px-3 py-3 capitalize text-ink-secondary">{p.role}</td>
                     <td className="px-3 py-3 text-ink-secondary">{p.region ?? "—"}</td>
