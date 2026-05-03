@@ -12,11 +12,14 @@ export const metadata = { title: "Sourcing · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-const TODO_STAGE     = new Set(["pending", "assigned", "unassigned"]);
-const IN_PROG_STAGE  = new Set(["in_progress", "purchased_in_store", "purchased_online"]);
+// Sourcing-only stages. Sourcing's job ends at the moment they hand off
+// to warehouse (purchased_*) or mark a failure (out_of_stock). Once a
+// row has moved to delivered_to_warehouse and beyond, it's the warehouse
+// (or KSA operator) team's problem — sourcing should not see it.
+const TODO_STAGE      = new Set(["pending"]);
+const IN_PROG_STAGE   = new Set(["in_progress"]);
 const COMPLETED_STAGE = new Set([
-  "delivered_to_warehouse", "under_review", "preparing_for_shipment",
-  "shipped", "arrived_in_ksa", "out_for_delivery",
+  "purchased_online", "purchased_in_store", "out_of_stock",
 ]);
 
 const TAB_CONFIG = [
@@ -46,16 +49,17 @@ export default async function SourcingQueuePage({
   const sortKey = (searchParams?.sort ?? "urgent") as "urgent" | "newest" | "oldest";
 
   // Counts
-  const counts = {
-    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
-    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
-  };
-
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = rows.filter(
     (r) => COMPLETED_STAGE.has(r.status) && r.status_changed_at.slice(0, 10) === today,
   ).length;
+
+  const counts = {
+    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
+    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
+    completed:   completedToday,
+  };
+
   const tasksRemaining = counts.todo + counts.in_progress;
 
   // Brands for filter chip
@@ -68,6 +72,13 @@ export default async function SourcingQueuePage({
   // Filter + sort
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
   let visible = rows.filter((r) => tab.matches.has(r.status));
+  // Completed tab on /queue surfaces only what sourcing finished today —
+  // the row leaves the page tomorrow when warehouse/KSA take over. This
+  // matches the strict role-boundary model: sourcing doesn't carry an
+  // archive of orders other teams are working on.
+  if (activeTab === "completed") {
+    visible = visible.filter((r) => r.status_changed_at.slice(0, 10) === today);
+  }
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 
