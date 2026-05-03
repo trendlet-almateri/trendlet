@@ -154,6 +154,15 @@
   }
 }
 
+/* ── Utilities ───────────────────────────────────────────────── */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* ── Keyframe animations ─────────────────────────────────────── */
 
 @keyframes pulse {
