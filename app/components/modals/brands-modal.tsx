@@ -2,16 +2,25 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Tag } from "lucide-react";
+import { X, Search, Tag, Check, Loader2, ChevronDown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type Region = "US" | "EU" | "KSA" | "GLOBAL";
 
 type BrandRow = {
   id: string;
   name: string;
-  region: "US" | "EU" | "KSA" | "GLOBAL" | null;
+  region: Region | null;
   is_active: boolean;
   markup_percent: number;
   primary_assignee: { user_id: string; full_name: string | null } | null;
+};
+
+type Assignee = {
+  id: string;
+  full_name: string;
+  email: string;
+  roles: string[];
 };
 
 const REGION_CLS: Record<string, string> = {
@@ -20,6 +29,8 @@ const REGION_CLS: Record<string, string> = {
   KSA: "bg-emerald-100 text-emerald-700",
   GLOBAL: "bg-[var(--hover)] text-[var(--muted)]",
 };
+
+const REGIONS: Region[] = ["US", "EU", "KSA", "GLOBAL"];
 
 const AVATAR_COLORS = [
   "bg-violet-500", "bg-blue-500", "bg-emerald-500",
@@ -35,15 +46,19 @@ function brandAvatarColor(name: string): string {
 
 export function BrandsModal({ onClose }: { onClose: () => void }) {
   const [brands, setBrands] = React.useState<BrandRow[]>([]);
+  const [assignees, setAssignees] = React.useState<Assignee[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [activeFilter, setActiveFilter] = React.useState("all");
   const [search, setSearch] = React.useState("");
 
   React.useEffect(() => {
-    fetch("/api/admin/brands")
-      .then((r) => r.json())
-      .then(({ brands }) => {
-        setBrands(brands ?? []);
+    Promise.all([
+      fetch("/api/admin/brands").then((r) => r.json()),
+      fetch("/api/admin/assignees").then((r) => r.json()),
+    ])
+      .then(([b, a]) => {
+        setBrands(b.brands ?? []);
+        setAssignees(a.assignees ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -54,6 +69,52 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const updateBrand = React.useCallback(
+    async (
+      brandId: string,
+      patch: { region?: Region | null; primary_assignee_id?: string },
+    ): Promise<{ ok: boolean; error?: string }> => {
+      const prev = brands;
+      // Optimistic update
+      setBrands((curr) =>
+        curr.map((b) => {
+          if (b.id !== brandId) return b;
+          const next = { ...b };
+          if (patch.region !== undefined) next.region = patch.region;
+          if (patch.primary_assignee_id !== undefined) {
+            if (!patch.primary_assignee_id) {
+              next.primary_assignee = null;
+            } else {
+              const a = assignees.find((x) => x.id === patch.primary_assignee_id);
+              next.primary_assignee = a
+                ? { user_id: a.id, full_name: a.full_name }
+                : next.primary_assignee;
+            }
+          }
+          return next;
+        }),
+      );
+
+      try {
+        const res = await fetch("/api/admin/brands", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brand_id: brandId, ...patch }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) {
+          setBrands(prev);
+          return { ok: false, error: json.error ?? "Save failed" };
+        }
+        return { ok: true };
+      } catch (e) {
+        setBrands(prev);
+        return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+      }
+    },
+    [brands, assignees],
+  );
 
   const regionCounts = {
     US: brands.filter((b) => b.region === "US").length,
@@ -81,7 +142,7 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
         onClick={onClose}
       />
       <div
-        className="relative flex h-[640px] w-full max-w-[880px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
+        className="relative flex h-[640px] w-full max-w-[960px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
         style={{ animation: "riseIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards" }}
       >
         {/* ── Left sidebar ── */}
@@ -103,7 +164,7 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
               Filter by region
             </p>
             <SidebarFilter label="All brands" count={brands.length} active={activeFilter === "all"} onClick={() => setActiveFilter("all")} />
-            {(["US", "EU", "KSA", "GLOBAL"] as const).map((r) => (
+            {REGIONS.map((r) => (
               regionCounts[r] > 0 && (
                 <SidebarFilter key={r} label={r} count={regionCounts[r]} active={activeFilter === r} onClick={() => setActiveFilter(r)} />
               )
@@ -142,7 +203,7 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
             <div>
               <h2 className="text-[16px] font-semibold text-[var(--ink)]">Brands &amp; assignments</h2>
               <p className="text-[12px] text-[var(--muted)]">
-                Manage brand routing rules and primary assignees per region.
+                Set region and primary sourcing assignee per brand. Changes save instantly.
               </p>
             </div>
             <button
@@ -170,23 +231,41 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Column headers */}
-          <div className="grid grid-cols-[2fr_0.6fr_0.7fr_1.5fr_24px] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
+          <div className="grid grid-cols-[1.6fr_1.2fr_0.5fr_1.5fr] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
             <span>Brand</span>
             <span>Region</span>
             <span className="text-right">Markup</span>
             <span>Primary assignee</span>
-            <span />
           </div>
 
           {/* Brand rows */}
           <div className="flex-1 overflow-y-auto">
             {loading && (
-              <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">Loading…</div>
+              <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden />
+                Loading…
+              </div>
             )}
             {!loading && filtered.length === 0 && (
               <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">No brands found.</div>
             )}
-            {!loading && filtered.map((b) => <BrandRowItem key={b.id} brand={b} />)}
+            {!loading && filtered.map((b) => (
+              <BrandRowItem
+                key={b.id}
+                brand={b}
+                assignees={assignees}
+                onUpdate={updateBrand}
+              />
+            ))}
+          </div>
+
+          {/* Footer help */}
+          <div className="border-t border-[var(--line)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--muted)]">
+            <strong className="text-[var(--ink)]">Routing:</strong>{" "}
+            <span className="rounded bg-blue-100 px-1 py-px text-[10px] font-semibold text-blue-700">US</span>{" "}
+            → assigned sourcer →&nbsp;warehouse.{" "}
+            <span className="rounded bg-violet-100 px-1 py-px text-[10px] font-semibold text-violet-700">EU</span>{" "}
+            → assigned fulfiller. Unassigned brands surface in <code>/orders/unassigned</code>.
           </div>
         </div>
       </div>
@@ -227,15 +306,50 @@ function SidebarFilter({
   );
 }
 
-function BrandRowItem({ brand: b }: { brand: BrandRow }) {
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+function BrandRowItem({
+  brand: b,
+  assignees,
+  onUpdate,
+}: {
+  brand: BrandRow;
+  assignees: Assignee[];
+  onUpdate: (
+    brandId: string,
+    patch: { region?: Region | null; primary_assignee_id?: string },
+  ) => Promise<{ ok: boolean; error?: string }>;
+}) {
   const letter = b.name.slice(0, 1).toUpperCase();
   const avatarCls = brandAvatarColor(b.name);
   const isUnassigned = !b.primary_assignee;
 
+  const [saveState, setSaveState] = React.useState<SaveState>("idle");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const flashTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flash = (state: SaveState, msg?: string) => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setSaveState(state);
+    setErrorMsg(msg ?? null);
+    if (state === "saved" || state === "error") {
+      flashTimer.current = setTimeout(() => setSaveState("idle"), 2000);
+    }
+  };
+
+  const save = async (patch: {
+    region?: Region | null;
+    primary_assignee_id?: string;
+  }) => {
+    setSaveState("saving");
+    const res = await onUpdate(b.id, patch);
+    flash(res.ok ? "saved" : "error", res.error);
+  };
+
   return (
     <div
       className={cn(
-        "grid grid-cols-[2fr_0.6fr_0.7fr_1.5fr_24px] items-center gap-3 border-b border-[var(--line)] px-4 py-2.5 transition-colors hover:bg-[var(--hover)] last:border-0",
+        "grid grid-cols-[1.6fr_1.2fr_0.5fr_1.5fr] items-center gap-3 border-b border-[var(--line)] px-4 py-2.5 transition-colors hover:bg-[var(--hover)] last:border-0",
         isUnassigned && "bg-[var(--rose-bg)]/30",
       )}
     >
@@ -247,47 +361,125 @@ function BrandRowItem({ brand: b }: { brand: BrandRow }) {
         <span className="truncate text-[13px] font-medium text-[var(--ink)]">{b.name}</span>
       </div>
 
-      {/* Region */}
-      <div>
-        {b.region ? (
-          <span className={cn("rounded px-1.5 py-px text-[10px] font-semibold", REGION_CLS[b.region] ?? "bg-[var(--hover)] text-[var(--muted)]")}>
-            {b.region}
-          </span>
-        ) : (
-          <span className="text-[11px] text-[var(--muted)]">—</span>
-        )}
-      </div>
+      {/* Region — segmented control */}
+      <RegionSegmented
+        value={b.region}
+        onChange={(region) => save({ region })}
+        disabled={saveState === "saving"}
+      />
 
-      {/* Markup */}
+      {/* Markup (read-only here — full edit on /admin/brands) */}
       <div className="text-right">
         <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[12px] tabular-nums text-[var(--muted)]">
           {b.markup_percent}%
         </span>
       </div>
 
-      {/* Assignee */}
-      <div>
-        {b.primary_assignee?.full_name ? (
-          <span className="truncate text-[12px] text-[var(--ink)]">{b.primary_assignee.full_name}</span>
-        ) : (
-          <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[10px] text-[var(--rose)]">
-            Unassigned
-          </span>
-        )}
+      {/* Assignee dropdown + save indicator */}
+      <div className="flex items-center gap-1.5">
+        <AssigneeSelect
+          value={b.primary_assignee?.user_id ?? ""}
+          onChange={(id) => save({ primary_assignee_id: id })}
+          assignees={assignees}
+          disabled={saveState === "saving"}
+        />
+        <SaveIndicator state={saveState} error={errorMsg} />
       </div>
-
-      {/* Menu */}
-      <button
-        type="button"
-        className="grid h-6 w-6 place-items-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-        aria-label="More options"
-      >
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
-          <circle cx="8" cy="3" r="1.5" />
-          <circle cx="8" cy="8" r="1.5" />
-          <circle cx="8" cy="13" r="1.5" />
-        </svg>
-      </button>
     </div>
+  );
+}
+
+function RegionSegmented({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Region | null;
+  onChange: (v: Region | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="inline-flex rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] p-0.5">
+      {REGIONS.map((r) => {
+        const active = value === r;
+        return (
+          <button
+            key={r}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(active ? null : r)}
+            className={cn(
+              "rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.4px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              active
+                ? REGION_CLS[r]
+                : "text-[var(--muted)] hover:bg-[var(--hover)]",
+            )}
+            title={active ? `Click to clear region` : `Set region to ${r}`}
+          >
+            {r}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssigneeSelect({
+  value,
+  onChange,
+  assignees,
+  disabled,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  assignees: Assignee[];
+  disabled?: boolean;
+}) {
+  return (
+    <div className="relative flex-1 min-w-0">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={cn(
+          "h-7 w-full appearance-none truncate rounded-[var(--radius-sm)] border bg-[var(--panel)] pl-2 pr-6 text-[12px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-60",
+          value
+            ? "border-[var(--line)] text-[var(--ink)]"
+            : "border-[var(--rose)]/30 bg-[var(--rose-bg)]/40 text-[var(--rose)]",
+        )}
+      >
+        <option value="">— Unassigned —</option>
+        {assignees.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.full_name} ({a.roles.join(", ") || "no role"})
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+function SaveIndicator({ state, error }: { state: SaveState; error: string | null }) {
+  if (state === "idle") {
+    return <span className="h-4 w-4" aria-hidden />;
+  }
+  if (state === "saving") {
+    return <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--muted)]" aria-hidden />;
+  }
+  if (state === "saved") {
+    return (
+      <span title="Saved" className="grid h-4 w-4 place-items-center rounded-full bg-emerald-100">
+        <Check className="h-3 w-3 text-emerald-700" aria-hidden />
+      </span>
+    );
+  }
+  return (
+    <span title={error ?? "Save failed"} className="grid h-4 w-4 place-items-center text-[var(--rose)]">
+      <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+    </span>
   );
 }
