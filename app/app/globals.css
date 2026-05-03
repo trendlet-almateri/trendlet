@@ -48,8 +48,8 @@
 
     --radius:    8px;
     --radius-sm: 6px;
-    --shadow-sm: 0 1px 0 rgba(15,20,25,.04), 0 1px 2px rgba(15,20,25,.04);
-    --shadow-md: 0 1px 0 rgba(15,20,25,.04), 0 2px 6px rgba(15,20,25,.06), 0 12px 32px -16px rgba(15,20,25,.18);
+    --shadow-sm: 0 0 0 1px rgba(15,20,25,0.06), 0 1px 3px rgba(15,20,25,0.04);
+    --shadow-md: 0 0 0 1px rgba(15,20,25,0.07), 0 2px 8px rgba(15,20,25,0.07), 0 12px 32px -16px rgba(15,20,25,0.16);
   }
 
   html,
@@ -101,23 +101,35 @@
 
   .card-surface {
     background: var(--panel);
-    border: 0.5px solid var(--line);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.8);
   }
 
   /* Sidebar nav items */
   .sidebar-item {
     @apply flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors;
-    color: #9aa1aa;
+    color: #8a9199;
+    position: relative;
   }
   .sidebar-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #e2e4e8;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #d8dce2;
   }
   .sidebar-item-active {
-    background-color: rgba(12, 68, 124, 0.18);  /* #0C447C tint */
-    color: #7ab3e0;
+    background-color: rgba(12, 68, 124, 0.16);
+    color: #93c0e8;
+    font-weight: 500;
+  }
+  .sidebar-item-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 2px;
+    border-radius: 0 2px 2px 0;
+    background: #4a9fd4;
   }
 
   /* Status pills */
@@ -125,12 +137,13 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 7px;
-    border-radius: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
     font-size: 11px;
-    font-weight: 500;
-    line-height: 14px;
-    border: 0.5px solid transparent;
+    font-weight: 600;
+    line-height: 16px;
+    border: 1px solid transparent;
+    letter-spacing: 0.01em;
   }
 
   /* Mono numbers */

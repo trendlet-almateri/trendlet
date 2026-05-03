@@ -37,13 +37,13 @@ export function KpiCard({
 
   const cardCls = cn(
     "rise-in lift relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
-    isHero && "bg-[linear-gradient(135deg,#0f1419_0%,#1a2230_100%)] text-white",
-    isWarn && "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
-    !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
+    isHero && "bg-[linear-gradient(145deg,#0d1520_0%,#0f1d2e_50%,#152438_100%)] text-white shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_4px_16px_rgba(0,0,0,0.3)]",
+    isWarn && "border border-[var(--amber)]/50 [background:linear-gradient(180deg,#fff9f0_0%,#ffffff_70%)] shadow-[var(--shadow-sm)]",
+    !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]",
   );
 
   const labelCls = cn(
-    "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.6px]",
+    "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.5px]",
     isHero ? "text-white/50"
     : isWarn ? "text-[var(--amber)]"
     : tone === "danger" ? "text-[var(--rose)]"
@@ -51,7 +51,7 @@ export function KpiCard({
   );
 
   const valueCls = cn(
-    "value-tick mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none",
+    "value-tick mt-1 font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-none tracking-[-0.03em]",
     "[font-variant-numeric:tabular-nums]",
     isHero ? "text-white"
     : tone === "danger" ? "text-[var(--rose)]"

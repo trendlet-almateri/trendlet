@@ -60,9 +60,9 @@ export default async function DashboardPage() {
           </>
         }
         actions={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
-            <Clock className="h-3 w-3" aria-hidden />
-            Synced 2 min ago
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-[var(--green)]" aria-hidden />
+            Live · synced 2 min ago
             <RefreshCw className="h-3 w-3 cursor-pointer text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" aria-hidden />
           </span>
         }
@@ -124,26 +124,28 @@ export default async function DashboardPage() {
           (no FX aggregation per spec §14.4) */}
       {revenue.length > 1 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Revenue · last 30 days
-          </h2>
-          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-3">
+            <h2 className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+              Revenue · last 30 days
+            </h2>
+            <span className="h-px flex-1 bg-[var(--line)]" aria-hidden />
+          </div>
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]">
             <ul className="divide-y divide-[var(--line)]">
               {revenue.map((r) => (
                 <li
                   key={r.currency}
-                  className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--hover)]"
+                  className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--hover)]"
                 >
-                  <div className="flex items-baseline gap-4">
-                    <span className="w-12 text-[11px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
-                      {r.currency}
-                    </span>
-                    <span className="mono text-[15px] font-medium text-[var(--ink)]">
-                      {formatCurrency(Number(r.total_30d), r.currency, { compact: false })}
-                    </span>
-                  </div>
-                  <span className="mono text-[11px] text-[var(--muted)]">
-                    {r.order_count_30d} {r.order_count_30d === 1 ? "order" : "orders"}
+                  <span className="w-10 shrink-0 text-[10px] font-bold uppercase tracking-[0.6px] text-[var(--muted)]">
+                    {r.currency}
+                  </span>
+                  <span className="h-3.5 w-px shrink-0 bg-[var(--line)]" aria-hidden />
+                  <span className="mono flex-1 text-[15px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
+                    {formatCurrency(Number(r.total_30d), r.currency, { compact: false })}
+                  </span>
+                  <span className="mono shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+                    {r.order_count_30d.toLocaleString("en-US")} {r.order_count_30d === 1 ? "order" : "orders"}
                   </span>
                 </li>
               ))}
@@ -154,9 +156,12 @@ export default async function DashboardPage() {
 
       {/* Team load */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Team load · today
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Team load · today
+          </h2>
+          <span className="h-px flex-1 bg-[var(--line)]" aria-hidden />
+        </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {TEAM_ORDER.map((key, i) => {
             const row = teamLoadByKey.get(key);
@@ -179,16 +184,17 @@ export default async function DashboardPage() {
 
       {/* Recent orders table (5 most recent) */}
       <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+        <div className="flex items-center gap-3">
+          <h2 className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             Recent orders
           </h2>
+          <span className="h-px flex-1 bg-[var(--line)]" aria-hidden />
           <a
             href="/orders"
-            className="inline-flex items-center gap-0.5 text-[12px] font-medium text-[var(--accent)] transition-opacity hover:opacity-70"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--accent)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--hover)]"
           >
             View all
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            <ChevronRight className="h-3 w-3" aria-hidden />
           </a>
         </div>
         <OrdersTable orders={orders} />
@@ -196,9 +202,12 @@ export default async function DashboardPage() {
 
       {/* Pipeline — same 5 orders, drag-to-pan */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          Pipeline · recent orders
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            Pipeline · recent orders
+          </h2>
+          <span className="h-px flex-1 bg-[var(--line)]" aria-hidden />
+        </div>
         <OrdersPipeline orders={orders} />
       </section>
     </div>
