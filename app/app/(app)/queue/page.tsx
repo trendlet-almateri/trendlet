@@ -1,9 +1,10 @@
-import { ShoppingBag, SlidersHorizontal, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, CheckCircle2 } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { type Role } from "@/lib/workflow/sub-order-transitions";
 import { cn } from "@/lib/utils";
 import { SourcingGrid } from "@/components/sourcing/sourcing-grid";
+import { SourcingFilterBar } from "@/components/sourcing/sourcing-filter-bar";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,7 @@ export default async function SourcingQueuePage({
       </div>
 
       {/* ── Filter bar ── */}
-      <FilterBar
+      <SourcingFilterBar
         brands={brands}
         activeTab={activeTab}
         brandFilter={brandFilter}
@@ -216,100 +217,3 @@ function TabPills({
   );
 }
 
-// ─── Filter bar ───────────────────────────────────────────────────────────────
-
-function FilterBar({
-  brands, activeTab, brandFilter, sortKey, isAdmin,
-}: {
-  brands: { id: string; name: string }[];
-  activeTab: TabKey;
-  brandFilter: string;
-  sortKey: string;
-  isAdmin: boolean;
-}) {
-  const chipBase = "inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)]";
-  const chipActive = "border-[var(--accent)]/30 bg-[var(--accent)]/8 text-[var(--accent)]";
-
-  return (
-    <form method="GET" action="/queue" className="flex flex-wrap items-center justify-between gap-3">
-      <input type="hidden" name="tab" value={activeTab} />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-        </span>
-
-        {/* Priority — coming soon */}
-        <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Coming soon">
-          + Priority
-        </span>
-
-        {/* Region — locked to US for sourcing, shown for admin */}
-        {isAdmin ? (
-          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Region filter">
-            + Region
-          </span>
-        ) : (
-          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Locked to US for sourcing role">
-            + Region
-          </span>
-        )}
-
-        {/* Brand filter */}
-        <div className="relative">
-          <select
-            name="brand"
-            defaultValue={brandFilter}
-            className={cn(
-              chipBase,
-              "appearance-none pr-6 cursor-pointer",
-              brandFilter !== "all" && chipActive,
-            )}
-            onChange={(e) => {
-              const form = e.currentTarget.form;
-              if (form) form.requestSubmit();
-            }}
-          >
-            <option value="all">+ Brand</option>
-            {brands.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-[var(--muted)]" viewBox="0 0 12 12" fill="none" aria-hidden>
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-
-        {/* Agent filter — admin only */}
-        {isAdmin && (
-          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Agent filter coming soon">
-            + Agent
-          </span>
-        )}
-      </div>
-
-      {/* Sort */}
-      <div className="relative">
-        <select
-          name="sort"
-          defaultValue={sortKey}
-          className={cn(
-            "h-8 appearance-none rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] pl-3 pr-7 text-[12px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30",
-          )}
-          onChange={(e) => {
-            const form = e.currentTarget.form;
-            if (form) form.requestSubmit();
-          }}
-        >
-          <option value="urgent">Sort: Urgent first</option>
-          <option value="newest">Sort: Newest first</option>
-          <option value="oldest">Sort: Oldest first</option>
-        </select>
-        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[var(--muted)]" viewBox="0 0 12 12" fill="none" aria-hidden>
-          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    </form>
-  );
-}
