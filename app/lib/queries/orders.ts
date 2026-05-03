@@ -16,6 +16,11 @@ export type OrderRow = {
     is_at_risk: boolean;
     is_delayed: boolean;
     brand_name_raw: string | null;
+    product_title: string;
+    variant_title: string | null;
+    sku: string | null;
+    quantity: number;
+    product_image_url: string | null;
   }[];
 };
 
@@ -42,7 +47,7 @@ export async function fetchAdminOrders({
       total,
       currency,
       customer:customers ( first_name, last_name, default_address ),
-      sub_orders ( id, sub_order_number, status, is_unassigned, is_at_risk, is_delayed, brand_name_raw )
+      sub_orders ( id, sub_order_number, status, is_unassigned, is_at_risk, is_delayed, brand_name_raw, product_title, variant_title, sku, quantity, product_image_url )
     `)
     .order("shopify_created_at", { ascending: false })
     .limit(limit);
