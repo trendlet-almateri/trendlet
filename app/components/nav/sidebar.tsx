@@ -23,7 +23,7 @@ const COUNT_KEY: Record<string, string> = {
   "/queue":          "sourcing",
   "/pipeline":       "warehouse",
   "/eu-fulfillment": "eu_fulfillment",
-  "/deliveries":     "ksa_lastmile",
+  "/ksa-last-mile":  "ksa_lastmile",
 };
 
 export function Sidebar({ user, counts, unassignedCount, notifications }: SidebarProps) {
@@ -48,6 +48,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
                   label={item.label}
                   count={key ? counts[key] ?? null : null}
                   dot={item.dot ?? "bg-[#6e7581]"}
+                  disabled={item.disabled}
                 />
               );
             })}

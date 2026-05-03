@@ -24,6 +24,8 @@ export type NavItem = {
   dot?: string;
   /** Roles that should see this item. Empty = everyone. */
   roles?: Role[];
+  /** Visually present but non-navigable — rendered without interaction */
+  disabled?: boolean;
 };
 
 export type NavSection = {
@@ -55,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/queue", label: "Sourcing", icon: ShoppingBag, dot: "bg-status-sourcing-border", roles: ["sourcing", "admin"] },
       { href: "/pipeline", label: "Warehouse", icon: Warehouse, dot: "bg-status-warehouse-border", roles: ["warehouse", "admin"] },
       { href: "/fulfillment", label: "EU fulfillment", icon: Globe, dot: "bg-status-transit-border", roles: ["fulfiller", "admin"] },
-      { href: "/deliveries", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"] },
+      { href: "/ksa-last-mile", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"], disabled: true },
     ],
   },
   {
