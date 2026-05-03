@@ -8,7 +8,7 @@ import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BrandSpinnerInline, BrandSpinnerOverlay } from "@/components/spinner/brand-spinner";
+import { BrandSpinnerOverlay } from "@/components/spinner/brand-spinner";
 
 const initial: LoginState = { error: null };
 
