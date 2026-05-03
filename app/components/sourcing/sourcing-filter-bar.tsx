@@ -20,10 +20,10 @@ const chipActive = "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--
 
 export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue" }: Props) {
   return (
-    <form method="GET" action={action} className="flex flex-wrap items-center justify-between gap-3">
+    <form method="GET" action={action} className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
       <input type="hidden" name="tab" value={activeTab} />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
         <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filters
@@ -68,7 +68,7 @@ export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isA
       </div>
 
       {/* Sort */}
-      <div className="relative">
+      <div className="relative self-end md:self-auto">
         <select
           name="sort"
           defaultValue={sortKey}

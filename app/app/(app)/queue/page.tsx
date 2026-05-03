@@ -84,10 +84,10 @@ export default async function SourcingQueuePage({
     .toUpperCase();
 
   return (
-    <div className="flex flex-col gap-5 pb-16">
+    <div className="flex flex-col gap-4 pb-16 md:gap-5">
       {/* ── Page title ── */}
       <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[var(--ink)]">
+        <h1 className="text-[19px] font-bold tracking-[-0.02em] text-[var(--ink)] md:text-[22px]">
           {isAdmin ? "Sourcing tasks" : "My sourcing tasks"}
         </h1>
         {isAdmin && (
@@ -131,7 +131,7 @@ export default async function SourcingQueuePage({
       )}
 
       {/* ── Bottom status bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--line)] bg-white/90 px-6 py-2.5 backdrop-blur-sm lg:left-[var(--sidebar-w,240px)]">
+      <div className="fixed bottom-14 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--line)] bg-white/90 px-4 py-2.5 backdrop-blur-sm md:bottom-0 md:px-6 lg:left-[var(--sidebar-w,240px)]">
         <span className="text-[12px] text-[var(--muted)]">
           <span className="font-semibold text-[var(--ink)]">{tasksRemaining}</span> tasks remaining
         </span>
