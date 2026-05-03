@@ -20,7 +20,7 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex min-h-20 flex-wrap items-center justify-between gap-3 md:min-h-0 md:items-end", className)}>
+    <header className={cn("flex h-20 flex-wrap items-center justify-between gap-3 md:h-auto md:items-end", className)}>
       <div className="flex min-w-0 flex-col gap-0.5">
         <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em] text-ink-primary md:text-[28px]">
           {title}
