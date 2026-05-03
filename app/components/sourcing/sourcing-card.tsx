@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Clock, Package, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
+import { Clock, Package, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, ROLE_STATUS_WHITELIST, type StatusCode } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils/date";
@@ -9,6 +9,24 @@ import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
+
+// ─── Warehouse stage detection ────────────────────────────────────────────────
+const WAREHOUSE_STAGE = new Set([
+  "delivered_to_warehouse", "under_review", "preparing_for_shipment", "shipped", "delivered",
+]);
+
+const WAREHOUSE_STATUS_LABELS: Partial<Record<string, string>> = {
+  delivered_to_warehouse: "At warehouse",
+  preparing_for_shipment: "Preparing shipment",
+  under_review:           "Under review",
+  shipped:                "Shipped",
+  delivered:              "Delivered",
+};
+
+const BIN_LOCATIONS = [
+  "A-1", "A-2", "A-3", "A-4", "A-5", "A-6",
+  "A-7", "A-8", "A-9", "A-10", "A-11", "A-12",
+];
 
 // ─── Mock sourcing data (UI demo only — not persisted) ────────────────────────
 const SUPPLIERS = ["Local agent", "Brand direct", "EU distributor", "US wholesale", "Marketplace"];
@@ -49,6 +67,10 @@ function mockSourcing(row: FulfillmentRow) {
   };
 }
 
+function mockBin(row: FulfillmentRow) {
+  return BIN_LOCATIONS[(h(row.id) >>> 3) % BIN_LOCATIONS.length];
+}
+
 // ─── Status palette ────────────────────────────────────────────────────────────
 const STATUS_PALETTE: Record<string, string> = {
   pending:   "border-[rgba(180,130,30,0.3)] bg-amber-50 text-amber-700",
@@ -61,11 +83,13 @@ const STATUS_PALETTE: Record<string, string> = {
 
 // ─── Action button label overrides ────────────────────────────────────────────
 const BTN_LABELS: Partial<Record<string, string>> = {
-  in_progress:         "Start review",
-  purchased_online:    "Purchased online",
-  purchased_in_store:  "Purchased in-store",
-  out_of_stock:        "Out of stock",
+  in_progress:            "Start review",
+  purchased_online:       "Purchased online",
+  purchased_in_store:     "Purchased in-store",
+  out_of_stock:           "Out of stock",
   delivered_to_warehouse: "Deliver to warehouse",
+  preparing_for_shipment: "Prepare for shipment",
+  shipped:                "Mark shipped",
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -108,8 +132,12 @@ export function SourcingCard({
   const mock = mockSourcing(row);
   const isAdmin = role === "admin";
   const isUrgent = row.is_delayed || row.is_at_risk;
+  const isWarehouseStage = WAREHOUSE_STAGE.has(optimisticStatus);
   const palette = STATUS_BY_CODE[optimisticStatus]?.palette ?? "pending";
-  const statusLabel = STATUS_BY_CODE[optimisticStatus]?.label ?? optimisticStatus;
+  const statusLabel =
+    (isWarehouseStage ? WAREHOUSE_STATUS_LABELS[optimisticStatus] : null)
+    ?? STATUS_BY_CODE[optimisticStatus]?.label
+    ?? optimisticStatus;
 
   // Assignee — for employees seeing own tasks use their info, else use mock
   const assignee = selfName
@@ -118,11 +146,17 @@ export function SourcingCard({
 
   // Determine action buttons
   const nextStatuses: StatusCode[] = isReadOnly ? [] : (() => {
-    // For pending/assigned (To do tab): hardcode start + maybe cancel
     if (optimisticStatus === "pending" || optimisticStatus === "assigned") {
       const actions: StatusCode[] = ["in_progress"];
       if (isAdmin) actions.unshift("cancelled" as StatusCode);
       return actions;
+    }
+    // Warehouse hardcoded transitions
+    if (optimisticStatus === "delivered_to_warehouse" || optimisticStatus === "under_review") {
+      return ["preparing_for_shipment" as StatusCode];
+    }
+    if (optimisticStatus === "preparing_for_shipment") {
+      return ["shipped" as StatusCode];
     }
     return getNextStatuses(optimisticStatus, role, ROLE_STATUS_WHITELIST);
   })();
@@ -139,14 +173,14 @@ export function SourcingCard({
       const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
       const label = BTN_LABELS[target] ?? STATUS_BY_CODE[target]?.label ?? target;
       if (result.ok) {
-        const isHandoff = target === "delivered_to_warehouse";
+        const isHandoff = target === "shipped";
         onToast({
           id: `${row.id}-${Date.now()}`,
           message: isHandoff
             ? "Task completed"
             : `Status updated: ${label}`,
           sub: isHandoff
-            ? `${row.order?.shopify_order_number ?? row.sub_order_number} → moved to Warehouse queue`
+            ? `${row.order?.shopify_order_number ?? row.sub_order_number} → ready for ${row.brand?.region ?? "KSA"} dispatch`
             : "",
           kind: isHandoff ? "success" : "info",
         });
@@ -195,6 +229,14 @@ export function SourcingCard({
               STATUS_PALETTE[palette] ?? STATUS_PALETTE.pending,
             )}>
               {statusLabel}
+            </span>
+            <span className={cn(
+              "rounded-md border px-1.5 py-px text-[10px] font-medium",
+              isWarehouseStage
+                ? "border-blue-200 bg-blue-50 text-blue-600"
+                : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)]",
+            )}>
+              {isWarehouseStage ? "Warehouse" : "Sourcing"}
             </span>
             {isUrgent && (
               <span className="rounded-md border border-red-300/60 bg-red-100 px-1.5 py-px text-[10px] font-semibold text-red-600">
