@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { visibleSections } from "./nav-items";
-import { MobileUserMenu } from "./mobile-user-menu";
 import { MobileMoreSheet } from "./mobile-more-sheet";
+import { MobileProfileSheet } from "./mobile-profile-sheet";
 import type { Role } from "@/lib/types/database";
 
 type Props = {
@@ -22,6 +22,7 @@ type Props = {
 export function BottomNav({ roles, fullName, email, primaryRole, initials, unassignedCount }: Props) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = React.useState(false);
+  const [profileOpen, setProfileOpen] = React.useState(false);
 
   const sections = visibleSections(roles);
 
@@ -40,8 +41,8 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
     ...(insightsSection ? [insightsSection] : []),
   ];
 
-  // Close More sheet on route change
-  React.useEffect(() => { setMoreOpen(false); }, [pathname]);
+  // Close sheets on route change
+  React.useEffect(() => { setMoreOpen(false); setProfileOpen(false); }, [pathname]);
 
   return (
     <>
@@ -49,6 +50,15 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
         sections={moreSheetSections}
+      />
+      <MobileProfileSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        fullName={fullName}
+        email={email}
+        primaryRole={primaryRole}
+        initials={initials}
+        unassignedCount={unassignedCount}
       />
 
       <nav
@@ -100,7 +110,7 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         </div>
 
         {/* ── Zone 2: More ── */}
-        <div className="flex shrink-0 items-stretch border-l border-[var(--line)]">
+        <div className="flex shrink-0 items-stretch">
           <button
             type="button"
             onClick={() => setMoreOpen((o) => !o)}
@@ -119,14 +129,25 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         </div>
 
         {/* ── Zone 3: Profile ── */}
-        <div className="flex shrink-0 items-stretch border-l border-[var(--line)]">
-          <MobileUserMenu
-            fullName={fullName}
-            email={email}
-            primaryRole={primaryRole}
-            initials={initials}
-            unassignedCount={unassignedCount}
-          />
+        <div className="flex shrink-0 items-stretch">
+          <button
+            type="button"
+            onClick={() => setProfileOpen((o) => !o)}
+            aria-label="Profile"
+            aria-expanded={profileOpen}
+            className={cn(
+              "relative flex min-w-[56px] flex-col items-center justify-center gap-0.5 px-2 text-[9.5px] transition-colors focus:outline-none",
+              profileOpen
+                ? "text-[var(--accent)]"
+                : "text-[var(--muted)] hover:text-[var(--ink)]",
+            )}
+          >
+            <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 18 18" fill="none" aria-hidden>
+              <circle cx="9" cy="6.5" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M3 15c0-2.761 2.686-5 6-5s6 2.239 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span className="font-medium leading-none">Profile</span>
+          </button>
         </div>
       </nav>
     </>
