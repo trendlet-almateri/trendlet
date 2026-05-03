@@ -21,6 +21,12 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { TeamRolesModal } from "@/components/modals/team-roles-modal";
 import { BrandsModal } from "@/components/modals/brands-modal";
+import { ProfileModal } from "@/components/modals/profile-modal";
+import { PreferencesModal } from "@/components/modals/preferences-modal";
+import { StoresModal } from "@/components/modals/stores-modal";
+import { CarriersModal } from "@/components/modals/carriers-modal";
+import { IntegrationsModal } from "@/components/modals/integrations-modal";
+import { SecurityModal } from "@/components/modals/security-modal";
 
 type UserDropdownProps = {
   fullName: string;
@@ -39,7 +45,7 @@ export function UserDropdown({
 }: UserDropdownProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
-  const [activeModal, setActiveModal] = React.useState<null | "team" | "brands">(null);
+  const [activeModal, setActiveModal] = React.useState<null | "team" | "brands" | "profile" | "preferences" | "stores" | "carriers" | "integrations" | "security">(null);
 
   async function signOut() {
     if (signingOut) return;
@@ -54,6 +60,12 @@ export function UserDropdown({
     <>
     {activeModal === "team" && <TeamRolesModal onClose={() => setActiveModal(null)} />}
     {activeModal === "brands" && <BrandsModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "profile" && <ProfileModal fullName={fullName} email={email} primaryRole={primaryRole} initials={initials} onClose={() => setActiveModal(null)} />}
+    {activeModal === "preferences" && <PreferencesModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "stores" && <StoresModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "carriers" && <CarriersModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "integrations" && <IntegrationsModal onClose={() => setActiveModal(null)} />}
+    {activeModal === "security" && <SecurityModal email={email} onClose={() => setActiveModal(null)} />}
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className={cn(
@@ -104,12 +116,12 @@ export function UserDropdown({
 
           {/* ACCOUNT */}
           <SectionLabel>Account</SectionLabel>
-          <Item icon={CircleUser} href="/profile" right={<OnlinePill />}>
-            Profile & presence
-          </Item>
-          <Item icon={Settings2} href="/preferences" right="EN · SAR">
+          <ItemButton icon={CircleUser} right={<OnlinePill />} onSelect={() => setActiveModal("profile")}>
+            Profile &amp; presence
+          </ItemButton>
+          <ItemButton icon={Settings2} right="EN · SAR" onSelect={() => setActiveModal("preferences")}>
             My preferences
-          </Item>
+          </ItemButton>
 
           <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
@@ -134,24 +146,24 @@ export function UserDropdown({
 
           {/* WORKSPACE SETUP */}
           <SectionLabel>Workspace setup</SectionLabel>
-          <Item icon={Store} href="/setup/stores" right="0 active">
+          <ItemButton icon={Store} right="0 active" onSelect={() => setActiveModal("stores")}>
             Stores
-          </Item>
+          </ItemButton>
           <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
-            Brands & assignments
+            Brands &amp; assignments
           </ItemButton>
           <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>
-            Team & roles
+            Team &amp; roles
           </ItemButton>
-          <Item icon={Truck} href="/setup/carriers" right="3 active">
+          <ItemButton icon={Truck} right="3 active" onSelect={() => setActiveModal("carriers")}>
             Carriers
-          </Item>
-          <Item icon={Plug} href="/setup/integrations" right="4 active">
+          </ItemButton>
+          <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>
             Integrations
-          </Item>
-          <Item icon={ShieldCheck} href="/setup/security" right="2FA off">
+          </ItemButton>
+          <ItemButton icon={ShieldCheck} right="2FA off" onSelect={() => setActiveModal("security")}>
             Security
-          </Item>
+          </ItemButton>
 
           <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
