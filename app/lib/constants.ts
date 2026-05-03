@@ -29,23 +29,26 @@ export const STATUS_BY_CODE: Record<string, (typeof STATUSES)[number]> = Object.
   STATUSES.map((s) => [s.code, s]),
 );
 
-// Strict role boundaries: each role can only initiate transitions that
-// belong to its own stage of the pipeline. Handoff statuses are always
-// set by the *receiving* role (delivered_to_warehouse by warehouse upon
-// physical arrival; delivered by KSA upon successful drop-off). The DB
-// trigger enforce_status_whitelist on statuses.allowed_from_roles is
-// the security boundary — this constant only decides UI affordances.
+// Strict role boundaries — exact list of statuses each role can set.
+// Pipeline shorthand:
+//   sourcing  → finishes at delivered_to_warehouse (handoff)
+//   warehouse → owns ship + delivered confirmation
+//   fulfiller → owns the entire EU sourcing → delivered chain
+//   ksa_operator → owns last-mile (arrived → out → delivered/returned)
+//
+// The DB trigger enforce_status_whitelist on statuses.allowed_from_roles
+// is the security boundary; this constant only decides UI affordances.
 export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
   sourcing: [
-    "in_progress", "purchased_online", "purchased_in_store", "out_of_stock",
+    "in_progress", "purchased_online", "purchased_in_store",
+    "out_of_stock", "delivered_to_warehouse",
   ],
   warehouse: [
-    "delivered_to_warehouse", "preparing_for_shipment", "shipped",
+    "delivered_to_warehouse", "shipped", "delivered",
   ],
-  // Fulfiller owns the entire EU sourcing → shipped chain end-to-end.
   fulfiller: [
-    "in_progress", "purchased_online", "purchased_in_store", "out_of_stock",
-    "delivered_to_warehouse", "preparing_for_shipment", "shipped",
+    "in_progress", "purchased_online", "purchased_in_store",
+    "out_of_stock", "delivered_to_warehouse", "shipped", "delivered",
   ],
   ksa_operator: [
     "arrived_in_ksa", "out_for_delivery", "delivered", "returned",

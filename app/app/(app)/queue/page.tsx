@@ -12,14 +12,20 @@ export const metadata = { title: "Sourcing · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-// Sourcing-only stages. Sourcing's job ends at the moment they hand off
-// to warehouse (purchased_*) or mark a failure (out_of_stock). Once a
-// row has moved to delivered_to_warehouse and beyond, it's the warehouse
-// (or KSA operator) team's problem — sourcing should not see it.
+// Sourcing-only stages.
+//   To do:        pending → start
+//   In progress:  in_progress (working on it) + purchased_* (bought,
+//                 still need to mark "delivered to warehouse")
+//   Completed:    delivered_to_warehouse (handed off) + out_of_stock
+//                 (terminal failure) — today only.
+// Once a row leaves "delivered_to_warehouse" (i.e. warehouse marks it
+// shipped), it's not the sourcing team's problem any more.
 const TODO_STAGE      = new Set(["pending"]);
-const IN_PROG_STAGE   = new Set(["in_progress"]);
+const IN_PROG_STAGE   = new Set([
+  "in_progress", "purchased_online", "purchased_in_store",
+]);
 const COMPLETED_STAGE = new Set([
-  "purchased_online", "purchased_in_store", "out_of_stock",
+  "delivered_to_warehouse", "out_of_stock",
 ]);
 
 const TAB_CONFIG = [

@@ -11,12 +11,13 @@ export const metadata = { title: "Warehouse · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-// Warehouse stages only. Once warehouse hands off to the carrier (shipped),
-// the row's next legitimate move is arrived_in_ksa / out_for_delivery /
-// delivered — which all belong to KSA last-mile, not warehouse.
+// Warehouse owns 3 statuses end-to-end:
+//   delivered_to_warehouse → shipped → delivered
+// No intermediate "preparing_for_shipment" step. Once delivered, the
+// row's lifecycle ends from warehouse's perspective.
 const TODO_STAGE      = new Set(["delivered_to_warehouse"]);
-const IN_PROG_STAGE   = new Set(["under_review", "preparing_for_shipment"]);
-const COMPLETED_STAGE = new Set(["shipped"]);
+const IN_PROG_STAGE   = new Set(["shipped"]);
+const COMPLETED_STAGE = new Set(["delivered"]);
 
 const TAB_CONFIG = [
   { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },
