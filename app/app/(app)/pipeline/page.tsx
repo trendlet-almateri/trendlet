@@ -1,22 +1,34 @@
-import { Warehouse, Inbox } from "lucide-react";
+import { Package, CheckCircle2 } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
-import { fetchFulfillmentQueue } from "@/lib/queries/fulfillment";
-import { EmptyState } from "@/components/common/empty-state";
-import { SubOrderRow } from "../fulfillment/sub-order-row";
-import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
-import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
-import { PageHeader } from "@/components/system";
+import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
+import { cn } from "@/lib/utils";
+import { SourcingFilterBar } from "@/components/sourcing/sourcing-filter-bar";
+import { WarehouseGrid } from "@/components/warehouse/warehouse-grid";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-
 export const metadata = { title: "Warehouse · Trendslet Operations" };
 
-export default async function WarehousePipelinePage() {
+type TabKey = "todo" | "in_progress" | "completed";
+
+const TODO_STAGE      = new Set(["delivered_to_warehouse"]);
+const IN_PROG_STAGE   = new Set(["under_review", "preparing_for_shipment"]);
+const COMPLETED_STAGE = new Set(["shipped", "delivered"]);
+
+const TAB_CONFIG = [
+  { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },
+  { key: "in_progress" as TabKey, label: "In progress", matches: IN_PROG_STAGE,   readOnly: false },
+  { key: "completed"   as TabKey, label: "Completed",   matches: COMPLETED_STAGE, readOnly: true  },
+];
+
+export default async function WarehousePipelinePage({
+  searchParams,
+}: {
+  searchParams?: { tab?: string; brand?: string; sort?: string };
+}) {
   const user = await requireRole(["warehouse", "admin"]);
   const isAdmin = user.roles.includes("admin");
 
-  // Warehouse sees ALL US orders regardless of which sourcer brought them.
-  // Admin sees the same set in this view (their global view is /orders).
   const rows = await fetchFulfillmentQueue({
     region: "US",
     userId: user.id,
@@ -24,124 +36,174 @@ export default async function WarehousePipelinePage() {
     assigneeFilter: "all",
   });
 
-  // Use the warehouse role's whitelist for button visibility — admin
-  // would otherwise see early-stage buttons that warehouse never owns.
-  const role: Role = user.roles.includes("warehouse") ? "warehouse" : "admin";
+  const activeTab  = isTab(searchParams?.tab) ? searchParams!.tab! : "todo";
+  const brandFilter = searchParams?.brand ?? "all";
+  const sortKey    = (searchParams?.sort ?? "urgent") as "urgent" | "newest" | "oldest";
 
-  // Warehouse-relevant groups only. Items in a sourcing-stage status
-  // (in_progress, purchased_*) shouldn't be visible here at all because
-  // they happen BEFORE the item lands at the warehouse — the
-  // delivered_to_warehouse hand-off is the entry point.
-  //
-  // We DO surface "incoming" items so warehouse sees what's about to
-  // arrive, but with no actions until they hit delivered_to_warehouse.
-  const groups = {
-    incoming: rows.filter((r) => INCOMING_STAGE.has(r.status)),
-    warehouse: rows.filter((r) => WAREHOUSE_STAGE.has(r.status)),
-    transit: rows.filter((r) => TRANSIT_STAGE.has(r.status)),
+  const counts = {
+    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
+    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
+    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
   };
-  const total = groups.incoming.length + groups.warehouse.length + groups.transit.length;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const completedToday = rows.filter(
+    (r) => COMPLETED_STAGE.has(r.status) && r.status_changed_at.slice(0, 10) === today,
+  ).length;
+  const tasksRemaining = counts.todo + counts.in_progress;
+
+  const brands = Array.from(
+    new Map(
+      rows.filter((r) => r.brand).map((r) => [r.brand!.id, { id: r.brand!.id, name: r.brand!.name }]),
+    ).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
+  let visible = rows.filter((r) => tab.matches.has(r.status));
+  if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
+  visible = sortRows(visible, sortKey);
+
+  const selfName = (user as { fullName?: string; full_name?: string }).fullName
+    ?? (user as { fullName?: string; full_name?: string }).full_name
+    ?? "You";
+  const selfInitials = selfName
+    .split(" ")
+    .filter(Boolean)
+    .map((p: string) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Warehouse"
-        subtitle={<>US brands · {total.toLocaleString("en-US")} {total === 1 ? "active sub-order" : "active sub-orders"}{isAdmin && total > 0 && " · admin view"}</>}
+    <div className="flex flex-col gap-5 pb-16">
+      {/* ── Page title ── */}
+      <div>
+        <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[var(--ink)]">
+          {isAdmin ? "Warehouse tasks" : "My warehouse tasks"}
+        </h1>
+        {isAdmin && (
+          <p className="mt-0.5 text-[12px] text-[var(--muted)]">
+            Admin view · all agents
+          </p>
+        )}
+      </div>
+
+      {/* ── Filter bar ── */}
+      <SourcingFilterBar
+        brands={brands}
+        activeTab={activeTab}
+        brandFilter={brandFilter}
+        sortKey={sortKey}
+        isAdmin={isAdmin}
+        action="/pipeline"
       />
 
-      {total === 0 ? (
-        <EmptyState
-          icon={Warehouse}
-          title="Nothing in the warehouse pipeline"
-          description="US-brand sub-orders appear here once a sourcing employee marks them purchased. Configure brands in /admin/brands with region=US to start the flow."
-        />
-      ) : (
-        <div className="flex flex-col gap-6">
-          <Group
-            label="Incoming"
-            emptyHint="Nothing on its way to the warehouse"
-            items={groups.incoming}
-            role={role}
-            readOnly
-          />
-          <Group
-            label="At warehouse"
-            emptyHint="Nothing currently in the warehouse"
-            items={groups.warehouse}
-            role={role}
-          />
-          <Group
-            label="In transit / KSA"
-            emptyHint="Nothing in transit"
-            items={groups.transit}
-            role={role}
-          />
+      {/* ── Tab pills ── */}
+      <TabPills activeTab={activeTab} counts={counts} brandFilter={brandFilter} sortKey={sortKey} />
+
+      {/* ── Card grid ── */}
+      {visible.length === 0 && rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[var(--line)] bg-[var(--hover)] py-16 text-center">
+          <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line)] bg-white">
+            <Package className="h-5 w-5 text-[var(--muted)]" />
+          </span>
+          <p className="text-[13px] font-medium text-[var(--ink)]">Nothing in the warehouse</p>
+          <p className="max-w-[320px] text-[12px] text-[var(--muted)]">
+            Items appear here once sourcing marks them delivered to the warehouse.
+          </p>
         </div>
+      ) : (
+        <WarehouseGrid
+          rows={visible}
+          isReadOnly={tab.readOnly}
+          selfName={isAdmin ? undefined : selfName}
+          selfInitials={isAdmin ? undefined : selfInitials}
+        />
       )}
+
+      {/* ── Bottom status bar ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--line)] bg-white/90 px-6 py-2.5 backdrop-blur-sm lg:left-[var(--sidebar-w,240px)]">
+        <span className="text-[12px] text-[var(--muted)]">
+          <span className="font-semibold text-[var(--ink)]">{tasksRemaining}</span> tasks remaining
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
+          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+          <span className="font-semibold text-[var(--ink)]">{completedToday}</span> completed today
+        </span>
+      </div>
     </div>
   );
 }
 
-function Group({
-  label,
-  emptyHint,
-  items,
-  role,
-  readOnly = false,
-}: {
-  label: string;
-  emptyHint: string;
-  items: Awaited<ReturnType<typeof fetchFulfillmentQueue>>;
-  role: Role;
-  readOnly?: boolean;
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-        {label}
-        <span className="rounded-sm bg-[var(--hover)] px-1.5 py-0.5 tabular-nums text-[var(--muted)]">
-          {items.length}
-        </span>
-      </h2>
-      {items.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-md border border-dashed border-[var(--line)] bg-[var(--hover)] px-3 py-3 text-[12px] text-[var(--muted)]">
-          <Inbox className="h-3 w-3" aria-hidden />
-          {emptyHint}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {items.map((row) => (
-            <SubOrderRow
-              key={row.id}
-              row={row}
-              // Read-only group: render no buttons regardless of role
-              // whitelist (warehouse cannot act on items still being sourced).
-              nextStatuses={
-                readOnly ? [] : getNextStatuses(row.status, role, ROLE_STATUS_WHITELIST)
-              }
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function isTab(v: string | undefined): v is TabKey {
+  return v === "todo" || v === "in_progress" || v === "completed";
 }
 
-// Sourcing-side statuses warehouse can SEE but not act on.
-const INCOMING_STAGE = new Set([
-  "in_progress",
-  "purchased_in_store",
-  "purchased_online",
-]);
+function sortRows(rows: FulfillmentRow[], sortKey: "urgent" | "newest" | "oldest"): FulfillmentRow[] {
+  return [...rows].sort((a, b) => {
+    if (sortKey === "urgent") {
+      const aU = a.is_delayed ? 2 : a.is_at_risk ? 1 : 0;
+      const bU = b.is_delayed ? 2 : b.is_at_risk ? 1 : 0;
+      if (bU !== aU) return bU - aU;
+      return b.status_changed_at.localeCompare(a.status_changed_at);
+    }
+    const cmp = a.status_changed_at.localeCompare(b.status_changed_at);
+    return sortKey === "oldest" ? cmp : -cmp;
+  });
+}
 
-const WAREHOUSE_STAGE = new Set([
-  "delivered_to_warehouse",
-  "under_review",
-  "preparing_for_shipment",
-]);
+function buildQuery(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v && v !== "all" && !(k === "tab" && v === "todo") && !(k === "sort" && v === "urgent")) {
+      sp.set(k, v);
+    }
+  }
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
 
-const TRANSIT_STAGE = new Set([
-  "shipped",
-  "arrived_in_ksa",
-  "out_for_delivery",
-]);
+// ─── Tab pills ────────────────────────────────────────────────────────────────
+
+const DOT: Record<TabKey, string> = {
+  todo:        "bg-amber-400",
+  in_progress: "bg-sky-500",
+  completed:   "bg-emerald-500",
+};
+
+function TabPills({
+  activeTab, counts, brandFilter, sortKey,
+}: {
+  activeTab: TabKey;
+  counts: Record<TabKey, number>;
+  brandFilter: string;
+  sortKey: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {TAB_CONFIG.map((t) => {
+        const active = activeTab === t.key;
+        return (
+          <Link
+            key={t.key}
+            href={`/pipeline${buildQuery({ tab: t.key, brand: brandFilter, sort: sortKey })}`}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-1.5 text-[13px] font-medium transition-colors",
+              active
+                ? "border-[var(--line)] bg-[var(--panel)] text-[var(--ink)] shadow-[var(--shadow-sm)]"
+                : "border-transparent text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", DOT[t.key])} aria-hidden />
+            {t.label}
+            <span className={cn("tabular-nums text-[12px]", active ? "text-[var(--ink)]" : "text-[var(--muted)]")}>
+              {counts[t.key]}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}

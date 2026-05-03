@@ -11,15 +11,16 @@ type Props = {
   brandFilter: string;
   sortKey: string;
   isAdmin: boolean;
+  action?: string;
 };
 
 const chipBase =
   "inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)]";
 const chipActive = "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]";
 
-export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin }: Props) {
+export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue" }: Props) {
   return (
-    <form method="GET" action="/queue" className="flex flex-wrap items-center justify-between gap-3">
+    <form method="GET" action={action} className="flex flex-wrap items-center justify-between gap-3">
       <input type="hidden" name="tab" value={activeTab} />
 
       <div className="flex flex-wrap items-center gap-2">
