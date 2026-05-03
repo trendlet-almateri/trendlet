@@ -8,28 +8,22 @@ import type { StatusCode } from "@/lib/constants";
  * The DB enforce_status_whitelist trigger is the security boundary —
  * this function only decides UI affordances, not authorization.
  *
- * Pipeline (linear with branches at the "purchased" stage):
- *   pending → assigned → in_progress
- *           ↘ in_progress → purchased_online | purchased_in_store | out_of_stock
- *           ↘ purchased_* → delivered_to_warehouse
- *           ↘ delivered_to_warehouse → under_review (skipping under_review is fine)
- *           ↘ delivered_to_warehouse → preparing_for_shipment
- *           ↘ preparing_for_shipment → shipped
- *           ↘ shipped → arrived_in_ksa
- *           ↘ arrived_in_ksa → out_for_delivery | delivered
- *           ↘ out_for_delivery → delivered | returned
+ * Pipeline (linear with one branch at the "purchased" stage):
+ *   in_progress → purchased_online | purchased_in_store | out_of_stock
+ *               ↘ purchased_* → delivered_to_warehouse
+ *               ↘ delivered_to_warehouse → shipped
+ *               ↘ shipped → delivered
  *
- * `cancelled` is available from any pre-shipped state but renders
- * separately (destructive action) — not in this map.
+ * KSA-side (arrived_in_ksa, out_for_delivery, returned) is reserved for
+ * the future shipping-company integration on the ksa_operator role —
+ * not part of the live US/EU workflow.
+ *
+ * `cancelled`, `failed`, and admin-only entry points (`pending`) are
+ * not part of any forward path; admin sets them directly.
  */
 export type Role = "sourcing" | "warehouse" | "fulfiller" | "ksa_operator" | "admin";
 
 const TRANSITIONS: Record<string, StatusCode[]> = {
-  // Pre-purchase
-  pending: ["in_progress", "out_of_stock"],
-  assigned: ["in_progress", "out_of_stock"],
-  unassigned: ["in_progress"],
-
   // Active purchase
   in_progress: ["purchased_in_store", "purchased_online", "out_of_stock"],
 
@@ -38,25 +32,26 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
   purchased_online: ["delivered_to_warehouse"],
 
   // At warehouse
-  delivered_to_warehouse: ["shipped", "under_review", "preparing_for_shipment"],
-  under_review: ["preparing_for_shipment", "shipped"],
-  preparing_for_shipment: ["shipped"],
+  delivered_to_warehouse: ["shipped"],
 
-  // In transit + KSA
-  // shipped→delivered direct path lets warehouse close out fulfilment when
-  // they're the ones handing off to the KSA customer; the silent
-  // arrived_in_ksa waypoint stays available for orders that go through the
-  // KSA operator workflow.
-  shipped: ["arrived_in_ksa", "delivered"],
+  // In transit
+  shipped: ["delivered"],
+
+  // KSA-operator-only paths (future shipping-company integration)
   arrived_in_ksa: ["out_for_delivery", "delivered"],
   out_for_delivery: ["delivered", "returned"],
 
-  // Terminal — no transitions onward
+  // Terminal / dormant — no forward transitions
   delivered: [],
   returned: [],
   cancelled: [],
   out_of_stock: [],
   failed: [],
+  pending: [],
+  under_review: [],
+  preparing_for_shipment: [],
+  assigned: [],
+  unassigned: [],
 };
 
 /**
