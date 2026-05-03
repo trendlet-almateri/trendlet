@@ -18,7 +18,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-hairline bg-surface md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-stretch border-t border-[var(--line)] bg-[var(--panel)] shadow-[0_-1px_0_rgba(15,20,25,0.04)] md:hidden"
       aria-label="Primary navigation"
     >
       {ITEMS.map((item) => {
@@ -31,12 +31,15 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px]",
-              active ? "text-navy" : "text-ink-tertiary",
+              "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] transition-colors",
+              active ? "text-[var(--accent)]" : "text-[var(--muted)] hover:text-[var(--ink)]",
             )}
           >
-            <Icon className="h-4 w-4" aria-hidden />
-            <span>{item.label}</span>
+            <Icon className={cn("h-4 w-4", active && "drop-shadow-[0_0_6px_var(--accent)]")} aria-hidden />
+            <span className={cn("font-medium", active && "font-semibold")}>{item.label}</span>
+            {active && (
+              <span className="absolute bottom-0 h-0.5 w-6 rounded-full bg-[var(--accent)]" aria-hidden />
+            )}
           </Link>
         );
       })}

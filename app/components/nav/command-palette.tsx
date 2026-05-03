@@ -108,36 +108,36 @@ export function CommandPalette() {
       onOpenChange={setOpen}
       label="Command palette"
       className={cn(
-        "fixed left-1/2 top-[20%] z-50 w-[540px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl border border-hairline bg-surface shadow-modal",
+        "fixed left-1/2 top-[20%] z-50 w-[540px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
         "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
       )}
       overlayClassName="fixed inset-0 z-40 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
     >
-      <div className="flex items-center gap-2 border-b border-hairline px-4">
-        <Search className="h-4 w-4 shrink-0 text-ink-tertiary" aria-hidden />
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-4">
+        <Search className="h-4 w-4 shrink-0 text-[var(--muted)]" aria-hidden />
         <Command.Input
           autoFocus
           value={query}
           onValueChange={setQuery}
           placeholder="Search orders, customers, products…"
-          className="flex h-12 flex-1 bg-transparent text-[14px] text-ink-primary outline-none placeholder:text-ink-tertiary"
+          className="flex h-12 flex-1 bg-transparent text-[14px] text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
         />
-        <kbd className="rounded-sm bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-tertiary">
+        <kbd className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)]">
           esc
         </kbd>
       </div>
 
       <Command.List className="max-h-[420px] overflow-y-auto p-2">
         {query.trim().length < 2 && (
-          <div className="px-3 py-10 text-center text-[12px] text-ink-tertiary">
+          <div className="px-3 py-10 text-center text-[12px] text-[var(--muted)]">
             Type at least 2 characters to search.
           </div>
         )}
 
         {query.trim().length >= 2 && !loading && totalResults === 0 && (
-          <Command.Empty className="px-3 py-10 text-center text-[12px] text-ink-tertiary">
+          <Command.Empty className="px-3 py-10 text-center text-[12px] text-[var(--muted)]">
             No results for &ldquo;{query}&rdquo;.
           </Command.Empty>
         )}
@@ -226,7 +226,7 @@ export function CommandPalette() {
         )}
       </Command.List>
 
-      <div className="flex items-center justify-end gap-3 border-t border-hairline px-4 py-2 text-[10px] text-ink-tertiary">
+      <div className="flex items-center justify-end gap-3 border-t border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] text-[var(--muted)]">
         <span>↑↓ Navigate</span>
         <span>↵ Select</span>
         <span>⌘K Toggle</span>
@@ -239,7 +239,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   return (
     <Command.Group
       heading={label}
-      className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.4px] [&_[cmdk-group-heading]]:text-ink-tertiary"
+      className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-[var(--muted)]"
     >
       {children}
     </Command.Group>
@@ -261,14 +261,14 @@ function Item({
     <Command.Item
       onSelect={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px]",
-        "data-[selected=true]:bg-neutral-100",
+        "flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-[13px]",
+        "data-[selected=true]:bg-[var(--hover)]",
       )}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0 text-ink-tertiary" aria-hidden />
-      <span className="min-w-0 flex-1 truncate text-ink-primary">{primary}</span>
+      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-[var(--ink)]">{primary}</span>
       {secondary && (
-        <span className="shrink-0 truncate text-[11px] text-ink-tertiary">{secondary}</span>
+        <span className="shrink-0 truncate text-[11px] text-[var(--muted)]">{secondary}</span>
       )}
     </Command.Item>
   );

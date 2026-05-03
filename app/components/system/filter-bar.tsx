@@ -37,7 +37,7 @@ export function FilterBar({
           <input key={k} type="hidden" name={k} value={v} />
         ))}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-ink-tertiary">
+        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-[var(--muted)]">
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           Filters
         </span>
@@ -62,7 +62,7 @@ export function FilterSelect({
     <span className="relative inline-flex items-center">
       <select
         className={cn(
-          "h-8 appearance-none rounded-md border border-hairline bg-surface pl-3 pr-7 text-[12px] text-ink-primary transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-1 focus:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-60",
+          "h-8 appearance-none rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] pl-3 pr-7 text-[12px] text-[var(--ink)] transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-60",
           className,
         )}
         {...rest}
@@ -83,7 +83,7 @@ export function FilterSubmit({ children = "Apply" }: { children?: React.ReactNod
   return (
     <button
       type="submit"
-      className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-[12px] font-medium text-white shadow-sm transition-colors hover:bg-navy-deep"
+      className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-3 text-[12px] font-medium text-white shadow-[var(--shadow-sm)] transition-colors hover:opacity-90"
     >
       {children}
     </button>
@@ -93,7 +93,7 @@ export function FilterSubmit({ children = "Apply" }: { children?: React.ReactNod
 function ChevronDownIcon() {
   return (
     <svg
-      className="pointer-events-none absolute right-2 h-3 w-3 text-ink-tertiary"
+      className="pointer-events-none absolute right-2 h-3 w-3 text-[var(--muted)]"
       viewBox="0 0 12 12"
       fill="none"
       aria-hidden

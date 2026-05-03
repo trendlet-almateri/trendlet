@@ -27,25 +27,25 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex flex-col justify-between gap-2 rounded-lg border p-5",
+        "rise-in flex flex-col justify-between gap-2 rounded-[var(--radius)] border p-5",
         accent
-          ? "border-transparent bg-accent text-white shadow-sm"
-          : "border-hairline bg-surface text-ink-primary shadow-sm",
+          ? "border-transparent bg-[var(--accent)] text-white shadow-[var(--shadow-md)]"
+          : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]",
         className,
       )}
     >
       <span
         className={cn(
-          "text-[10px] font-medium uppercase tracking-[0.6px]",
-          accent ? "text-white/70" : "text-ink-tertiary",
+          "text-[11px] font-semibold uppercase tracking-[0.14em]",
+          accent ? "text-white/70" : "text-[var(--muted)]",
         )}
       >
         {label}
       </span>
       <div
         className={cn(
-          "text-[32px] font-semibold leading-none tracking-[-0.02em] tabular-nums",
-          accent ? "text-white" : "text-ink-primary",
+          "text-[32px] font-semibold leading-none tracking-[-0.03em] tabular-nums",
+          accent ? "text-white" : "text-[var(--ink)]",
         )}
       >
         {value}
@@ -54,7 +54,7 @@ export function StatCard({
         <div
           className={cn(
             "flex items-center gap-2 text-[12px]",
-            accent ? "text-white/80" : "text-ink-tertiary",
+            accent ? "text-white/80" : "text-[var(--muted)]",
           )}
         >
           {trend && <Trend direction={trend.direction} text={trend.text} accent={accent} />}
@@ -78,10 +78,10 @@ function Trend({
   const tone = accent
     ? "text-white"
     : direction === "up"
-      ? "text-emerald-700"
+      ? "text-[var(--green)]"
       : direction === "down"
-        ? "text-rose-600"
-        : "text-ink-tertiary";
+        ? "text-[var(--rose)]"
+        : "text-[var(--muted)]";
   return (
     <span className={cn("inline-flex items-center gap-1 font-medium", tone)}>
       <span aria-hidden>{arrow}</span>

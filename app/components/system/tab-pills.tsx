@@ -42,10 +42,10 @@ export function TabPills({
             role="tab"
             aria-selected={isActive}
             className={cn(
-              "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-medium transition-colors",
+              "inline-flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-1.5 text-[13px] font-medium transition-colors",
               isActive
-                ? "border-hairline-strong bg-surface text-ink-primary shadow-sm"
-                : "border-transparent text-ink-tertiary hover:bg-neutral-100 hover:text-ink-primary",
+                ? "border-[var(--line)] bg-[var(--panel)] text-[var(--ink)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]"
+                : "border-transparent text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
             )}
           >
             {t.dotColor && (
@@ -55,8 +55,10 @@ export function TabPills({
             {typeof t.count === "number" && (
               <span
                 className={cn(
-                  "tabular-nums",
-                  isActive ? "text-ink-secondary" : "text-ink-tertiary",
+                  "rounded-full px-1.5 py-px text-[11px] font-semibold tabular-nums",
+                  isActive
+                    ? "bg-[var(--accent)]/10 text-[var(--accent)]"
+                    : "bg-[var(--hover)] text-[var(--muted)]",
                 )}
               >
                 {t.count}
