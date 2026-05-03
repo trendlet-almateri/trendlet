@@ -66,7 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Suspense>
           }
         />
-        <main className="flex-1 px-4 pb-20 pt-4 md:px-6 md:pb-6">{children}</main>
+        <main className="flex-1 px-4 pb-20 pt-24 md:px-6 md:pb-6 md:pt-4">{children}</main>
       </div>
 
       <BottomNav

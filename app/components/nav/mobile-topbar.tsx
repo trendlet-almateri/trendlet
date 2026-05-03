@@ -6,7 +6,7 @@ type MobileTopbarProps = {
 
 export function MobileTopbar({ notifications }: MobileTopbarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[var(--line)] bg-[var(--bg)] px-4 md:hidden">
+    <header className="fixed inset-x-0 top-0 z-40 flex h-20 items-center justify-between border-b border-[var(--line)] bg-[var(--bg)] px-4 md:hidden">
       <Image src="/logo.png" alt="Trendlet" width={110} height={32} priority />
       <div className="flex items-center">
         {notifications ?? <div className="h-9 w-9" aria-hidden />}
