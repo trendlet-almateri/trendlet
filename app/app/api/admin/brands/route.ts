@@ -80,6 +80,32 @@ export async function PATCH(req: Request) {
           { status: 400 },
         );
       }
+
+      // Backfill: route this brand's existing unassigned sub_orders to the
+      // new primary assignee so /queue and /eu-fulfillment views populate
+      // immediately. brand_assignments only steers *future* webhook
+      // ingests; pre-existing rows need this UPDATE to fan out.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (sb.from("sub_orders") as any)
+        .update({
+          assigned_employee_id: primary_assignee_id,
+          is_unassigned: false,
+        })
+        .eq("brand_id", brand_id)
+        .eq("is_unassigned", true);
+    } else {
+      // Cleared the primary — surface this brand's previously-routed rows
+      // back to /orders/unassigned by clearing assigned_employee_id and
+      // flipping is_unassigned on. Only touches rows whose current
+      // assignee is no longer the primary (since we just removed them).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (sb.from("sub_orders") as any)
+        .update({
+          assigned_employee_id: null,
+          is_unassigned: true,
+        })
+        .eq("brand_id", brand_id)
+        .eq("is_unassigned", false);
     }
   }
 

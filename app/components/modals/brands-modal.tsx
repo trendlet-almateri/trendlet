@@ -227,11 +227,12 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Column headers */}
-          <div className="grid grid-cols-[1.6fr_1.2fr_0.5fr_1.5fr] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
+          <div className="grid grid-cols-[1.4fr_1fr_0.4fr_1.4fr_auto] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
             <span>Brand</span>
             <span>Region</span>
             <span className="text-right">Markup</span>
             <span>Primary assignee</span>
+            <span className="justify-self-end pr-1">&nbsp;</span>
           </div>
 
           {/* Brand rows */}
@@ -304,6 +305,25 @@ function SidebarFilter({
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+/**
+ * Best-guess default assignee for a region. Until the admin invites real
+ * employees, we route US to the seed sourcing user and EU to the seed
+ * fulfiller user so the queue/fulfillment pages have data to display.
+ * Looks up by exact email match in the loaded assignees list — falls
+ * back to "" (Unassigned) if the seed user wasn't created yet.
+ */
+function defaultAssigneeForRegion(
+  region: Region | null,
+  assignees: Assignee[],
+): string {
+  if (!region) return "";
+  const email =
+    region === "US"
+      ? "sourcing-test@trendlet.com"
+      : "fulfiller-test@trendlet.com";
+  return assignees.find((a) => a.email.toLowerCase() === email)?.id ?? "";
+}
+
 function BrandRowItem({
   brand: b,
   assignees,
@@ -318,35 +338,70 @@ function BrandRowItem({
 }) {
   const letter = b.name.slice(0, 1).toUpperCase();
   const avatarCls = brandAvatarColor(b.name);
-  const isUnassigned = !b.primary_assignee;
+
+  // Local draft state — only persists to DB on Save click
+  const [draftRegion, setDraftRegion] = React.useState<Region | null>(b.region);
+  const [draftAssigneeId, setDraftAssigneeId] = React.useState<string>(
+    b.primary_assignee?.user_id ?? "",
+  );
+
+  // If the parent re-fetches and gives us new prop values, sync them
+  // into the draft (resets the row to its persisted state after refresh).
+  React.useEffect(() => {
+    setDraftRegion(b.region);
+    setDraftAssigneeId(b.primary_assignee?.user_id ?? "");
+  }, [b.region, b.primary_assignee?.user_id]);
 
   const [saveState, setSaveState] = React.useState<SaveState>("idle");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const flashTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isDirty =
+    draftRegion !== b.region ||
+    draftAssigneeId !== (b.primary_assignee?.user_id ?? "");
+
+  const isUnassignedNow = !draftAssigneeId;
 
   const flash = (state: SaveState, msg?: string) => {
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setSaveState(state);
     setErrorMsg(msg ?? null);
     if (state === "saved" || state === "error") {
-      flashTimer.current = setTimeout(() => setSaveState("idle"), 2000);
+      flashTimer.current = setTimeout(() => setSaveState("idle"), 2500);
     }
   };
 
-  const save = async (patch: {
-    region?: Region | null;
-    primary_assignee_id?: string;
-  }) => {
+  // Auto-suggest assignee when region is picked and no assignee is set yet.
+  // Doesn't override an existing pick — only fills the blank.
+  const handleRegionChange = (region: Region | null) => {
+    setDraftRegion(region);
+    if (region && !draftAssigneeId) {
+      setDraftAssigneeId(defaultAssigneeForRegion(region, assignees));
+    }
+  };
+
+  const handleSave = async () => {
     setSaveState("saving");
-    const res = await onUpdate(b.id, patch);
+    const res = await onUpdate(b.id, {
+      region: draftRegion,
+      primary_assignee_id: draftAssigneeId,
+    });
     flash(res.ok ? "saved" : "error", res.error);
+  };
+
+  const handleCancel = () => {
+    setDraftRegion(b.region);
+    setDraftAssigneeId(b.primary_assignee?.user_id ?? "");
+    setSaveState("idle");
+    setErrorMsg(null);
   };
 
   return (
     <div
       className={cn(
-        "grid grid-cols-[1.6fr_1.2fr_0.5fr_1.5fr] items-center gap-3 border-b border-[var(--line)] px-4 py-2.5 transition-colors hover:bg-[var(--hover)] last:border-0",
-        isUnassigned && "bg-[var(--rose-bg)]/30",
+        "grid grid-cols-[1.4fr_1fr_0.4fr_1.4fr_auto] items-center gap-3 border-b border-[var(--line)] px-4 py-2.5 transition-colors hover:bg-[var(--hover)] last:border-0",
+        isUnassignedNow && !isDirty && "bg-[var(--rose-bg)]/30",
+        isDirty && "bg-amber-50/60 ring-1 ring-inset ring-amber-200/60",
       )}
     >
       {/* Brand */}
@@ -357,10 +412,10 @@ function BrandRowItem({
         <span className="truncate text-[13px] font-medium text-[var(--ink)]">{b.name}</span>
       </div>
 
-      {/* Region dropdown */}
+      {/* Region dropdown (draft) */}
       <RegionSelect
-        value={b.region}
-        onChange={(region) => save({ region })}
+        value={draftRegion}
+        onChange={handleRegionChange}
         disabled={saveState === "saving"}
       />
 
@@ -371,15 +426,45 @@ function BrandRowItem({
         </span>
       </div>
 
-      {/* Assignee dropdown + save indicator */}
-      <div className="flex items-center gap-1.5">
-        <AssigneeSelect
-          value={b.primary_assignee?.user_id ?? ""}
-          onChange={(id) => save({ primary_assignee_id: id })}
-          assignees={assignees}
-          disabled={saveState === "saving"}
-        />
-        <SaveIndicator state={saveState} error={errorMsg} />
+      {/* Assignee dropdown (draft) */}
+      <AssigneeSelect
+        value={draftAssigneeId}
+        onChange={setDraftAssigneeId}
+        assignees={assignees}
+        disabled={saveState === "saving"}
+      />
+
+      {/* Save / Cancel + status */}
+      <div className="flex items-center gap-1.5 justify-self-end">
+        {isDirty ? (
+          <>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={saveState === "saving"}
+              className="h-7 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-2 text-[11px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveState === "saving"}
+              className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--accent)] px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[var(--accent)]/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saveState === "saving" ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save"
+              )}
+            </button>
+          </>
+        ) : (
+          <SaveIndicator state={saveState} error={errorMsg} />
+        )}
       </div>
     </div>
   );
