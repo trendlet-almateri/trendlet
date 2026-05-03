@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Clock, Package, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, ROLE_STATUS_WHITELIST, type StatusCode } from "@/lib/constants";
@@ -100,7 +100,7 @@ export function SourcingCard({
   selfName,
   selfInitials,
 }: Props) {
-  const [optimisticStatus, setOptimisticStatus] = useOptimistic(row.status);
+  const [optimisticStatus, setOptimisticStatus] = useState(row.status);
   const [pending, startTransition] = useTransition();
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -133,8 +133,9 @@ export function SourcingCard({
 
   const advance = (target: StatusCode) => {
     setPendingTarget(null);
+    const prev = optimisticStatus;
+    setOptimisticStatus(target);
     startTransition(async () => {
-      setOptimisticStatus(target);
       const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
       const label = BTN_LABELS[target] ?? STATUS_BY_CODE[target]?.label ?? target;
       if (result.ok) {
@@ -150,6 +151,8 @@ export function SourcingCard({
           kind: isHandoff ? "success" : "info",
         });
         onDeselect();
+      } else {
+        setOptimisticStatus(prev);
       }
     });
   };
