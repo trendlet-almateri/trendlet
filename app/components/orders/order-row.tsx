@@ -138,7 +138,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* SUB-ORDERS */}
-        <td className="px-3 py-3 text-center align-middle">
+        <td className="hidden px-3 py-3 text-center align-middle md:table-cell">
           <div className="flex flex-col items-center gap-0.5">
             <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
               {o.sub_orders.length} / {o.sub_orders.length}
@@ -148,19 +148,32 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* STATUS SUMMARY */}
-        <td className="min-w-[180px] px-3 py-3 align-middle">
-          <StatusSummaryBar subOrders={o.sub_orders} />
+        <td className="px-3 py-3 align-middle">
+          <div className="flex flex-col gap-1">
+            <StatusSummaryBar subOrders={o.sub_orders} />
+            {/* Mobile-only: inline alert + sub-order count */}
+            <div className="flex items-center gap-1.5 md:hidden">
+              <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
+                {o.sub_orders.length} vendor{o.sub_orders.length !== 1 ? "s" : ""}
+              </span>
+              {urgent && (
+                <span className="rounded-full bg-[var(--rose-bg)] px-1.5 py-px text-[10px] font-medium text-[var(--rose)]">
+                  {hasUnassigned ? "Unassigned" : "Delayed"}
+                </span>
+              )}
+            </div>
+          </div>
         </td>
 
         {/* TOTAL */}
-        <td className="whitespace-nowrap px-3 py-3 text-center align-middle">
+        <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
           <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
             {formatCurrency(o.total ?? 0, o.currency)}
           </span>
         </td>
 
         {/* ALERTS */}
-        <td className="px-3 py-3 align-middle">
+        <td className="hidden px-3 py-3 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1">
             {hasUnassigned && (
               <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
@@ -186,7 +199,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* ACTIONS */}
-        <td className="px-3 py-3 text-center align-middle" data-no-row-click>
+        <td className="hidden px-3 py-3 text-center align-middle md:table-cell" data-no-row-click>
           <div className="flex items-center justify-center gap-0.5">
             {onOpenDrawer && (
               <button
@@ -218,7 +231,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
 
       {/* ── Expandable sub-orders panel ───────────────────────────────────── */}
       <tr className="border-b border-[var(--line)] last:border-0">
-        <td colSpan={7} className="p-0">
+        <td colSpan={7} className="p-0" style={{ display: "table-cell" }}>
           <div
             style={{
               display: "grid",
@@ -229,8 +242,8 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
             <div className="overflow-hidden">
               <div className="border-t border-[var(--line)] bg-[#f9f8f5] px-4 py-3">
 
-                {/* Sub-header */}
-                <div className="mb-2 grid grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 px-3 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
+                {/* Sub-header — desktop only */}
+                <div className="mb-2 hidden grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 px-3 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid">
                   <span>Product</span>
                   <span>Status</span>
                   <span>Issues</span>
@@ -247,7 +260,8 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                       <div
                         key={so.id}
                         className={cn(
-                          "grid grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 rounded-lg border bg-[var(--panel)] px-3 py-2.5",
+                          "rounded-lg border bg-[var(--panel)] px-3 py-2.5",
+                          "grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 md:grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] md:items-center md:gap-3",
                           so.is_unassigned
                             ? "border-[var(--rose)]/30 bg-[var(--rose-bg)]/20"
                             : "border-[var(--line)]",
@@ -293,37 +307,46 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                           </div>
                         </div>
 
-                        {/* Status */}
-                        <div>
-                          {so.is_unassigned ? (
-                            <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
-                              Unassigned · reassign
+                        {/* Actions — mobile: top-right; desktop: last col */}
+                        <div className="flex items-center justify-end gap-0.5 md:hidden" data-no-row-click>
+                          <button type="button" className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="More">
+                            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+                          </button>
+                        </div>
+
+                        {/* Status + Issues — mobile: full-width row below product */}
+                        <div className="flex items-center gap-2 md:contents">
+                          <div>
+                            {so.is_unassigned ? (
+                              <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
+                                Unassigned · reassign
+                              </span>
+                            ) : (
+                              <StatusPill status={so.status} />
+                            )}
+                          </div>
+
+                          {/* Issues */}
+                          <div className="text-[12px]">
+                            {so.is_delayed ? (
+                              <span className="font-semibold text-[var(--rose)]">Delayed</span>
+                            ) : so.is_at_risk ? (
+                              <span className="font-semibold text-[var(--amber)]">SLA at risk</span>
+                            ) : (
+                              <span className="text-[var(--muted)]">—</span>
+                            )}
+                          </div>
+
+                          {/* Sub-order number — hidden on mobile */}
+                          <div className="hidden text-center md:block">
+                            <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
+                              {so.sub_order_number}
                             </span>
-                          ) : (
-                            <StatusPill status={so.status} />
-                          )}
+                          </div>
                         </div>
 
-                        {/* Issues */}
-                        <div className="text-[12px]">
-                          {so.is_delayed ? (
-                            <span className="font-semibold text-[var(--rose)]">Delayed</span>
-                          ) : so.is_at_risk ? (
-                            <span className="font-semibold text-[var(--amber)]">SLA at risk</span>
-                          ) : (
-                            <span className="text-[var(--muted)]">No issues</span>
-                          )}
-                        </div>
-
-                        {/* Sub-order number */}
-                        <div className="text-center">
-                          <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
-                            {so.sub_order_number}
-                          </span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex w-20 items-center justify-center gap-0.5" data-no-row-click>
+                        {/* Actions — desktop only */}
+                        <div className="hidden w-20 items-center justify-center gap-0.5 md:flex" data-no-row-click>
                           <button
                             type="button"
                             className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"

@@ -29,11 +29,11 @@ export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
           >
             <th className="px-4 py-2.5 text-left font-semibold">Order</th>
             <th className="px-3 py-2.5 text-center font-semibold">Customer</th>
-            <th className="px-3 py-2.5 text-center font-semibold">Sub-orders</th>
+            <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Sub-orders</th>
             <th className="px-3 py-2.5 text-center font-semibold">Status summary</th>
-            <th className="px-3 py-2.5 text-center font-semibold">Total</th>
-            <th className="px-3 py-2.5 text-center font-semibold">Alerts</th>
-            <th className="px-3 py-2.5 text-center font-semibold">Actions</th>
+            <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Total</th>
+            <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Alerts</th>
+            <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
