@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
@@ -114,6 +115,8 @@ export function EuCard({
   selfName,
   selfInitials,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
 
   // Re-sync optimistic state to props when the server returns a fresh row
@@ -158,16 +161,26 @@ export function EuCard({
     startTransition(async () => {
       const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
       if (result.ok) {
-        const isHandoff = target === "shipped";
+        // EU is end-to-end: "delivered" is the success terminal,
+        // "out_of_stock" is the failure terminal. Both move to the
+        // Completed tab. "shipped" is mid-stage for EU (next button
+        // is "Mark delivered"), so it's NOT a completion event here.
+        const isFinal = target === "delivered" || target === "out_of_stock";
+        const orderRef = row.order?.shopify_order_number ?? row.sub_order_number;
         onToast({
           id: `${row.id}-${Date.now()}`,
-          message: isHandoff ? "Task completed" : `Status updated: ${EU_BTN_LABELS[target] ?? target}`,
-          sub: isHandoff
-            ? `${row.order?.shopify_order_number ?? row.sub_order_number} → shipped to EU`
+          message: isFinal ? "Task completed" : `Status updated: ${EU_BTN_LABELS[target] ?? target}`,
+          sub: isFinal
+            ? `${orderRef} → moved to Completed`
             : "",
-          kind: isHandoff ? "success" : "info",
+          kind: isFinal ? "success" : "info",
         });
         onDeselect();
+        if (isFinal) {
+          const sp = new URLSearchParams(searchParams?.toString() ?? "");
+          sp.set("tab", "completed");
+          router.push(`/eu-fulfillment?${sp.toString()}`);
+        }
       } else {
         setOptimisticStatus(prev);
       }
