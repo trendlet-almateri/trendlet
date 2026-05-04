@@ -69,21 +69,7 @@ export default async function InvoicesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Invoices"
-        subtitle={
-          <>
-            {totalCount.toLocaleString("en-US")} {totalCount === 1 ? "invoice" : "invoices"}
-            {counts.pending_review > 0 && <> · {counts.pending_review} awaiting review</>}
-          </>
-        }
-        actions={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
-            <Clock className="h-3 w-3" aria-hidden />
-            Synced 2 min ago
-          </span>
-        }
-      />
+      <PageHeader title="Invoices" />
 
       {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-4">

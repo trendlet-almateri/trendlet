@@ -37,7 +37,7 @@ export default async function ReturnsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Returns" subtitle={<>{rows.length} {rows.length === 1 ? "return" : "returns"}</>} />
+      <PageHeader title="Returns" />
 
       {rows.length === 0 ? (
         <EmptyState

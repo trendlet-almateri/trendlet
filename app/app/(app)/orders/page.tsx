@@ -53,10 +53,7 @@ export default async function OrdersPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Orders"
-        subtitle={`${counts.all.toLocaleString("en-US")} ${counts.all === 1 ? "order" : "orders"}`}
-      />
+      <PageHeader title="Orders" />
 
       <TabPills
         activeKey={filter}

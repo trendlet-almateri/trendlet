@@ -12,60 +12,63 @@ type Props = {
   sortKey: string;
   isAdmin: boolean;
   action?: string;
+  hideFilters?: boolean;
 };
 
 const chipBase =
   "inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)]";
 const chipActive = "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]";
 
-export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue" }: Props) {
+export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue", hideFilters = false }: Props) {
   return (
     <form method="GET" action={action} className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
       <input type="hidden" name="tab" value={activeTab} />
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-        </span>
-
-        {/* Priority — coming soon */}
-        <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Coming soon">
-          + Priority
-        </span>
-
-        {/* Region */}
-        <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Locked to US for sourcing">
-          + Region
-        </span>
-
-        {/* Brand */}
-        <div className="relative">
-          <select
-            name="brand"
-            defaultValue={brandFilter}
-            className={cn(
-              chipBase,
-              "appearance-none cursor-pointer pr-6",
-              brandFilter !== "all" && chipActive,
-            )}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-          >
-            <option value="all">+ Brand</option>
-            {brands.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-          <Chevron />
-        </div>
-
-        {/* Agent — admin only */}
-        {isAdmin && (
-          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Agent filter coming soon">
-            + Agent
+      {!hideFilters && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
           </span>
-        )}
-      </div>
+
+          {/* Priority — coming soon */}
+          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Coming soon">
+            + Priority
+          </span>
+
+          {/* Region */}
+          <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Locked to US for sourcing">
+            + Region
+          </span>
+
+          {/* Brand */}
+          <div className="relative">
+            <select
+              name="brand"
+              defaultValue={brandFilter}
+              className={cn(
+                chipBase,
+                "appearance-none cursor-pointer pr-6",
+                brandFilter !== "all" && chipActive,
+              )}
+              onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            >
+              <option value="all">+ Brand</option>
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <Chevron />
+          </div>
+
+          {/* Agent — admin only */}
+          {isAdmin && (
+            <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Agent filter coming soon">
+              + Agent
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Sort */}
       <div className="relative self-end md:self-auto">
