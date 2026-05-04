@@ -12,27 +12,27 @@ export const metadata = { title: "Sourcing · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-// Sourcing-only stages.
-// Tab routing uses marked_done_at (set on the final button click —
-// Deliver to warehouse or Out of stock) so a row stays in In progress
-// even at status='delivered_to_warehouse' until explicitly marked done.
-//   To do:        pending AND not yet marked done
-//   Completed:    marked_done_at IS NOT NULL
-//   In progress:  sourcing statuses that aren't todo or completed
-const TODO_STATUSES = new Set(["pending"]);
-const SOURCING_STATUSES = new Set([
-  "pending",
-  "in_progress", "purchased_online", "purchased_in_store",
-  "out_of_stock",
-  "delivered_to_warehouse",
+// Sourcing tab routing is STATUS-ONLY (no marked_done_at). Sourcing's
+// lifecycle ends at delivered_to_warehouse — that status itself IS the
+// "I'm done" signal because the sourcing user clicked the button to
+// reach it. Statuses past sourcing (shipped, delivered, ...) belong to
+// warehouse and are filtered out entirely.
+//   To do:        pending
+//   In progress:  in_progress, purchased_*
+//   Completed:    delivered_to_warehouse (handoff), out_of_stock (fail)
+//   NOT SHOWN:    shipped, delivered, anything beyond — warehouse owns these
+const TODO_STAGE      = new Set(["pending"]);
+const IN_PROG_STAGE   = new Set(["in_progress", "purchased_online", "purchased_in_store"]);
+const COMPLETED_STAGE = new Set(["delivered_to_warehouse", "out_of_stock"]);
+const SOURCING_LIFECYCLE = new Set([
+  ...TODO_STAGE, ...IN_PROG_STAGE, ...COMPLETED_STAGE,
 ]);
 
-type Row = { status: string; marked_done_at: string | null };
+type Row = { status: string };
 
-const matchTodo       = (r: Row) => !r.marked_done_at && TODO_STATUSES.has(r.status);
-const matchCompleted  = (r: Row) => r.marked_done_at !== null;
-const matchInProgress = (r: Row) =>
-  !r.marked_done_at && SOURCING_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
+const matchTodo       = (r: Row) => TODO_STAGE.has(r.status);
+const matchInProgress = (r: Row) => IN_PROG_STAGE.has(r.status);
+const matchCompleted  = (r: Row) => COMPLETED_STAGE.has(r.status);
 
 const TAB_CONFIG = [
   { key: "todo" as TabKey,        label: "To do",       match: matchTodo,       readOnly: false },
@@ -49,12 +49,18 @@ export default async function SourcingQueuePage({
   const isAdmin = user.roles.includes("admin");
   const role: Role = isAdmin ? "admin" : "sourcing";
 
-  const rows = await fetchFulfillmentQueue({
+  const allRows = await fetchFulfillmentQueue({
     region: "US",
     userId: user.id,
     isAdmin,
     assigneeFilter: isAdmin ? "all" : "self",
   });
+
+  // Sourcing only ever sees rows whose status is in its lifecycle.
+  // Anything past delivered_to_warehouse (shipped, delivered, etc.) is
+  // warehouse's domain and is filtered out completely so it can't leak
+  // into any tab or count.
+  const rows = allRows.filter((r) => SOURCING_LIFECYCLE.has(r.status));
 
   const activeTab = isTab(searchParams?.tab) ? searchParams!.tab! : "todo";
   const brandFilter = searchParams?.brand ?? "all";
@@ -63,7 +69,7 @@ export default async function SourcingQueuePage({
   // Counts
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = rows.filter(
-    (r) => matchCompleted(r) && (r.marked_done_at ?? "").slice(0, 10) === today,
+    (r) => matchCompleted(r) && r.status_changed_at.slice(0, 10) === today,
   ).length;
 
   const counts = {
