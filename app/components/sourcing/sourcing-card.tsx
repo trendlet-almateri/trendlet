@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Clock, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, ROLE_STATUS_WHITELIST, type StatusCode } from "@/lib/constants";
@@ -8,7 +8,11 @@ import { relativeTime } from "@/lib/utils/date";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
+import { isCustomerNotifyStatus } from "@/lib/integrations/twilio-templates";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
+
+const NOTIFICATIONS_ENABLED =
+  process.env.NEXT_PUBLIC_TWILIO_NOTIFICATIONS_ENABLED === "true";
 
 // ─── Warehouse stage detection ────────────────────────────────────────────────
 const WAREHOUSE_STAGE = new Set([
@@ -77,6 +81,11 @@ export function SourcingCard({
   selfInitials,
 }: Props) {
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
+
+  // Re-sync optimistic state to props when the server returns a fresh row.
+  useEffect(() => {
+    setOptimisticStatus(row.status);
+  }, [row.status]);
   const [pending, startTransition] = useTransition();
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -104,19 +113,20 @@ export function SourcingCard({
       if (isAdmin) actions.unshift("cancelled" as StatusCode);
       return actions;
     }
-    // Warehouse hardcoded transitions
-    if (optimisticStatus === "delivered_to_warehouse" || optimisticStatus === "under_review") {
-      return ["preparing_for_shipment" as StatusCode];
-    }
-    if (optimisticStatus === "preparing_for_shipment") {
-      return ["shipped" as StatusCode];
-    }
     return getNextStatuses(optimisticStatus, role, ROLE_STATUS_WHITELIST);
   })();
 
   const cancelTarget = nextStatuses.find((s) => s === "cancelled");
   const oosTarget = nextStatuses.find((s) => s === "out_of_stock");
   const forwardTargets = nextStatuses.filter((s) => s !== "cancelled" && s !== "out_of_stock");
+
+  const requestStatusChange = (target: StatusCode) => {
+    if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
+      advance(target);
+      return;
+    }
+    setPendingTarget(target);
+  };
 
   const advance = (target: StatusCode) => {
     setPendingTarget(null);
@@ -285,7 +295,7 @@ export function SourcingCard({
                     label="Out of stock"
                     variant="danger-outline"
                     disabled={pending}
-                    onClick={() => setPendingTarget(oosTarget)}
+                    onClick={() => requestStatusChange(oosTarget)}
                   />
                 )}
                 {cancelTarget && (
@@ -293,7 +303,7 @@ export function SourcingCard({
                     label="Cancel order"
                     variant="danger-outline"
                     disabled={pending}
-                    onClick={() => setPendingTarget(cancelTarget)}
+                    onClick={() => requestStatusChange(cancelTarget)}
                   />
                 )}
                 {forwardTargets.map((t) => (
@@ -302,7 +312,7 @@ export function SourcingCard({
                     label={BTN_LABELS[t] ?? STATUS_BY_CODE[t]?.label ?? t}
                     variant={t === forwardTargets[forwardTargets.length - 1] ? "primary" : "secondary"}
                     disabled={pending}
-                    onClick={() => setPendingTarget(t)}
+                    onClick={() => requestStatusChange(t)}
                   />
                 ))}
               </div>

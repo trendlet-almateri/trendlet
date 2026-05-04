@@ -83,20 +83,6 @@ export default async function EuFulfillmentPage({
     .join("")
     .toUpperCase();
 
-  // Diagnostic: which tab does each row land in? Helps confirm the
-  // filter logic is right when user reports the wrong placement.
-  const debugRows = rows.map((r) => ({
-    id: r.sub_order_number,
-    status: r.status,
-    tab: TODO_STAGE.has(r.status)
-      ? "todo"
-      : IN_PROG_STAGE.has(r.status)
-        ? "in_progress"
-        : COMPLETED_STAGE.has(r.status)
-          ? "completed"
-          : "MISSING",
-  }));
-
   return (
     <div className="flex flex-col gap-4 pb-16 md:gap-5">
       {/* ── Page title ── */}
@@ -110,33 +96,6 @@ export default async function EuFulfillmentPage({
           </p>
         )}
       </div>
-
-      {/* ── DEBUG (admin only) ── */}
-      {isAdmin && (
-        <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-          <summary className="cursor-pointer font-semibold">
-            DEBUG · build {process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local"} · {debugRows.length} rows
-          </summary>
-          <table className="mt-2 w-full text-left font-mono">
-            <thead>
-              <tr className="text-amber-700">
-                <th className="py-0.5 pr-3">sub_order</th>
-                <th className="py-0.5 pr-3">status</th>
-                <th className="py-0.5">routed-to-tab</th>
-              </tr>
-            </thead>
-            <tbody>
-              {debugRows.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-0.5 pr-3">{r.id}</td>
-                  <td className="py-0.5 pr-3">{r.status}</td>
-                  <td className="py-0.5 font-semibold">{r.tab}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </details>
-      )}
 
       {/* ── Filter bar ── */}
       <SourcingFilterBar

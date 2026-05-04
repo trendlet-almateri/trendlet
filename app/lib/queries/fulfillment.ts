@@ -43,8 +43,6 @@ const ACTIVE_STATUSES = [
   "purchased_in_store",
   "purchased_online",
   "delivered_to_warehouse",
-  "under_review",
-  "preparing_for_shipment",
   "shipped",
   "arrived_in_ksa",
   "out_for_delivery",
