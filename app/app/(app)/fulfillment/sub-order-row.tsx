@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { relativeTime } from "@/lib/utils/date";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
+import { ActionDropdown } from "@/components/ui/dropdown-select";
 
 const STATUS_PALETTE: Record<string, string> = {
   pending: "bg-status-pending-bg text-status-pending-fg border-status-pending-border/40",
@@ -419,55 +420,24 @@ function StatusJumpSelect({
   disabled?: boolean;
   onSelect: (target: string) => void;
   compact?: boolean;
-  /** Render as the accent (primary) action — the only forward CTA. */
   primary?: boolean;
 }) {
   return (
-    <div className="relative inline-flex items-center">
-      <select
-        value=""
-        disabled={disabled}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v) onSelect(v);
-          e.currentTarget.value = "";
-        }}
-        className={cn(
-          "appearance-none rounded-md pr-7 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 cursor-pointer",
-          primary
-            ? "bg-accent text-white shadow-sm hover:bg-navy-deep hover:shadow-md hover:-translate-y-px"
-            : "border border-hairline bg-surface text-ink-primary hover:bg-neutral-50 hover:border-hairline-strong",
-          compact ? "h-7 pl-2 text-[11px]" : "h-8 pl-3 text-[12px]",
-        )}
-        aria-label="Change status"
-      >
-        <option value="" disabled>
-          Change status…
-        </option>
-        {options.map((target) => (
-          <option key={target} value={target}>
-            {STATUS_BY_CODE[target]?.label ?? target}
-          </option>
-        ))}
-      </select>
-      <svg
-        className={cn(
-          "pointer-events-none absolute right-2 h-3 w-3",
-          primary ? "text-white/80" : "text-ink-tertiary",
-        )}
-        viewBox="0 0 12 12"
-        fill="none"
-        aria-hidden
-      >
-        <path
-          d="M3 4.5L6 7.5L9 4.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
+    <ActionDropdown
+      placeholder="Change status…"
+      disabled={disabled}
+      size={compact ? "sm" : "default"}
+      options={options.map((target) => ({
+        value: target,
+        label: STATUS_BY_CODE[target]?.label ?? target,
+      }))}
+      onSelect={onSelect}
+      triggerClassName={cn(
+        primary
+          ? "border-transparent bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90"
+          : "border-hairline bg-surface text-ink-primary hover:bg-neutral-50 hover:border-hairline-strong",
+      )}
+    />
   );
 }
 

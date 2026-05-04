@@ -11,6 +11,7 @@ import {
 import { extractSupplierInvoiceAction } from "./extract-action";
 import { mapSupplierInvoiceItemAction } from "./map-item-action";
 import { createCustomerInvoiceDraftsAction } from "./create-drafts-action";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 import {
   loadReceiptPanelAction,
   type PanelItem,
@@ -271,19 +272,20 @@ function ItemRow({
           )}
         </span>
       </div>
-      <select
+      <DropdownSelect
         value={item.mapped_sub_order_id ?? ""}
-        onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
-        className="h-7 rounded-md border border-hairline bg-surface px-2 text-[11px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-ink-primary/20"
-      >
-        <option value="">— Map to sub-order —</option>
-        {subOrders.map((so) => (
-          <option key={so.id} value={so.id}>
-            {so.sub_order_number} · {truncate(so.product_title, 32)}
-            {so.brand_name ? ` · ${so.brand_name}` : ""}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => onChange(v === "" ? null : v)}
+        size="sm"
+        placeholder="— Map to sub-order —"
+        options={[
+          { value: "", label: "— Map to sub-order —" },
+          ...subOrders.map((so) => ({
+            value: so.id,
+            label: `${so.sub_order_number} · ${truncate(so.product_title, 32)}${so.brand_name ? ` · ${so.brand_name}` : ""}`,
+          })),
+        ]}
+        align="end"
+      />
     </div>
   );
 }

@@ -141,23 +141,33 @@ export default async function DesignSystemPage({
             hidden={{ tab: activeTab }}
             right={
               <>
-                <FilterSelect name="sort" defaultValue="urgent">
-                  <option value="urgent">Sort: Urgent first</option>
-                  <option value="newest">Sort: Newest first</option>
-                </FilterSelect>
+                <FilterSelect
+                  name="sort"
+                  defaultValue="urgent"
+                  options={[
+                    { value: "urgent", label: "Sort: Urgent first" },
+                    { value: "newest", label: "Sort: Newest first" },
+                  ]}
+                />
                 <FilterSubmit />
               </>
             }
           >
-            <FilterSelect name="priority" defaultValue="all">
-              <option value="all">All priorities</option>
-            </FilterSelect>
-            <FilterSelect name="region" defaultValue="all">
-              <option value="all">All regions</option>
-            </FilterSelect>
-            <FilterSelect name="brand" defaultValue="all">
-              <option value="all">All brands</option>
-            </FilterSelect>
+            <FilterSelect
+              name="priority"
+              defaultValue="all"
+              options={[{ value: "all", label: "All priorities" }]}
+            />
+            <FilterSelect
+              name="region"
+              defaultValue="all"
+              options={[{ value: "all", label: "All regions" }]}
+            />
+            <FilterSelect
+              name="brand"
+              defaultValue="all"
+              options={[{ value: "all", label: "All brands" }]}
+            />
           </FilterBar>
         </Card>
       </Section>

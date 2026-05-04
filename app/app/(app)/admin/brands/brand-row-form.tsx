@@ -10,6 +10,7 @@ import {
   type BrandActionState,
 } from "./actions";
 import type { BrandRow, AssigneeOption } from "@/lib/queries/brands";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 
 const initialState: BrandActionState = { ok: false, error: null };
 
@@ -97,18 +98,20 @@ function SaveForm({
         className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[13px] font-medium text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
       />
 
-      <select
-        name="region"
+      <input type="hidden" name="region" value={region} />
+      <DropdownSelect
         value={region}
-        onChange={(e) => setRegion(e.target.value)}
-        className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-      >
-        <option value="">—</option>
-        <option value="US">US</option>
-        <option value="EU">EU</option>
-        <option value="KSA">KSA</option>
-        <option value="GLOBAL">GLOBAL</option>
-      </select>
+        onChange={setRegion}
+        options={[
+          { value: "", label: "—" },
+          { value: "US", label: "US" },
+          { value: "EU", label: "EU" },
+          { value: "KSA", label: "KSA" },
+          { value: "GLOBAL", label: "GLOBAL" },
+        ]}
+        placeholder="—"
+        size="sm"
+      />
 
       <div className="flex items-center gap-1">
         <input
@@ -124,19 +127,20 @@ function SaveForm({
         <span className="text-[11px] text-ink-tertiary">%</span>
       </div>
 
-      <select
-        name="primary_assignee_id"
+      <input type="hidden" name="primary_assignee_id" value={assigneeId} />
+      <DropdownSelect
         value={assigneeId}
-        onChange={(e) => setAssigneeId(e.target.value)}
-        className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-      >
-        <option value="">— unassigned —</option>
-        {assignees.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.full_name} ({a.roles.join(", ") || "no role"})
-          </option>
-        ))}
-      </select>
+        onChange={setAssigneeId}
+        options={[
+          { value: "", label: "— unassigned —" },
+          ...assignees.map((a) => ({
+            value: a.id,
+            label: `${a.full_name} (${a.roles.join(", ") || "no role"})`,
+          })),
+        ]}
+        placeholder="— unassigned —"
+        size="sm"
+      />
 
       <div className="flex items-center gap-1.5 justify-self-end">
         <SaveButton dirty={isDirty} />

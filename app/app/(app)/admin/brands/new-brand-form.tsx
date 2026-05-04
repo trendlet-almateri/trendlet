@@ -1,23 +1,44 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Plus, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBrandAction, type BrandActionState } from "./actions";
 import type { AssigneeOption } from "@/lib/queries/brands";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 
 const initialState: BrandActionState = { ok: false, error: null };
+
+const REGION_OPTIONS = [
+  { value: "", label: "—" },
+  { value: "US", label: "US" },
+  { value: "EU", label: "EU" },
+  { value: "KSA", label: "KSA" },
+  { value: "GLOBAL", label: "GLOBAL" },
+];
 
 export function NewBrandForm({ assignees }: { assignees: AssigneeOption[] }) {
   const [state, dispatch] = useFormState(createBrandAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [region, setRegion] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
 
-  // Clear inputs after a successful insert so admin can add the next brand
-  // immediately without retyping.
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
+    if (state.ok) {
+      formRef.current?.reset();
+      setRegion("");
+      setAssigneeId("");
+    }
   }, [state.ok]);
+
+  const assigneeOptions = [
+    { value: "", label: "— unassigned —" },
+    ...assignees.map((a) => ({
+      value: a.id,
+      label: `${a.full_name} (${a.roles.join(", ") || "no role"})`,
+    })),
+  ];
 
   return (
     <section className="rounded-md border border-dashed border-hairline-strong bg-neutral-50 p-3">
@@ -40,17 +61,14 @@ export function NewBrandForm({ assignees }: { assignees: AssigneeOption[] }) {
         />
 
         {/* Region */}
-        <select
-          name="region"
-          defaultValue=""
-          className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-        >
-          <option value="">—</option>
-          <option value="US">US</option>
-          <option value="EU">EU</option>
-          <option value="KSA">KSA</option>
-          <option value="GLOBAL">GLOBAL</option>
-        </select>
+        <input type="hidden" name="region" value={region} />
+        <DropdownSelect
+          value={region}
+          onChange={setRegion}
+          options={REGION_OPTIONS}
+          placeholder="—"
+          size="sm"
+        />
 
         {/* Markup */}
         <div className="flex items-center gap-1">
@@ -67,18 +85,14 @@ export function NewBrandForm({ assignees }: { assignees: AssigneeOption[] }) {
         </div>
 
         {/* Assignee */}
-        <select
-          name="primary_assignee_id"
-          defaultValue=""
-          className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-        >
-          <option value="">— unassigned —</option>
-          {assignees.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.full_name} ({a.roles.join(", ") || "no role"})
-            </option>
-          ))}
-        </select>
+        <input type="hidden" name="primary_assignee_id" value={assigneeId} />
+        <DropdownSelect
+          value={assigneeId}
+          onChange={setAssigneeId}
+          options={assigneeOptions}
+          placeholder="— unassigned —"
+          size="sm"
+        />
 
         <div className="flex items-center gap-1.5 justify-self-end">
           <CreateButton />

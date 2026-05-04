@@ -1,18 +1,41 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, UserPlus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { inviteTeamMemberAction, type InviteState } from "./actions";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 
 const initialState: InviteState = { ok: false, error: null };
+
+const ROLE_OPTIONS = [
+  { value: "sourcing", label: "sourcing" },
+  { value: "fulfiller", label: "fulfiller" },
+  { value: "warehouse", label: "warehouse" },
+  { value: "ksa_operator", label: "ksa_operator" },
+  { value: "admin", label: "admin" },
+];
+
+const REGION_OPTIONS = [
+  { value: "", label: "— region —" },
+  { value: "US", label: "US" },
+  { value: "EU", label: "EU" },
+  { value: "KSA", label: "KSA" },
+  { value: "GLOBAL", label: "GLOBAL" },
+];
 
 export function InviteForm() {
   const [state, dispatch] = useFormState(inviteTeamMemberAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [role, setRole] = useState("sourcing");
+  const [region, setRegion] = useState("");
 
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
+    if (state.ok) {
+      formRef.current?.reset();
+      setRole("sourcing");
+      setRegion("");
+    }
   }, [state.ok]);
 
   return (
@@ -41,29 +64,21 @@ export function InviteForm() {
           placeholder="Full name"
           className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-navy/20"
         />
-        <select
-          name="role"
-          required
-          defaultValue="sourcing"
-          className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-        >
-          <option value="sourcing">sourcing</option>
-          <option value="fulfiller">fulfiller</option>
-          <option value="warehouse">warehouse</option>
-          <option value="ksa_operator">ksa_operator</option>
-          <option value="admin">admin</option>
-        </select>
-        <select
-          name="region"
-          defaultValue=""
-          className="rounded-md border border-hairline bg-surface px-2 py-1.5 text-[12px] text-ink-primary focus:outline-none focus:ring-2 focus:ring-navy/20"
-        >
-          <option value="">— region —</option>
-          <option value="US">US</option>
-          <option value="EU">EU</option>
-          <option value="KSA">KSA</option>
-          <option value="GLOBAL">GLOBAL</option>
-        </select>
+        <input type="hidden" name="role" value={role} />
+        <DropdownSelect
+          value={role}
+          onChange={setRole}
+          options={ROLE_OPTIONS}
+          size="sm"
+        />
+        <input type="hidden" name="region" value={region} />
+        <DropdownSelect
+          value={region}
+          onChange={setRegion}
+          options={REGION_OPTIONS}
+          size="sm"
+          placeholder="— region —"
+        />
         <div className="flex items-center gap-2 justify-self-end">
           <SubmitButton />
           {state.error && (

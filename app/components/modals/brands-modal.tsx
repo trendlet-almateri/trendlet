@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Tag, Check, Loader2, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Search, Tag, Check, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandSpinner } from "@/components/spinner/brand-spinner";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 
 type Region = "US" | "EU";
 
@@ -477,31 +478,23 @@ function RegionSelect({
   onChange: (v: Region | null) => void;
   disabled?: boolean;
 }) {
+  const regionCls = value ? `${REGION_CLS[value]} border-transparent` : "";
   return (
-    <div className="relative inline-block w-[88px]">
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange((e.target.value || null) as Region | null)}
-        disabled={disabled}
-        className={cn(
-          "h-7 w-full appearance-none truncate rounded-[var(--radius-sm)] border bg-[var(--panel)] pl-2 pr-6 text-[12px] font-semibold uppercase tracking-[0.4px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-60",
-          value
-            ? `${REGION_CLS[value]} border-transparent`
-            : "border-[var(--line)] text-[var(--muted)]",
-        )}
-      >
-        <option value="">—</option>
-        {REGIONS.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]"
-        aria-hidden
-      />
-    </div>
+    <DropdownSelect
+      value={value ?? ""}
+      onChange={(v) => onChange((v || null) as Region | null)}
+      disabled={disabled}
+      options={[
+        { value: "", label: "—" },
+        ...REGIONS.map((r) => ({ value: r, label: r })),
+      ]}
+      placeholder="—"
+      size="sm"
+      triggerClassName={cn(
+        "w-[88px] text-[12px] font-semibold uppercase tracking-[0.4px]",
+        regionCls,
+      )}
+    />
   );
 }
 
@@ -517,28 +510,25 @@ function AssigneeSelect({
   disabled?: boolean;
 }) {
   return (
-    <div className="relative flex-1 min-w-0">
-      <select
+    <div className="flex-1 min-w-0">
+      <DropdownSelect
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         disabled={disabled}
-        className={cn(
-          "h-7 w-full appearance-none truncate rounded-[var(--radius-sm)] border bg-[var(--panel)] pl-2 pr-6 text-[12px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40 disabled:cursor-not-allowed disabled:opacity-60",
-          value
-            ? "border-[var(--line)] text-[var(--ink)]"
-            : "border-[var(--rose)]/30 bg-[var(--rose-bg)]/40 text-[var(--rose)]",
+        options={[
+          { value: "", label: "— Unassigned —" },
+          ...assignees.map((a) => ({
+            value: a.id,
+            label: `${a.full_name} (${a.roles.join(", ") || "no role"})`,
+          })),
+        ]}
+        placeholder="— Unassigned —"
+        size="sm"
+        triggerClassName={cn(
+          "w-full",
+          !value && "border-[var(--rose)]/30 bg-[var(--rose-bg)]/40 text-[var(--rose)]",
         )}
-      >
-        <option value="">— Unassigned —</option>
-        {assignees.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.full_name} ({a.roles.join(", ") || "no role"})
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]"
-        aria-hidden
+        align="end"
       />
     </div>
   );
