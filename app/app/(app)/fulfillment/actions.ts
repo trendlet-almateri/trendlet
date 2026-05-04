@@ -14,6 +14,10 @@ const schema = z.object({
   status: z.string().refine((s) => ALLOWED_STATUSES.includes(s), {
     message: "Unknown status.",
   }),
+  // Set when the user clicks an explicit "final" button (Mark
+  // delivered / Out of stock / Deliver to warehouse for sourcing).
+  // Stamps marked_done_at so the row routes to the Completed tab.
+  markDone: z.boolean().optional(),
 });
 
 export type SetStatusState = { ok: boolean; error: string | null };
@@ -34,6 +38,7 @@ export type SetStatusState = { ok: boolean; error: string | null };
 export async function setSubOrderStatusAction(input: {
   subOrderId: string;
   status: string;
+  markDone?: boolean;
 }): Promise<SetStatusState> {
   const user = await requireRole(["fulfiller", "warehouse", "sourcing", "admin"]);
 
@@ -46,10 +51,15 @@ export async function setSubOrderStatusAction(input: {
   // The service-role client has no auth.uid(), so the enforce_status_whitelist
   // trigger can't auto-populate status_changed_by. Set it explicitly when
   // we're acting as admin via the service client.
-  const update: { status: string; status_changed_by?: string } = {
+  const update: {
+    status: string;
+    status_changed_by?: string;
+    marked_done_at?: string;
+  } = {
     status: parsed.data.status,
   };
   if (isAdmin) update.status_changed_by = user.id;
+  if (parsed.data.markDone) update.marked_done_at = new Date().toISOString();
 
   const { error } = await sb
     .from("sub_orders")

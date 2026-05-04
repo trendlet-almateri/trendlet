@@ -10,6 +10,13 @@ export type FulfillmentRow = {
   product_image_url: string | null;
   status: string;
   status_changed_at: string;
+  /**
+   * Timestamp the user clicked the explicit "final" button (Mark
+   * delivered / Out of stock / Deliver to warehouse for sourcing).
+   * Tab matchers route a row to the Completed tab iff this is non-null.
+   * Decouples "row is at terminal status" from "user finished it".
+   */
+  marked_done_at: string | null;
   is_at_risk: boolean;
   is_delayed: boolean;
   has_supplier_receipt: boolean;
@@ -88,7 +95,8 @@ export async function fetchFulfillmentQueue(opts: {
     .from("sub_orders")
     .select(`
       id, sub_order_number, product_title, variant_title, sku, quantity,
-      product_image_url, status, status_changed_at, is_at_risk, is_delayed,
+      product_image_url, status, status_changed_at, marked_done_at,
+      is_at_risk, is_delayed,
       brand:brands!inner ( id, name, region ),
       order:orders (
         id, shopify_order_number,
@@ -119,6 +127,7 @@ export async function fetchFulfillmentQueue(opts: {
         product_image_url: string | null;
         status: string;
         status_changed_at: string;
+        marked_done_at: string | null;
         is_at_risk: boolean;
         is_delayed: boolean;
         brand: { id: string; name: string; region: string | null } | null;
@@ -151,6 +160,7 @@ export async function fetchFulfillmentQueue(opts: {
         product_image_url: r.product_image_url,
         status: r.status,
         status_changed_at: r.status_changed_at,
+        marked_done_at: r.marked_done_at,
         is_at_risk: r.is_at_risk,
         is_delayed: r.is_delayed,
         has_supplier_receipt: (r.supplier_invoice_links?.length ?? 0) > 0,

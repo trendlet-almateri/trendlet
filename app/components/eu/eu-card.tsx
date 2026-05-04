@@ -159,13 +159,17 @@ export function EuCard({
     const prev = optimisticStatus;
     setOptimisticStatus(target);
     startTransition(async () => {
-      const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
+      // EU is end-to-end: "delivered" is the success terminal,
+      // "out_of_stock" is the failure terminal. Both move to the
+      // Completed tab. "shipped" is mid-stage for EU (next button
+      // is "Mark delivered"), so it's NOT a completion event here.
+      const isFinal = target === "delivered" || target === "out_of_stock";
+      const result = await setSubOrderStatusAction({
+        subOrderId: row.id,
+        status: target,
+        markDone: isFinal,
+      });
       if (result.ok) {
-        // EU is end-to-end: "delivered" is the success terminal,
-        // "out_of_stock" is the failure terminal. Both move to the
-        // Completed tab. "shipped" is mid-stage for EU (next button
-        // is "Mark delivered"), so it's NOT a completion event here.
-        const isFinal = target === "delivered" || target === "out_of_stock";
         const orderRef = row.order?.shopify_order_number ?? row.sub_order_number;
         onToast({
           id: `${row.id}-${Date.now()}`,

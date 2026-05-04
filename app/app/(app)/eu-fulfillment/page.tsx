@@ -11,23 +11,32 @@ export const metadata = { title: "EU Fulfillment · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-// Fulfiller = sourcing + warehouse, end-to-end. No under_review / no
-// preparing_for_shipment in this flow — those statuses aren't part of
-// the fulfiller's whitelist.
-//   To do:        pending
-//   In progress:  in_progress, purchased_*, delivered_to_warehouse, shipped
-//   Completed:    delivered (terminal success), out_of_stock (terminal fail)
-const TODO_STAGE = new Set(["pending", "assigned", "unassigned"]);
-const IN_PROG_STAGE = new Set([
+// Fulfiller = sourcing + warehouse, end-to-end.
+// Tab routing now uses marked_done_at (set explicitly on the final
+// button click) instead of status alone. A row stays in In progress
+// even at status='delivered' until the user clicks Mark delivered.
+//   To do:        pending/assigned/unassigned AND not yet marked done
+//   Completed:    marked_done_at IS NOT NULL (regardless of status)
+//   In progress:  everything else in the role's lifecycle
+const TODO_STATUSES = new Set(["pending", "assigned", "unassigned"]);
+const FULFILLER_STATUSES = new Set([
+  "pending", "assigned", "unassigned",
   "in_progress", "purchased_online", "purchased_in_store",
-  "delivered_to_warehouse", "shipped",
+  "out_of_stock",
+  "delivered_to_warehouse", "shipped", "delivered",
 ]);
-const COMPLETED_STAGE = new Set(["delivered", "out_of_stock"]);
+
+type Row = { status: string; marked_done_at: string | null };
+
+const matchTodo       = (r: Row) => !r.marked_done_at && TODO_STATUSES.has(r.status);
+const matchCompleted  = (r: Row) => r.marked_done_at !== null;
+const matchInProgress = (r: Row) =>
+  !r.marked_done_at && FULFILLER_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
 
 const TAB_CONFIG = [
-  { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },
-  { key: "in_progress" as TabKey, label: "In progress", matches: IN_PROG_STAGE,   readOnly: false },
-  { key: "completed"   as TabKey, label: "Completed",   matches: COMPLETED_STAGE, readOnly: true  },
+  { key: "todo"        as TabKey, label: "To do",       match: matchTodo,       readOnly: false },
+  { key: "in_progress" as TabKey, label: "In progress", match: matchInProgress, readOnly: false },
+  { key: "completed"   as TabKey, label: "Completed",   match: matchCompleted,  readOnly: true  },
 ];
 
 export default async function EuFulfillmentPage({
@@ -50,14 +59,14 @@ export default async function EuFulfillmentPage({
   const sortKey     = (searchParams?.sort ?? "urgent") as "urgent" | "newest" | "oldest";
 
   const counts = {
-    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
-    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
+    todo:        rows.filter(matchTodo).length,
+    in_progress: rows.filter(matchInProgress).length,
+    completed:   rows.filter(matchCompleted).length,
   };
 
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = rows.filter(
-    (r) => COMPLETED_STAGE.has(r.status) && r.status_changed_at.slice(0, 10) === today,
+    (r) => matchCompleted(r) && (r.marked_done_at ?? "").slice(0, 10) === today,
   ).length;
   const tasksRemaining = counts.todo + counts.in_progress;
 
@@ -68,7 +77,7 @@ export default async function EuFulfillmentPage({
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
-  let visible = rows.filter((r) => tab.matches.has(r.status));
+  let visible = rows.filter(tab.match);
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 
