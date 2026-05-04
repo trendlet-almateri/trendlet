@@ -94,10 +94,17 @@ export default async function EuFulfillmentPage({
 
   return (
     <div className="flex flex-col gap-4 pb-16 md:gap-5">
+      {/* ── DEPLOY VERIFY BANNER (visible to ALL users, not just admin) ── */}
+      <div className="rounded border-4 border-pink-500 bg-pink-100 p-4 text-center text-[14px] font-mono font-bold text-pink-900">
+        DEPLOY VERIFY · build=2026-05-04T22:45Z · sha=PLACEHOLDER
+        <br />
+        If you see this pink box, the new build is live.
+      </div>
+
       {/* ── DEBUG STRIP: admin-only diagnostic of tab predicates ── */}
       {isAdmin && (
         <div className="rounded border-2 border-purple-400 bg-purple-50 p-3 text-[11px] font-mono text-purple-900">
-          <p className="font-bold">[DEBUG] EU page predicate check (admin-only) · build=2026-05-04T22:30Z</p>
+          <p className="font-bold">[DEBUG] EU page predicate check (admin-only) · build=2026-05-04T22:45Z</p>
           <p>Active tab: {activeTab}</p>
           <p>Counts: todo={counts.todo} · in_progress={counts.in_progress} · completed={counts.completed}</p>
           {rows.map((r) => (
