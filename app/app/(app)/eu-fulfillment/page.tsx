@@ -105,7 +105,6 @@ export default async function EuFulfillmentPage({
         sortKey={sortKey}
         isAdmin={isAdmin}
         action="/eu-fulfillment"
-        hideFilters
       />
 
       {/* ── Tab pills ── */}
