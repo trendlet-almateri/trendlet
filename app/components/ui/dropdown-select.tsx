@@ -66,7 +66,7 @@ export function DropdownSelect({
           sideOffset={6}
           align={align}
           className={cn(
-            "z-50 min-w-[160px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5",
+            "z-50 min-w-[180px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-2",
             "shadow-[0_8px_24px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
@@ -79,7 +79,7 @@ export function DropdownSelect({
               disabled={o.disabled}
               onSelect={() => onChange(o.value)}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
+                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-[13px] outline-none transition-colors",
                 o.value === value
                   ? "bg-[var(--accent)]/10 font-medium text-[var(--accent)]"
                   : "text-[var(--ink)] hover:bg-[var(--hover)] focus:bg-[var(--hover)]",
@@ -145,7 +145,7 @@ export function ActionDropdown({
           sideOffset={6}
           align={align}
           className={cn(
-            "z-50 min-w-[160px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5",
+            "z-50 min-w-[180px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-2",
             "shadow-[0_8px_24px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
@@ -158,7 +158,7 @@ export function ActionDropdown({
               disabled={o.disabled}
               onSelect={() => onSelect(o.value)}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
+                "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-[13px] outline-none transition-colors",
                 "text-[var(--ink)] hover:bg-[var(--hover)] focus:bg-[var(--hover)]",
                 o.disabled && "cursor-not-allowed opacity-50",
               )}
