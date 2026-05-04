@@ -280,8 +280,8 @@ export function EuCard({
               )}
             </div>
 
-            {/* Action buttons — shown when selected */}
-            {isSelected && !isReadOnly && forwardTargets.length > 0 && (
+            {/* Action buttons — always shown when actionable */}
+            {!isReadOnly && forwardTargets.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
                 {pending && <Loader2 className="h-3 w-3 animate-spin text-[var(--muted)]" />}
                 {forwardTargets.map((t) => (
