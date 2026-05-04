@@ -1,6 +1,9 @@
 "use client";
 
-import { SlidersHorizontal } from "lucide-react";
+import * as React from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type TabKey = "todo" | "in_progress" | "completed";
@@ -19,11 +22,36 @@ const chipBase =
   "inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)]";
 const chipActive = "border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]";
 
-export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue", hideFilters = false }: Props) {
-  return (
-    <form method="GET" action={action} className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
-      <input type="hidden" name="tab" value={activeTab} />
+const SORT_OPTIONS = [
+  { value: "urgent", label: "Sort: Urgent first" },
+  { value: "newest", label: "Sort: Newest first" },
+  { value: "oldest", label: "Sort: Oldest first" },
+];
 
+export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isAdmin, action = "/queue", hideFilters = false }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  function navigate(key: string, value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", activeTab);
+    if (value === "all" || (key === "sort" && value === "urgent")) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    const qs = params.toString();
+    router.push(`${action}${qs ? `?${qs}` : ""}`);
+  }
+
+  const selectedBrandLabel = brandFilter !== "all"
+    ? (brands.find((b) => b.id === brandFilter)?.name ?? "+ Brand")
+    : "+ Brand";
+
+  const selectedSortLabel = SORT_OPTIONS.find((o) => o.value === sortKey)?.label ?? "Sort: Urgent first";
+
+  return (
+    <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3">
       {!hideFilters && (
         <div className="flex items-center gap-2 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
           <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--muted)]">
@@ -36,61 +64,106 @@ export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isA
             + Priority
           </span>
 
-          {/* Region */}
+          {/* Region — locked */}
           <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Locked to US for sourcing">
             + Region
           </span>
 
           {/* Brand */}
-          <div className="relative">
-            <select
-              name="brand"
-              defaultValue={brandFilter}
-              className={cn(
-                chipBase,
-                "appearance-none cursor-pointer pr-6",
-                brandFilter !== "all" && chipActive,
-              )}
-              onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            >
-              <option value="all">+ Brand</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-            <Chevron />
-          </div>
-
+          <FilterDropdown
+            trigger={
+              <span className={cn(chipBase, "cursor-pointer gap-2", brandFilter !== "all" && chipActive)}>
+                {selectedBrandLabel}
+                <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+              </span>
+            }
+          >
+            <DropdownItem
+              label="+ Brand"
+              active={brandFilter === "all"}
+              onSelect={() => navigate("brand", "all")}
+            />
+            {brands.map((b) => (
+              <DropdownItem
+                key={b.id}
+                label={b.name}
+                active={brandFilter === b.id}
+                onSelect={() => navigate("brand", b.id)}
+              />
+            ))}
+          </FilterDropdown>
         </div>
       )}
 
       {/* Sort */}
-      <div className="relative self-end md:self-auto">
-        <select
-          name="sort"
-          defaultValue={sortKey}
-          className="h-8 appearance-none rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] pl-3 pr-7 text-[12px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30"
-          onChange={(e) => e.currentTarget.form?.requestSubmit()}
+      <div className="self-end md:self-auto">
+        <FilterDropdown
+          trigger={
+            <span className={cn(
+              "inline-flex h-8 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] pl-3 pr-2.5 text-[12px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)]"
+            )}>
+              {selectedSortLabel}
+              <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+            </span>
+          }
         >
-          <option value="urgent">Sort: Urgent first</option>
-          <option value="newest">Sort: Newest first</option>
-          <option value="oldest">Sort: Oldest first</option>
-        </select>
-        <Chevron />
+          {SORT_OPTIONS.map((o) => (
+            <DropdownItem
+              key={o.value}
+              label={o.label}
+              active={sortKey === o.value}
+              onSelect={() => navigate("sort", o.value)}
+            />
+          ))}
+        </FilterDropdown>
       </div>
-    </form>
+    </div>
   );
 }
 
-function Chevron() {
+// ── Shared dropdown shell ─────────────────────────────────────────────────────
+
+function FilterDropdown({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) {
   return (
-    <svg
-      className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--muted)]"
-      viewBox="0 0 12 12"
-      fill="none"
-      aria-hidden
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        {/* Radix needs a single focusable child */}
+        <button type="button" className="focus:outline-none">
+          {trigger}
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          sideOffset={6}
+          align="start"
+          className={cn(
+            "z-50 min-w-[160px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5",
+            "shadow-[0_8px_24px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+            "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+          )}
+        >
+          {children}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+function DropdownItem({ label, active, onSelect }: { label: string; active: boolean; onSelect: () => void }) {
+  return (
+    <DropdownMenu.Item
+      onSelect={onSelect}
+      className={cn(
+        "flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] outline-none transition-colors",
+        active
+          ? "bg-[var(--accent)]/10 font-medium text-[var(--accent)]"
+          : "text-[var(--ink)] hover:bg-[var(--hover)] focus:bg-[var(--hover)]",
+      )}
     >
-      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+      <span className="flex-1">{label}</span>
+      {active && <Check className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />}
+    </DropdownMenu.Item>
   );
 }
