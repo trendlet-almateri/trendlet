@@ -171,11 +171,9 @@ export function EuCard({
         <div className="flex flex-col gap-2.5 p-4 pl-5">
           {/* ── Header ── */}
           <header className="flex flex-wrap items-center gap-1.5">
-            {row.order?.shopify_order_number && (
-              <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
-                {row.order.shopify_order_number}
-              </span>
-            )}
+            <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
+              {row.sub_order_number}
+            </span>
 
             {/* Status pill */}
             <span className={cn(
