@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { X, AlertTriangle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandSpinner } from "@/components/spinner/brand-spinner";
 
 type UnassignedRow = {
   id: string;
@@ -159,7 +160,7 @@ export function UnassignedModal({ onClose }: Props) {
 
           <div className="flex-1 overflow-y-auto">
             {loading && (
-              <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">Loading…</div>
+              <div className="flex items-center justify-center py-16"><BrandSpinner size={40} /></div>
             )}
             {!loading && rows.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-3 py-16">

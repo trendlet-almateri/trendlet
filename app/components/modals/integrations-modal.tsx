@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { X, Plug, CheckCircle2, AlertCircle, MinusCircle, XCircle, Circle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandSpinner } from "@/components/spinner/brand-spinner";
 
 type HealthStatus = "ok" | "missing" | "auth_failed" | "error" | "skipped";
 type IntegrationHealth = { service: string; status: HealthStatus; detail: string; latency_ms: number | null };
@@ -135,7 +136,7 @@ export function IntegrationsModal({ onClose }: Props) {
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            {loading && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">Checking services…</div>}
+            {loading && <div className="flex items-center justify-center py-16"><BrandSpinner size={40} /></div>}
             {!loading && filtered.length === 0 && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">No results.</div>}
             {!loading && (
               <div className="flex flex-col gap-2">

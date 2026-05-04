@@ -34,6 +34,7 @@ export function MobileSidebarDrawer({ user, counts, unassignedCount, notificatio
   const sections = visibleSections(user.roles);
   const initials = getInitials(user.fullName);
   const primaryRole = user.roles[0] ?? "user";
+  const isAdmin = user.roles.includes("admin" as Role);
 
   // Close when route changes
   React.useEffect(() => { close(); }, [pathname, close]);
@@ -110,6 +111,7 @@ export function MobileSidebarDrawer({ user, counts, unassignedCount, notificatio
             primaryRole={primaryRole}
             initials={initials}
             unassignedCount={unassignedCount}
+            isAdmin={isAdmin}
           />
         </div>
       </aside>

@@ -4,6 +4,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { X, Search, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandSpinner } from "@/components/spinner/brand-spinner";
 
 type CarrierRow = {
   id: string;
@@ -112,7 +113,7 @@ export function CarriersModal({ onClose }: Props) {
             <span>Carrier</span><span>Region</span><span>Status</span><span>Endpoint</span>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {loading && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">Loading…</div>}
+            {loading && <div className="flex items-center justify-center py-16"><BrandSpinner size={40} /></div>}
             {!loading && filtered.length === 0 && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">No carriers found.</div>}
             {!loading && filtered.map((c) => (
               <div key={c.id} className="grid grid-cols-[2fr_0.7fr_0.6fr_1.2fr] items-center gap-3 border-b border-[var(--line)] px-4 py-3 transition-colors hover:bg-[var(--hover)] last:border-0">

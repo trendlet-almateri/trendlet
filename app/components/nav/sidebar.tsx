@@ -30,6 +30,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
   const sections = visibleSections(user.roles);
   const initials = getInitials(user.fullName);
   const primaryRole = user.roles[0] ?? "user";
+  const isAdmin = user.roles.includes("admin" as Role);
 
   const navContent = (
     <>
@@ -64,6 +65,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
           primaryRole={primaryRole}
           initials={initials}
           unassignedCount={unassignedCount}
+          isAdmin={isAdmin}
         />
       </div>
     </>

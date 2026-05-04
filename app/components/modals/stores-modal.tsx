@@ -3,6 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { X, Search, Store } from "lucide-react";
+import { BrandSpinner } from "@/components/spinner/brand-spinner";
 import { cn } from "@/lib/utils";
 
 type StoreRow = {
@@ -115,7 +116,7 @@ export function StoresModal({ onClose }: Props) {
             <span>Store</span><span>Region</span><span>Currency</span><span>Status</span>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {loading && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">Loading…</div>}
+            {loading && <div className="flex items-center justify-center py-16"><BrandSpinner size={40} /></div>}
             {!loading && filtered.length === 0 && <div className="flex items-center justify-center py-16 text-[12px] text-[var(--muted)]">No stores found.</div>}
             {!loading && filtered.map((s) => (
               <div key={s.id} className="grid grid-cols-[2fr_0.7fr_0.6fr_0.7fr] items-center gap-3 border-b border-[var(--line)] px-4 py-3 transition-colors hover:bg-[var(--hover)] last:border-0">

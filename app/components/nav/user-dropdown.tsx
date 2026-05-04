@@ -35,6 +35,7 @@ type UserDropdownProps = {
   primaryRole: string;
   initials: string;
   unassignedCount: number;
+  isAdmin: boolean;
 };
 
 export function UserDropdown({
@@ -43,6 +44,7 @@ export function UserDropdown({
   primaryRole,
   initials,
   unassignedCount,
+  isAdmin,
 }: UserDropdownProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
@@ -125,47 +127,51 @@ export function UserDropdown({
             My preferences
           </ItemButton>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
+          {isAdmin && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
-          {/* QUEUE */}
-          <SectionLabel>Queue</SectionLabel>
-          <ItemButton
-            icon={AlertTriangle}
-            right={
-              unassignedCount > 0 ? (
-                <span className="rounded-full bg-[#791F1F] px-1.5 py-px text-[10px] font-medium text-white tabular-nums">
-                  {unassignedCount}
-                </span>
-              ) : null
-            }
-            tone={unassignedCount > 0 ? "danger" : undefined}
-            onSelect={() => setActiveModal("unassigned")}
-          >
-            Unassigned sub-orders
-          </ItemButton>
+              {/* QUEUE */}
+              <SectionLabel>Queue</SectionLabel>
+              <ItemButton
+                icon={AlertTriangle}
+                right={
+                  unassignedCount > 0 ? (
+                    <span className="rounded-full bg-[#791F1F] px-1.5 py-px text-[10px] font-medium text-white tabular-nums">
+                      {unassignedCount}
+                    </span>
+                  ) : null
+                }
+                tone={unassignedCount > 0 ? "danger" : undefined}
+                onSelect={() => setActiveModal("unassigned")}
+              >
+                Unassigned sub-orders
+              </ItemButton>
 
-          <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
+              <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
-          {/* WORKSPACE SETUP */}
-          <SectionLabel>Workspace setup</SectionLabel>
-          <ItemButton icon={Store} right="0 active" onSelect={() => setActiveModal("stores")}>
-            Stores
-          </ItemButton>
-          <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
-            Brands &amp; assignments
-          </ItemButton>
-          <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>
-            Team &amp; roles
-          </ItemButton>
-          <ItemButton icon={Truck} right="3 active" onSelect={() => setActiveModal("carriers")}>
-            Carriers
-          </ItemButton>
-          <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>
-            Integrations
-          </ItemButton>
-          <ItemButton icon={ShieldCheck} right="2FA off" onSelect={() => setActiveModal("security")}>
-            Security
-          </ItemButton>
+              {/* WORKSPACE SETUP */}
+              <SectionLabel>Workspace setup</SectionLabel>
+              <ItemButton icon={Store} right="0 active" onSelect={() => setActiveModal("stores")}>
+                Stores
+              </ItemButton>
+              <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
+                Brands &amp; assignments
+              </ItemButton>
+              <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>
+                Team &amp; roles
+              </ItemButton>
+              <ItemButton icon={Truck} right="3 active" onSelect={() => setActiveModal("carriers")}>
+                Carriers
+              </ItemButton>
+              <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>
+                Integrations
+              </ItemButton>
+              <ItemButton icon={ShieldCheck} right="2FA off" onSelect={() => setActiveModal("security")}>
+                Security
+              </ItemButton>
+            </>
+          )}
 
           <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
 
