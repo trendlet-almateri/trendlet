@@ -29,19 +29,23 @@ const STATUS_PALETTE: Record<string, string> = {
 };
 
 // ─── Action buttons per status ────────────────────────────────────────────────
+// Warehouse owns 3 stages with linear hand-off:
+//   delivered_to_warehouse → shipped → delivered
+// No intermediate "preparing_for_shipment" — that status is not in the
+// warehouse role's whitelist.
 function getWarehouseActions(status: string): StatusCode[] {
-  if (status === "delivered_to_warehouse" || status === "under_review") {
-    return ["preparing_for_shipment" as StatusCode];
-  }
-  if (status === "preparing_for_shipment") {
+  if (status === "delivered_to_warehouse") {
     return ["shipped" as StatusCode];
+  }
+  if (status === "shipped") {
+    return ["delivered" as StatusCode];
   }
   return [];
 }
 
 const BTN_LABELS: Partial<Record<string, string>> = {
-  preparing_for_shipment: "Prepare for shipment",
-  shipped:                "Mark shipped",
+  shipped:   "Mark shipped",
+  delivered: "Mark delivered",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────

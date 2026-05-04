@@ -11,9 +11,13 @@ export const metadata = { title: "Warehouse · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
+// Warehouse owns 3 statuses end-to-end:
+//   delivered_to_warehouse → shipped → delivered
+// No intermediate "preparing_for_shipment" step. Once delivered, the
+// row's lifecycle ends from warehouse's perspective.
 const TODO_STAGE      = new Set(["delivered_to_warehouse"]);
-const IN_PROG_STAGE   = new Set(["under_review", "preparing_for_shipment"]);
-const COMPLETED_STAGE = new Set(["shipped", "delivered"]);
+const IN_PROG_STAGE   = new Set(["shipped"]);
+const COMPLETED_STAGE = new Set(["delivered"]);
 
 const TAB_CONFIG = [
   { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },
@@ -40,16 +44,17 @@ export default async function WarehousePipelinePage({
   const brandFilter = searchParams?.brand ?? "all";
   const sortKey    = (searchParams?.sort ?? "urgent") as "urgent" | "newest" | "oldest";
 
-  const counts = {
-    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
-    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
-  };
-
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = rows.filter(
     (r) => COMPLETED_STAGE.has(r.status) && r.status_changed_at.slice(0, 10) === today,
   ).length;
+
+  const counts = {
+    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
+    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
+    completed:   completedToday,
+  };
+
   const tasksRemaining = counts.todo + counts.in_progress;
 
   const brands = Array.from(
@@ -60,6 +65,11 @@ export default async function WarehousePipelinePage({
 
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
   let visible = rows.filter((r) => tab.matches.has(r.status));
+  // Same role-boundary rule as sourcing: warehouse's Completed shows
+  // only what was shipped today; older shipments belong to KSA last-mile.
+  if (activeTab === "completed") {
+    visible = visible.filter((r) => r.status_changed_at.slice(0, 10) === today);
+  }
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 

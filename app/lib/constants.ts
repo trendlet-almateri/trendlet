@@ -29,21 +29,30 @@ export const STATUS_BY_CODE: Record<string, (typeof STATUSES)[number]> = Object.
   STATUSES.map((s) => [s.code, s]),
 );
 
-// Per-role allowed transitions (admin bypasses). Mirrors the
-// statuses.allowed_from_roles values in the DB; the DB trigger
-// enforce_status_whitelist is the source of truth, this is only used
-// to decide which buttons to render in the UI.
+// Strict role boundaries — exact list of statuses each role can set.
+// Pipeline shorthand:
+//   sourcing  → finishes at delivered_to_warehouse (handoff)
+//   warehouse → owns ship + delivered confirmation
+//   fulfiller → owns the entire EU sourcing → delivered chain
+//   ksa_operator → owns last-mile (arrived → out → delivered/returned)
+//
+// The DB trigger enforce_status_whitelist on statuses.allowed_from_roles
+// is the security boundary; this constant only decides UI affordances.
 export const ROLE_STATUS_WHITELIST: Record<string, StatusCode[]> = {
   sourcing: [
     "in_progress", "purchased_online", "purchased_in_store",
     "out_of_stock", "delivered_to_warehouse",
   ],
-  warehouse: ["delivered_to_warehouse", "shipped", "delivered"],
-  fulfiller: [
-    "in_progress", "purchased_online", "purchased_in_store", "out_of_stock",
+  warehouse: [
     "delivered_to_warehouse", "shipped", "delivered",
   ],
-  ksa_operator: ["arrived_in_ksa", "out_for_delivery", "delivered", "returned"],
+  fulfiller: [
+    "in_progress", "purchased_online", "purchased_in_store",
+    "out_of_stock", "delivered_to_warehouse", "shipped", "delivered",
+  ],
+  ksa_operator: [
+    "arrived_in_ksa", "out_for_delivery", "delivered", "returned",
+  ],
 };
 
 export const ROLES = ["admin", "sourcing", "warehouse", "fulfiller", "ksa_operator"] as const;
