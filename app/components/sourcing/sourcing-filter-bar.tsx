@@ -98,6 +98,7 @@ export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isA
       {/* Sort */}
       <div className="self-end md:self-auto">
         <FilterDropdown
+          align="end"
           trigger={
             <span className={cn(
               "inline-flex h-8 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] pl-3 pr-2.5 text-[12px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)]"
@@ -123,19 +124,28 @@ export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isA
 
 // ── Shared dropdown shell ─────────────────────────────────────────────────────
 
-function FilterDropdown({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) {
+function FilterDropdown({
+  trigger,
+  children,
+  align = "start",
+}: {
+  trigger: React.ReactNode;
+  children: React.ReactNode;
+  align?: "start" | "end" | "center";
+}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        {/* Radix needs a single focusable child */}
         <button type="button" className="focus:outline-none">
           {trigger}
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          sideOffset={6}
-          align="start"
+          sideOffset={8}
+          align={align}
+          avoidCollisions
+          collisionPadding={12}
           className={cn(
             "z-50 min-w-[180px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-2",
             "shadow-[0_8px_24px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]",
