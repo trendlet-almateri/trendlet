@@ -61,12 +61,6 @@ export function SourcingFilterBar({ brands, activeTab, brandFilter, sortKey, isA
             <Chevron />
           </div>
 
-          {/* Agent — admin only */}
-          {isAdmin && (
-            <span className={cn(chipBase, "cursor-not-allowed opacity-50")} title="Agent filter coming soon">
-              + Agent
-            </span>
-          )}
         </div>
       )}
 
