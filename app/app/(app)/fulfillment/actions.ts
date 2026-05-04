@@ -64,11 +64,16 @@ export async function setSubOrderStatusAction(input: {
     console.error("[fulfillment] twilio notify failed", e);
   });
 
-  // Same SubOrderRow component renders in /fulfillment, /queue, /pipeline —
-  // revalidate all three so a status change in one view doesn't leave the
-  // others stale until a manual refresh.
+  // Same SubOrderRow component renders in /fulfillment, /queue, /pipeline,
+  // /eu-fulfillment — revalidate all four so a status change in one view
+  // doesn't leave the others stale until a manual refresh. This was the
+  // root cause of "after I press a button the next button doesn't show":
+  // /eu-fulfillment was missing here, so its server-rendered tab data
+  // never refreshed when fulfiller advanced an order, leaving the row
+  // stuck in its previous tab and the next button invisible.
   revalidatePath("/fulfillment");
   revalidatePath("/queue");
   revalidatePath("/pipeline");
+  revalidatePath("/eu-fulfillment");
   return { ok: true, error: null };
 }
