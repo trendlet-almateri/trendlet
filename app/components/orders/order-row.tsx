@@ -242,6 +242,54 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
             <div className="overflow-hidden">
               <div className="border-t border-[var(--line)] bg-[#f9f8f5] px-4 py-3">
 
+                {/* Mobile-only: hidden column values (Total · Alerts · Actions) */}
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 md:hidden">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
+                      {formatCurrency(o.total ?? 0, o.currency)}
+                    </span>
+                    <span className="text-[11px] text-[var(--muted)]">·</span>
+                    <span className="text-[11px] text-[var(--muted)]">
+                      {o.sub_orders.length} vendor{o.sub_orders.length !== 1 ? "s" : ""}
+                    </span>
+                    {hasUnassigned && (
+                      <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
+                        <AlertCircle className="h-3 w-3" aria-hidden />
+                        Unassigned
+                      </span>
+                    )}
+                    {hasDelayed && (
+                      <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
+                        Delayed
+                      </span>
+                    )}
+                    {hasAtRisk && !hasDelayed && (
+                      <span className="pill border border-[var(--amber)]/40 bg-[var(--amber-bg)] text-[var(--amber)]">
+                        <Clock4 className="h-3 w-3" aria-hidden />
+                        SLA risk
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0.5" data-no-row-click>
+                    {onOpenDrawer && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenDrawer(o)}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+                        aria-label={`Open details for ${o.shopify_order_number}`}
+                      >
+                        <Eye className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    )}
+                    <button type="button" className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="Bookmark">
+                      <Bookmark className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                    <button type="button" className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="More options">
+                      <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Sub-header — desktop only */}
                 <div className="mb-2 hidden grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 px-3 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid">
                   <span>Product</span>
