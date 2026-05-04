@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, ROLE_STATUS_WHITELIST, type StatusCode } from "@/lib/constants";
@@ -80,6 +81,8 @@ export function SourcingCard({
   selfName,
   selfInitials,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
 
   // Re-sync optimistic state to props when the server returns a fresh row.
@@ -136,18 +139,31 @@ export function SourcingCard({
       const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
       const label = BTN_LABELS[target] ?? STATUS_BY_CODE[target]?.label ?? target;
       if (result.ok) {
-        const isHandoff = target === "shipped";
+        // Sourcing terminals: delivered_to_warehouse = success handoff,
+        // out_of_stock = failure. Both move the row to the Completed
+        // tab and (since /queue's In-progress tab won't display them)
+        // the row would otherwise vanish from the user's view. Jump
+        // them to Completed so they see where the row landed.
+        const isHandoff = target === "delivered_to_warehouse";
+        const isFail = target === "out_of_stock";
+        const isFinal = isHandoff || isFail;
+        const orderRef = row.order?.shopify_order_number ?? row.sub_order_number;
         onToast({
           id: `${row.id}-${Date.now()}`,
-          message: isHandoff
-            ? "Task completed"
-            : `Status updated: ${label}`,
+          message: isFinal ? "Task completed" : `Status updated: ${label}`,
           sub: isHandoff
-            ? `${row.order?.shopify_order_number ?? row.sub_order_number} → ready for ${row.brand?.region ?? "KSA"} dispatch`
-            : "",
-          kind: isHandoff ? "success" : "info",
+            ? `${orderRef} → handed off to warehouse`
+            : isFail
+              ? `${orderRef} → moved to Completed`
+              : "",
+          kind: isFinal ? "success" : "info",
         });
         onDeselect();
+        if (isFinal) {
+          const sp = new URLSearchParams(searchParams?.toString() ?? "");
+          sp.set("tab", "completed");
+          router.push(`/queue?${sp.toString()}`);
+        }
       } else {
         setOptimisticStatus(prev);
       }
