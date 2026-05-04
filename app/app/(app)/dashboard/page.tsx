@@ -52,21 +52,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Dashboard"
-        subtitle={
-          <>
-            Operations overview · {totalOrders.toLocaleString("en-US")} {totalOrders === 1 ? "order" : "orders"} · last 30 days
-          </>
-        }
-        actions={
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1 text-[11px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
-            <span className="live-dot h-1.5 w-1.5 rounded-full bg-[var(--green)]" aria-hidden />
-            Live · synced 2 min ago
-            <RefreshCw className="h-3 w-3 cursor-pointer text-[var(--muted-2)] transition-colors hover:text-[var(--ink)]" aria-hidden />
-          </span>
-        }
-      />
+      <PageHeader title="Dashboard" />
 
       {/* KPI row — asymmetric Bento (2fr 2fr 2fr 2fr 3fr) so the hero card visibly leads */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_2fr_3fr] lg:gap-4">
