@@ -11,12 +11,18 @@ export const metadata = { title: "EU Fulfillment · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
+// Fulfiller = sourcing + warehouse, end-to-end. No under_review / no
+// preparing_for_shipment in this flow — those statuses aren't part of
+// the fulfiller's whitelist.
+//   To do:        pending
+//   In progress:  in_progress, purchased_*, delivered_to_warehouse, shipped
+//   Completed:    delivered (terminal success), out_of_stock (terminal fail)
 const TODO_STAGE = new Set(["pending", "assigned", "unassigned"]);
 const IN_PROG_STAGE = new Set([
-  "in_progress", "purchased_in_store", "purchased_online",
-  "delivered_to_warehouse", "under_review", "preparing_for_shipment",
+  "in_progress", "purchased_online", "purchased_in_store",
+  "delivered_to_warehouse", "shipped",
 ]);
-const COMPLETED_STAGE = new Set(["shipped"]);
+const COMPLETED_STAGE = new Set(["delivered", "out_of_stock"]);
 
 const TAB_CONFIG = [
   { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },

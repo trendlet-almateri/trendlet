@@ -10,8 +10,10 @@ import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 
 // ─── Stage detection ───────────────────────────────────────────────────────────
+// Warehouse-side of the fulfiller flow: from "delivered_to_warehouse"
+// onward. Drives the "Warehouse" badge vs. "Sourcing" badge in the card.
 const WAREHOUSE_STAGE = new Set([
-  "delivered_to_warehouse", "under_review", "preparing_for_shipment",
+  "delivered_to_warehouse", "shipped",
 ]);
 
 // ─── EU status labels ──────────────────────────────────────────────────────────
@@ -23,33 +25,46 @@ const EU_STATUS_LABELS: Record<string, string> = {
   purchased_in_store:     "Supplier selected",
   purchased_online:       "Supplier selected",
   delivered_to_warehouse: "Received at warehouse",
-  under_review:           "Under review",
-  preparing_for_shipment: "Preparing for shipment",
   shipped:                "Shipped",
+  delivered:              "Delivered",
+  out_of_stock:           "Out of stock",
 };
 
 // ─── Action button labels ──────────────────────────────────────────────────────
 const EU_BTN_LABELS: Record<string, string> = {
   in_progress:            "Start sourcing",
-  purchased_in_store:     "Supplier found",
-  delivered_to_warehouse: "Mark received",
-  under_review:           "Start review",
-  preparing_for_shipment: "Prepare for shipment",
+  purchased_online:       "Purchased online",
+  purchased_in_store:     "Purchased in-store",
+  out_of_stock:           "Out of stock",
+  delivered_to_warehouse: "Deliver to warehouse",
   shipped:                "Mark shipped",
+  delivered:              "Mark delivered",
 };
 
+// Fulfiller owns sourcing + warehouse end-to-end:
+//   pending → in_progress → purchased_* / out_of_stock
+//          → delivered_to_warehouse → shipped → delivered
 function getEuActions(status: string): StatusCode[] {
   switch (status) {
     case "pending":
     case "assigned":
-    case "unassigned":         return ["in_progress" as StatusCode];
-    case "in_progress":        return ["purchased_in_store" as StatusCode];
+    case "unassigned":
+      return ["in_progress" as StatusCode];
+    case "in_progress":
+      return [
+        "purchased_online" as StatusCode,
+        "purchased_in_store" as StatusCode,
+        "out_of_stock" as StatusCode,
+      ];
+    case "purchased_online":
     case "purchased_in_store":
-    case "purchased_online":   return ["delivered_to_warehouse" as StatusCode];
-    case "delivered_to_warehouse": return ["under_review" as StatusCode];
-    case "under_review":       return ["preparing_for_shipment" as StatusCode];
-    case "preparing_for_shipment": return ["shipped" as StatusCode];
-    default:                   return [];
+      return ["delivered_to_warehouse" as StatusCode];
+    case "delivered_to_warehouse":
+      return ["shipped" as StatusCode];
+    case "shipped":
+      return ["delivered" as StatusCode];
+    default:
+      return [];
   }
 }
 

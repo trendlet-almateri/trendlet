@@ -21,22 +21,21 @@ const ROLE_META: Record<Role, { label: string; color: string }> = {
 export default async function RoleFlowPage() {
   await requireAdmin();
 
+  // Active pipeline — what each role actually transitions through.
+  // under_review / preparing_for_shipment / cancelled / failed are
+  // admin-only rare paths and intentionally excluded here.
   const lifecycleOrder: StatusCode[] = [
     "pending",
-    "under_review",
     "in_progress",
     "purchased_online",
     "purchased_in_store",
     "out_of_stock",
     "delivered_to_warehouse",
-    "preparing_for_shipment",
     "shipped",
     "arrived_in_ksa",
     "out_for_delivery",
     "delivered",
     "returned",
-    "cancelled",
-    "failed",
   ];
 
   return (
