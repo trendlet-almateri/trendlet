@@ -24,6 +24,11 @@ import type { StatusCode } from "@/lib/constants";
 export type Role = "sourcing" | "warehouse" | "fulfiller" | "ksa_operator" | "admin";
 
 const TRANSITIONS: Record<string, StatusCode[]> = {
+  // Entry points — sourcing / fulfiller pick up a pending row
+  pending: ["in_progress"],
+  assigned: ["in_progress"],
+  unassigned: ["in_progress"],
+
   // Active purchase
   in_progress: ["purchased_in_store", "purchased_online", "out_of_stock"],
 
@@ -34,7 +39,8 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
   // At warehouse
   delivered_to_warehouse: ["shipped"],
 
-  // In transit
+  // In transit (warehouse + fulfiller mark delivered; ksa_operator owns
+  // the arrived_in_ksa / out_for_delivery branch)
   shipped: ["delivered"],
 
   // KSA-operator-only paths (future shipping-company integration)
@@ -47,11 +53,11 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
   cancelled: [],
   out_of_stock: [],
   failed: [],
-  pending: [],
+  // under_review / preparing_for_shipment dropped from the active flow
+  // (no role's whitelist references them any more — only admin sets them
+  // directly if needed).
   under_review: [],
   preparing_for_shipment: [],
-  assigned: [],
-  unassigned: [],
 };
 
 /**
