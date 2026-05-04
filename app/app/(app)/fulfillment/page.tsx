@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe, Inbox, SlidersHorizontal } from "lucide-react";
+import { Globe, Inbox } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { EmptyState } from "@/components/common/empty-state";
@@ -9,6 +9,7 @@ import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions
 import { ROLE_STATUS_WHITELIST } from "@/lib/constants";
 import { PageHeader } from "@/components/system";
 import { cn } from "@/lib/utils";
+import { FulfillmentFilterBar } from "./fulfillment-filter-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ export default async function FulfillmentPage({
 
       {!isAdmin && <MyAssignedHero rows={rows} pageHref="/fulfillment" />}
 
-      <FilterBar brands={brands} activeTab={activeTab} brandFilter={brandFilter} sortKey={sortKey} />
+      <FulfillmentFilterBar brands={brands} activeTab={activeTab} brandFilter={brandFilter} sortKey={sortKey} />
 
       <Tabs activeTab={activeTab} counts={counts} brandFilter={brandFilter} sortKey={sortKey} />
 
@@ -186,111 +187,3 @@ function Tabs({
   );
 }
 
-function FilterBar({
-  brands,
-  activeTab,
-  brandFilter,
-  sortKey,
-}: {
-  brands: { id: string; name: string }[];
-  activeTab: TabKey;
-  brandFilter: string;
-  sortKey: "newest" | "oldest";
-}) {
-  const selectClass =
-    "h-8 appearance-none rounded-md border border-[var(--line)] bg-[var(--panel)] pl-3 pr-7 text-[12px] text-ink-primary transition-colors hover:bg-[var(--hover)] focus:outline-none focus:ring-1 focus:ring-accent/40";
-
-  return (
-    <form
-      method="GET"
-      action="/fulfillment"
-      className="flex flex-wrap items-center justify-between gap-3 text-[12px]"
-    >
-      <input type="hidden" name="tab" value={activeTab} />
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-[12px] text-[var(--muted)]">
-          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-          Filters
-        </span>
-        <SelectField
-          className={selectClass}
-          name="priority"
-          defaultValue="all"
-          aria-label="Filter by priority"
-          disabled
-          title="Priority filter — coming soon"
-        >
-          <option value="all">All priorities</option>
-        </SelectField>
-        <SelectField
-          className={selectClass}
-          name="region"
-          defaultValue="all"
-          aria-label="Filter by region"
-          disabled
-          title="Region filter — fulfillment is locked to EU"
-        >
-          <option value="all">All regions</option>
-        </SelectField>
-        <SelectField
-          className={selectClass}
-          name="brand"
-          defaultValue={brandFilter}
-          aria-label="Filter by brand"
-        >
-          <option value="all">All brands</option>
-          {brands.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </SelectField>
-      </div>
-      <div className="flex items-center gap-2">
-        <SelectField
-          className={selectClass}
-          name="sort"
-          defaultValue={sortKey}
-          aria-label="Sort by"
-        >
-          <option value="newest">Sort: Newest first</option>
-          <option value="oldest">Sort: Oldest first</option>
-        </SelectField>
-        <button
-          type="submit"
-          className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-[12px] font-medium text-white shadow-sm hover:bg-navy-deep"
-        >
-          Apply
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function SelectField({
-  children,
-  className,
-  ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <span className="relative inline-flex items-center">
-      <select className={className} {...rest}>
-        {children}
-      </select>
-      <svg
-        className="pointer-events-none absolute right-2 h-3 w-3 text-ink-tertiary"
-        viewBox="0 0 12 12"
-        fill="none"
-        aria-hidden
-      >
-        <path
-          d="M3 4.5L6 7.5L9 4.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
-}
