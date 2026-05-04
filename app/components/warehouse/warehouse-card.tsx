@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Clock, ScanBarcode, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
@@ -8,6 +8,10 @@ import { relativeTime } from "@/lib/utils/date";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
+import { isCustomerNotifyStatus } from "@/lib/integrations/twilio-templates";
+
+const NOTIFICATIONS_ENABLED =
+  process.env.NEXT_PUBLIC_TWILIO_NOTIFICATIONS_ENABLED === "true";
 
 // ─── Status label overrides ───────────────────────────────────────────────────
 const STATUS_LABELS: Partial<Record<string, string>> = {
@@ -78,6 +82,11 @@ export function WarehouseCard({
   selfInitials,
 }: Props) {
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
+
+  // Re-sync optimistic state to props when the server returns a fresh row.
+  useEffect(() => {
+    setOptimisticStatus(row.status);
+  }, [row.status]);
   const [pending, startTransition] = useTransition();
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -94,6 +103,14 @@ export function WarehouseCard({
     : null;
 
   const forwardTargets = isReadOnly ? [] : getWarehouseActions(optimisticStatus);
+
+  const requestStatusChange = (target: StatusCode) => {
+    if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
+      advance(target);
+      return;
+    }
+    setPendingTarget(target);
+  };
 
   const advance = (target: StatusCode) => {
     setPendingTarget(null);
@@ -259,7 +276,7 @@ export function WarehouseCard({
                     label={BTN_LABELS[t] ?? STATUS_BY_CODE[t]?.label ?? t}
                     variant="primary"
                     disabled={pending}
-                    onClick={() => setPendingTarget(t)}
+                    onClick={() => requestStatusChange(t)}
                   />
                 ))}
               </div>

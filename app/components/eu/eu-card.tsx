@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Clock, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
@@ -8,6 +8,13 @@ import { relativeTime } from "@/lib/utils/date";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
+import { isCustomerNotifyStatus } from "@/lib/integrations/twilio-templates";
+
+// Skip the WhatsApp confirm modal when notifications are disabled — the
+// modal would just be theater since no message would actually send.
+// Controlled by NEXT_PUBLIC_TWILIO_NOTIFICATIONS_ENABLED ("true" to enable).
+const NOTIFICATIONS_ENABLED =
+  process.env.NEXT_PUBLIC_TWILIO_NOTIFICATIONS_ENABLED === "true";
 
 // ─── Stage detection ───────────────────────────────────────────────────────────
 // Warehouse-side of the fulfiller flow: from "delivered_to_warehouse"
@@ -108,6 +115,15 @@ export function EuCard({
   selfInitials,
 }: Props) {
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
+
+  // Re-sync optimistic state to props when the server returns a fresh row
+  // (after revalidatePath). Without this, the card stays on the previous
+  // status visually after a successful transition, which makes the next
+  // button never appear and the row look stuck. Fix for the "after I
+  // press a button nothing happens" loop the user kept hitting.
+  useEffect(() => {
+    setOptimisticStatus(row.status);
+  }, [row.status]);
   const [pending, startTransition] = useTransition();
   const [pendingTarget, setPendingTarget] = useState<StatusCode | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -122,6 +138,18 @@ export function EuCard({
     : null;
 
   const forwardTargets = isReadOnly ? [] : getEuActions(optimisticStatus);
+
+  // If notifications are off OR target doesn't notify the customer, skip
+  // the confirm modal — it adds friction without protecting anything
+  // (no real WhatsApp would be sent). When notifications are on, the
+  // modal still gates customer-facing transitions for safety.
+  const requestStatusChange = (target: StatusCode) => {
+    if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
+      advance(target);
+      return;
+    }
+    setPendingTarget(target);
+  };
 
   const advance = (target: StatusCode) => {
     setPendingTarget(null);
@@ -290,7 +318,7 @@ export function EuCard({
                     label={EU_BTN_LABELS[t] ?? t}
                     variant="primary"
                     disabled={pending}
-                    onClick={() => setPendingTarget(t)}
+                    onClick={() => requestStatusChange(t)}
                   />
                 ))}
               </div>
