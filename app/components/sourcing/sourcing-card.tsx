@@ -137,15 +137,16 @@ export function SourcingCard({
     setOptimisticStatus(target);
     startTransition(async () => {
       // Sourcing terminals: delivered_to_warehouse = success handoff,
-      // out_of_stock = failure. Both stamp marked_done_at and move
-      // the row to the Completed tab.
+      // out_of_stock = failure. The status itself is the "done" signal —
+      // sourcing's tab routing is purely status-based, no marked_done_at
+      // needed. Still navigate the user to the Completed tab so they
+      // see where the row landed.
       const isHandoff = target === "delivered_to_warehouse";
       const isFail = target === "out_of_stock";
       const isFinal = isHandoff || isFail;
       const result = await setSubOrderStatusAction({
         subOrderId: row.id,
         status: target,
-        markDone: isFinal,
       });
       const label = BTN_LABELS[target] ?? STATUS_BY_CODE[target]?.label ?? target;
       if (result.ok) {
