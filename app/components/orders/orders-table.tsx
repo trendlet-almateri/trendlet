@@ -34,6 +34,7 @@ export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
             <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Total</th>
             <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Alerts</th>
             <th className="hidden px-3 py-2.5 text-center font-semibold md:table-cell">Actions</th>
+            <th className="px-3 py-2.5 md:hidden" aria-label="Details" />
           </tr>
         </thead>
         <tbody>
