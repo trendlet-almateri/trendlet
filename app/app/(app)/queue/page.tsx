@@ -141,7 +141,7 @@ export default async function SourcingQueuePage({
       )}
 
       {/* ── Bottom status bar ── */}
-      <div className="fixed bottom-14 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--line)] bg-white/90 px-4 py-2.5 backdrop-blur-sm md:bottom-0 md:px-6 lg:left-[var(--sidebar-w,240px)]">
+      <div className="fixed bottom-14 left-0 right-0 z-30 flex items-center justify-between border-t border-[var(--line)] bg-white/90 px-4 py-2.5 backdrop-blur-sm md:bottom-0 md:left-[220px] md:px-6">
         <span className="text-[12px] text-[var(--muted)]">
           <span className="font-semibold text-[var(--ink)]">{tasksRemaining}</span> tasks remaining
         </span>
