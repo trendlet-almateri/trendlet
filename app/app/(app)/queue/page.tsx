@@ -63,7 +63,7 @@ export default async function SourcingQueuePage({
   const counts = {
     todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
     in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   completedToday,
+    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
   };
 
   const tasksRemaining = counts.todo + counts.in_progress;
@@ -78,13 +78,6 @@ export default async function SourcingQueuePage({
   // Filter + sort
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
   let visible = rows.filter((r) => tab.matches.has(r.status));
-  // Completed tab on /queue surfaces only what sourcing finished today —
-  // the row leaves the page tomorrow when warehouse/KSA take over. This
-  // matches the strict role-boundary model: sourcing doesn't carry an
-  // archive of orders other teams are working on.
-  if (activeTab === "completed") {
-    visible = visible.filter((r) => r.status_changed_at.slice(0, 10) === today);
-  }
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 

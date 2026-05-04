@@ -52,7 +52,7 @@ export default async function WarehousePipelinePage({
   const counts = {
     todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
     in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   completedToday,
+    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
   };
 
   const tasksRemaining = counts.todo + counts.in_progress;
@@ -65,11 +65,6 @@ export default async function WarehousePipelinePage({
 
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
   let visible = rows.filter((r) => tab.matches.has(r.status));
-  // Same role-boundary rule as sourcing: warehouse's Completed shows
-  // only what was shipped today; older shipments belong to KSA last-mile.
-  if (activeTab === "completed") {
-    visible = visible.filter((r) => r.status_changed_at.slice(0, 10) === today);
-  }
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 
