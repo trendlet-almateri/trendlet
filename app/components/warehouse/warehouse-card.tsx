@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, ScanBarcode, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
@@ -81,6 +82,8 @@ export function WarehouseCard({
   selfName,
   selfInitials,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [optimisticStatus, setOptimisticStatus] = useState(row.status);
 
   // Re-sync optimistic state to props when the server returns a fresh row.
@@ -120,16 +123,24 @@ export function WarehouseCard({
       const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
       if (result.ok) {
         const isHandoff = target === "shipped";
+        const isFinal = target === "delivered";
         const region = row.brand?.region ?? "KSA";
         onToast({
           id: `${row.id}-${Date.now()}`,
-          message: isHandoff ? "Task completed" : `Status updated: ${BTN_LABELS[target] ?? statusLabel}`,
+          message: isHandoff || isFinal ? "Task completed" : `Status updated: ${BTN_LABELS[target] ?? statusLabel}`,
           sub: isHandoff
             ? `${row.order?.shopify_order_number ?? row.sub_order_number} → ready for ${region} dispatch`
-            : "",
-          kind: isHandoff ? "success" : "info",
+            : isFinal
+              ? `${row.order?.shopify_order_number ?? row.sub_order_number} → moved to Completed`
+              : "",
+          kind: isHandoff || isFinal ? "success" : "info",
         });
         onDeselect();
+        if (isFinal) {
+          const sp = new URLSearchParams(searchParams?.toString() ?? "");
+          sp.set("tab", "completed");
+          router.push(`/pipeline?${sp.toString()}`);
+        }
       } else {
         setOptimisticStatus(prev);
       }
