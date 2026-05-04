@@ -94,32 +94,6 @@ export default async function EuFulfillmentPage({
 
   return (
     <div className="flex flex-col gap-4 pb-16 md:gap-5">
-      {/* ── DEPLOY VERIFY BANNER (visible to ALL users, not just admin) ── */}
-      <div className="rounded border-4 border-pink-500 bg-pink-100 p-4 text-center text-[14px] font-mono font-bold text-pink-900">
-        DEPLOY VERIFY · build=2026-05-04T22:45Z · sha=PLACEHOLDER
-        <br />
-        If you see this pink box, the new build is live.
-      </div>
-
-      {/* ── DEBUG STRIP: admin-only diagnostic of tab predicates ── */}
-      {isAdmin && (
-        <div className="rounded border-2 border-purple-400 bg-purple-50 p-3 text-[11px] font-mono text-purple-900">
-          <p className="font-bold">[DEBUG] EU page predicate check (admin-only) · build=2026-05-04T22:45Z</p>
-          <p>Active tab: {activeTab}</p>
-          <p>Counts: todo={counts.todo} · in_progress={counts.in_progress} · completed={counts.completed}</p>
-          {rows.map((r) => (
-            <div key={r.id} className="mt-1 border-t border-purple-200 pt-1">
-              <p>{r.sub_order_number} · status=<b>{r.status}</b> · marked_done_at={r.marked_done_at ?? "NULL"}</p>
-              <p>
-                matchTodo={String(matchTodo(r))} ·
-                matchInProgress={String(matchInProgress(r))} ·
-                matchCompleted={String(matchCompleted(r))}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* ── Page title ── */}
       <div>
         <h1 className="text-[19px] font-bold tracking-[-0.02em] text-[var(--ink)] md:text-[22px]">
