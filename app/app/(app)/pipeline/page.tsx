@@ -11,18 +11,27 @@ export const metadata = { title: "Warehouse · Trendslet Operations" };
 
 type TabKey = "todo" | "in_progress" | "completed";
 
-// Warehouse owns 3 statuses end-to-end:
-//   delivered_to_warehouse → shipped → delivered
-// No intermediate "preparing_for_shipment" step. Once delivered, the
-// row's lifecycle ends from warehouse's perspective.
-const TODO_STAGE      = new Set(["delivered_to_warehouse"]);
-const IN_PROG_STAGE   = new Set(["shipped"]);
-const COMPLETED_STAGE = new Set(["delivered"]);
+// Warehouse owns delivered_to_warehouse → shipped → delivered.
+// Tab routing uses marked_done_at (set when the user clicks the final
+// button) so a row stays In progress even at status='delivered' until
+// it's explicitly marked done.
+//   To do:        delivered_to_warehouse AND not yet marked done
+//   Completed:    marked_done_at IS NOT NULL
+//   In progress:  warehouse statuses that aren't todo or completed
+const TODO_STATUSES = new Set(["delivered_to_warehouse"]);
+const WAREHOUSE_STATUSES = new Set(["delivered_to_warehouse", "shipped", "delivered"]);
+
+type Row = { status: string; marked_done_at: string | null };
+
+const matchTodo       = (r: Row) => !r.marked_done_at && TODO_STATUSES.has(r.status);
+const matchCompleted  = (r: Row) => r.marked_done_at !== null;
+const matchInProgress = (r: Row) =>
+  !r.marked_done_at && WAREHOUSE_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
 
 const TAB_CONFIG = [
-  { key: "todo"        as TabKey, label: "To do",       matches: TODO_STAGE,      readOnly: false },
-  { key: "in_progress" as TabKey, label: "In progress", matches: IN_PROG_STAGE,   readOnly: false },
-  { key: "completed"   as TabKey, label: "Completed",   matches: COMPLETED_STAGE, readOnly: true  },
+  { key: "todo"        as TabKey, label: "To do",       match: matchTodo,       readOnly: false },
+  { key: "in_progress" as TabKey, label: "In progress", match: matchInProgress, readOnly: false },
+  { key: "completed"   as TabKey, label: "Completed",   match: matchCompleted,  readOnly: true  },
 ];
 
 export default async function WarehousePipelinePage({
@@ -46,13 +55,13 @@ export default async function WarehousePipelinePage({
 
   const today = new Date().toISOString().slice(0, 10);
   const completedToday = rows.filter(
-    (r) => COMPLETED_STAGE.has(r.status) && r.status_changed_at.slice(0, 10) === today,
+    (r) => matchCompleted(r) && (r.marked_done_at ?? "").slice(0, 10) === today,
   ).length;
 
   const counts = {
-    todo:        rows.filter((r) => TODO_STAGE.has(r.status)).length,
-    in_progress: rows.filter((r) => IN_PROG_STAGE.has(r.status)).length,
-    completed:   rows.filter((r) => COMPLETED_STAGE.has(r.status)).length,
+    todo:        rows.filter(matchTodo).length,
+    in_progress: rows.filter(matchInProgress).length,
+    completed:   rows.filter(matchCompleted).length,
   };
 
   const tasksRemaining = counts.todo + counts.in_progress;
@@ -64,7 +73,7 @@ export default async function WarehousePipelinePage({
   ).sort((a, b) => a.name.localeCompare(b.name));
 
   const tab = TAB_CONFIG.find((t) => t.key === activeTab)!;
-  let visible = rows.filter((r) => tab.matches.has(r.status));
+  let visible = rows.filter(tab.match);
   if (brandFilter !== "all") visible = visible.filter((r) => r.brand?.id === brandFilter);
   visible = sortRows(visible, sortKey);
 

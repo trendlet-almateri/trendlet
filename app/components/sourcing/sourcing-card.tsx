@@ -136,17 +136,19 @@ export function SourcingCard({
     const prev = optimisticStatus;
     setOptimisticStatus(target);
     startTransition(async () => {
-      const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
+      // Sourcing terminals: delivered_to_warehouse = success handoff,
+      // out_of_stock = failure. Both stamp marked_done_at and move
+      // the row to the Completed tab.
+      const isHandoff = target === "delivered_to_warehouse";
+      const isFail = target === "out_of_stock";
+      const isFinal = isHandoff || isFail;
+      const result = await setSubOrderStatusAction({
+        subOrderId: row.id,
+        status: target,
+        markDone: isFinal,
+      });
       const label = BTN_LABELS[target] ?? STATUS_BY_CODE[target]?.label ?? target;
       if (result.ok) {
-        // Sourcing terminals: delivered_to_warehouse = success handoff,
-        // out_of_stock = failure. Both move the row to the Completed
-        // tab and (since /queue's In-progress tab won't display them)
-        // the row would otherwise vanish from the user's view. Jump
-        // them to Completed so they see where the row landed.
-        const isHandoff = target === "delivered_to_warehouse";
-        const isFail = target === "out_of_stock";
-        const isFinal = isHandoff || isFail;
         const orderRef = row.order?.shopify_order_number ?? row.sub_order_number;
         onToast({
           id: `${row.id}-${Date.now()}`,

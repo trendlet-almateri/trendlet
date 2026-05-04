@@ -120,10 +120,14 @@ export function WarehouseCard({
     const prev = optimisticStatus;
     setOptimisticStatus(target);
     startTransition(async () => {
-      const result = await setSubOrderStatusAction({ subOrderId: row.id, status: target });
+      const isFinal = target === "delivered";
+      const result = await setSubOrderStatusAction({
+        subOrderId: row.id,
+        status: target,
+        markDone: isFinal,
+      });
       if (result.ok) {
         const isHandoff = target === "shipped";
-        const isFinal = target === "delivered";
         const region = row.brand?.region ?? "KSA";
         onToast({
           id: `${row.id}-${Date.now()}`,
