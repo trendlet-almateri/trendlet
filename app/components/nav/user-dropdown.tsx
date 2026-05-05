@@ -120,8 +120,8 @@ export function UserDropdown({
 
           {/* ACCOUNT */}
           <SectionLabel>Account</SectionLabel>
-          <ItemButton icon={CircleUser} right={<OnlinePill />} onSelect={() => setActiveModal("profile")}>
-            Profile &amp; presence
+          <ItemButton icon={CircleUser} onSelect={() => setActiveModal("profile")}>
+            Profile
           </ItemButton>
           <ItemButton icon={Settings2} right="EN · SAR" onSelect={() => setActiveModal("preferences")}>
             My preferences
@@ -261,11 +261,3 @@ function ItemButton({ icon: Icon, children, right, onSelect, tone }: ItemButtonP
   );
 }
 
-function OnlinePill() {
-  return (
-    <span className="flex items-center gap-1 text-[11px] text-neutral-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-[#5DCAA5]" aria-hidden />
-      Online
-    </span>
-  );
-}

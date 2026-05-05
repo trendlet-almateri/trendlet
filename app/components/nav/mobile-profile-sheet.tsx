@@ -123,8 +123,8 @@ export function MobileProfileSheet({
         {/* Menu items */}
         <div className="scrollbar-none flex-1 overflow-y-auto py-2">
           <SectionLabel>Account</SectionLabel>
-          <SheetItem icon={CircleUser} right={<OnlinePill />} onPress={() => openModal("profile")}>
-            Profile &amp; presence
+          <SheetItem icon={CircleUser} onPress={() => openModal("profile")}>
+            Profile
           </SheetItem>
           <SheetItem icon={Settings2} right="EN · SAR" onPress={() => openModal("preferences")}>
             My preferences
@@ -233,11 +233,3 @@ function SheetItem({ icon: Icon, children, right, onPress, tone }: SheetItemProp
   );
 }
 
-function OnlinePill() {
-  return (
-    <span className="flex items-center gap-1 text-[11px] text-[var(--muted)]">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-      Online
-    </span>
-  );
-}

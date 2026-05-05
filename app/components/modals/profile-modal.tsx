@@ -5,13 +5,6 @@ import { createPortal } from "react-dom";
 import { X, CircleUser, Globe, Mail, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const PRESENCE_OPTIONS = [
-  { key: "online",  label: "Online",  dot: "bg-[var(--green)]" },
-  { key: "busy",    label: "Busy",    dot: "bg-[var(--rose)]" },
-  { key: "away",    label: "Away",    dot: "bg-[var(--amber)]" },
-  { key: "offline", label: "Offline", dot: "bg-[var(--muted-2)]" },
-] as const;
-
 const AVATAR_COLORS = [
   "bg-violet-500","bg-blue-500","bg-emerald-500","bg-amber-500",
   "bg-rose-500","bg-cyan-500","bg-orange-500","bg-indigo-500",
@@ -31,7 +24,6 @@ type Props = {
 };
 
 export function ProfileModal({ fullName, email, primaryRole, initials, onClose }: Props) {
-  const [presence, setPresence] = React.useState<"online" | "busy" | "away" | "offline">("online");
   const avatarCls = avatarColor(fullName);
 
   React.useEffect(() => {
@@ -39,8 +31,6 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
-
-  const activeDot = PRESENCE_OPTIONS.find((p) => p.key === presence)!.dot;
 
   const content = (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4">
@@ -61,7 +51,7 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
           <div className="mx-3 h-px bg-[var(--line)]" />
           <nav className="flex flex-col gap-0.5 p-2 pt-3">
             {[
-              { icon: CircleUser, label: "Profile & presence", active: true },
+              { icon: CircleUser, label: "Profile", active: true },
               { icon: Globe, label: "Region & language", active: false },
               { icon: Mail, label: "Notifications", active: false },
               { icon: Shield, label: "Security", active: false },
@@ -81,8 +71,8 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4">
             <div>
-              <h2 className="text-[16px] font-semibold text-[var(--ink)]">Profile &amp; presence</h2>
-              <p className="text-[12px] text-[var(--muted)]">Manage your identity and availability status.</p>
+              <h2 className="text-[16px] font-semibold text-[var(--ink)]">Profile</h2>
+              <p className="text-[12px] text-[var(--muted)]">Manage your account information.</p>
             </div>
             <button type="button" onClick={onClose} className="grid h-7 w-7 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="Close">
               <X className="h-4 w-4" />
@@ -92,37 +82,13 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {/* Avatar */}
             <div className="mb-6 flex items-center gap-4">
-              <span className={cn("relative grid h-16 w-16 shrink-0 place-items-center rounded-full text-[20px] font-bold text-white", avatarCls)}>
+              <span className={cn("grid h-16 w-16 shrink-0 place-items-center rounded-full text-[20px] font-bold text-white", avatarCls)}>
                 {initials}
-                <span className={cn("absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full border-2 border-white", activeDot)} />
               </span>
               <div>
                 <p className="text-[15px] font-semibold text-[var(--ink)]">{fullName}</p>
                 <p className="text-[12px] text-[var(--muted)]">{email}</p>
                 <span className="mt-1 inline-block rounded-full border border-[var(--line)] bg-[var(--hover)] px-2 py-px text-[10px] font-medium capitalize text-[var(--muted)]">{primaryRole}</span>
-              </div>
-            </div>
-
-            {/* Presence */}
-            <div className="mb-6">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Presence</p>
-              <div className="grid grid-cols-2 gap-2">
-                {PRESENCE_OPTIONS.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => setPresence(p.key)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-[var(--radius-sm)] border px-3 py-2.5 text-[13px] transition-colors",
-                      presence === p.key
-                        ? "border-[var(--accent)]/30 bg-[var(--accent)]/8 font-medium text-[var(--accent)]"
-                        : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:bg-[var(--hover)]",
-                    )}
-                  >
-                    <span className={cn("h-2 w-2 rounded-full", p.dot)} />
-                    {p.label}
-                  </button>
-                ))}
               </div>
             </div>
 
