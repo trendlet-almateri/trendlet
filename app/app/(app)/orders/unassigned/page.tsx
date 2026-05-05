@@ -68,10 +68,10 @@ export default async function UnassignedQueuePage() {
               <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Sub-order</th>
                 <th className="whitespace-nowrap px-3 py-2 font-medium">Product</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Brand (raw)</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Order</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Value</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Age</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Brand (raw)</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Order</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Value</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Age</th>
                 <th className="whitespace-nowrap px-3 py-2 font-medium">Action</th>
               </tr>
             </thead>
@@ -90,7 +90,7 @@ export default async function UnassignedQueuePage() {
                       <div className="text-ink-primary">{r.product_title}</div>
                       <div className="mt-0.5 text-[11px] text-ink-tertiary">qty {r.quantity}</div>
                     </td>
-                    <td className="px-3 py-3 align-top text-ink-secondary">
+                    <td className="hidden px-3 py-3 align-top text-ink-secondary md:table-cell">
                       {r.brand_name_raw ? (
                         <span className="pill border border-status-pending-border/40 bg-status-pending-bg text-status-pending-fg">
                           {r.brand_name_raw}
@@ -99,7 +99,7 @@ export default async function UnassignedQueuePage() {
                         <span className="text-ink-tertiary">—</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 align-top">
+                    <td className="hidden whitespace-nowrap px-3 py-3 align-top md:table-cell">
                       {r.order ? (
                         <Link
                           href={`/orders/${r.order.id}`}
@@ -112,10 +112,10 @@ export default async function UnassignedQueuePage() {
                       )}
                       <div className="mt-0.5 text-[11px] text-ink-tertiary">{customerName}</div>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right align-top tabular-nums text-ink-primary">
+                    <td className="hidden whitespace-nowrap px-3 py-3 text-center align-top tabular-nums text-ink-primary md:table-cell">
                       {lineValue != null ? formatCurrency(lineValue, r.currency) : "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 align-top text-[12px] text-ink-tertiary">
+                    <td className="hidden whitespace-nowrap px-3 py-3 align-top text-center text-[12px] text-ink-tertiary md:table-cell">
                       {relativeTime(r.created_at)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-right align-top">
