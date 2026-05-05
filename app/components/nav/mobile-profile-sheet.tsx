@@ -30,10 +30,11 @@ type Props = {
   primaryRole: string;
   initials: string;
   unassignedCount: number;
+  isAdmin: boolean;
 };
 
 export function MobileProfileSheet({
-  open, onClose, fullName, email, primaryRole, initials, unassignedCount,
+  open, onClose, fullName, email, primaryRole, initials, unassignedCount, isAdmin,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -129,33 +130,37 @@ export function MobileProfileSheet({
             My preferences
           </SheetItem>
 
-          <div className="mx-4 my-2 h-px bg-[var(--line)]" />
+          {isAdmin && (
+            <>
+              <div className="mx-4 my-2 h-px bg-[var(--line)]" />
 
-          <SectionLabel>Queue</SectionLabel>
-          <SheetItem
-            icon={AlertTriangle}
-            tone={unassignedCount > 0 ? "danger" : undefined}
-            right={
-              unassignedCount > 0 ? (
-                <span className="rounded-full bg-red-600 px-1.5 py-px text-[10px] font-medium text-white tabular-nums">
-                  {unassignedCount}
-                </span>
-              ) : null
-            }
-            onPress={() => openModal("unassigned")}
-          >
-            Unassigned sub-orders
-          </SheetItem>
+              <SectionLabel>Queue</SectionLabel>
+              <SheetItem
+                icon={AlertTriangle}
+                tone={unassignedCount > 0 ? "danger" : undefined}
+                right={
+                  unassignedCount > 0 ? (
+                    <span className="rounded-full bg-red-600 px-1.5 py-px text-[10px] font-medium text-white tabular-nums">
+                      {unassignedCount}
+                    </span>
+                  ) : null
+                }
+                onPress={() => openModal("unassigned")}
+              >
+                Unassigned sub-orders
+              </SheetItem>
 
-          <div className="mx-4 my-2 h-px bg-[var(--line)]" />
+              <div className="mx-4 my-2 h-px bg-[var(--line)]" />
 
-          <SectionLabel>Workspace setup</SectionLabel>
-          <SheetItem icon={Store}     right="0 active"  onPress={() => openModal("stores")}>Stores</SheetItem>
-          <SheetItem icon={Tag}       right="Brands"     onPress={() => openModal("brands")}>Brands &amp; assignments</SheetItem>
-          <SheetItem icon={Users}     right="Team"       onPress={() => openModal("team")}>Team &amp; roles</SheetItem>
-          <SheetItem icon={Truck}     right="3 active"  onPress={() => openModal("carriers")}>Carriers</SheetItem>
-          <SheetItem icon={Plug}      right="4 active"  onPress={() => openModal("integrations")}>Integrations</SheetItem>
-          <SheetItem icon={ShieldCheck} right="2FA off" onPress={() => openModal("security")}>Security</SheetItem>
+              <SectionLabel>Workspace setup</SectionLabel>
+              <SheetItem icon={Store}       right="0 active"  onPress={() => openModal("stores")}>Stores</SheetItem>
+              <SheetItem icon={Tag}         right="Brands"     onPress={() => openModal("brands")}>Brands &amp; assignments</SheetItem>
+              <SheetItem icon={Users}       right="Team"       onPress={() => openModal("team")}>Team &amp; roles</SheetItem>
+              <SheetItem icon={Truck}       right="3 active"  onPress={() => openModal("carriers")}>Carriers</SheetItem>
+              <SheetItem icon={Plug}        right="4 active"  onPress={() => openModal("integrations")}>Integrations</SheetItem>
+              <SheetItem icon={ShieldCheck} right="2FA off"   onPress={() => openModal("security")}>Security</SheetItem>
+            </>
+          )}
 
           <div className="mx-4 my-2 h-px bg-[var(--line)]" />
 

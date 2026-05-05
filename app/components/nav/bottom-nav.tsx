@@ -23,6 +23,7 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const isAdmin = roles.includes("admin" as Role);
 
   const sections = visibleSections(roles);
 
@@ -59,6 +60,7 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         primaryRole={primaryRole}
         initials={initials}
         unassignedCount={unassignedCount}
+        isAdmin={isAdmin}
       />
 
       <nav
