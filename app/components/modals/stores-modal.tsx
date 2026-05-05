@@ -113,7 +113,7 @@ export function StoresModal({ onClose }: Props) {
             </div>
           </div>
           <div className="grid grid-cols-[2fr_0.7fr_0.6fr_0.7fr] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
-            <span>Store</span><span>Region</span><span>Currency</span><span>Status</span>
+            <span>Store</span><span className="text-center">Region</span><span className="text-center">Currency</span><span className="text-center">Status</span>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading && <div className="flex items-center justify-center py-16"><BrandSpinner size={40} /></div>}
@@ -124,13 +124,13 @@ export function StoresModal({ onClose }: Props) {
                   <span className="truncate text-[13px] font-medium text-[var(--ink)]">{s.name}</span>
                   <span className="truncate font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">{s.shopify_domain}</span>
                 </div>
-                <div>
+                <div className="text-center">
                   {s.region
                     ? <span className={cn("rounded px-1.5 py-px text-[10px] font-semibold", REGION_CLS[s.region] ?? "bg-[var(--hover)] text-[var(--muted)]")}>{s.region}</span>
                     : <span className="text-[11px] text-[var(--muted)]">—</span>}
                 </div>
-                <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[12px] tabular-nums text-[var(--muted)]">{s.default_currency}</span>
-                <div className="flex items-center gap-1.5">
+                <span className="text-center font-[family-name:var(--font-jetbrains,monospace)] text-[12px] tabular-nums text-[var(--muted)]">{s.default_currency}</span>
+                <div className="flex items-center justify-center gap-1.5">
                   <span className={cn("h-1.5 w-1.5 rounded-full", s.is_active ? "bg-[var(--green)]" : "bg-[var(--muted-2)]")} />
                   <span className="text-[12px] text-[var(--muted)]">{s.is_active ? "Active" : "Inactive"}</span>
                 </div>
