@@ -147,7 +147,7 @@ function FilterDropdown({
           avoidCollisions
           collisionPadding={12}
           className={cn(
-            "z-50 min-w-[180px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-2",
+            "z-[9999] min-w-[180px] rounded-xl border border-[var(--line)] bg-[var(--panel)] p-2",
             "shadow-[0_8px_24px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.04)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
