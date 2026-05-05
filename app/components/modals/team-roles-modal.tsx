@@ -193,7 +193,7 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
                 )}
               >
                 <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                {showInvite ? "Cancel" : "Invite members"}
+                {showInvite ? "Cancel" : "Invite"}
               </button>
               <button
                 type="button"
