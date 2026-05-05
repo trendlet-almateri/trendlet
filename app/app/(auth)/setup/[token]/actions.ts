@@ -63,5 +63,7 @@ export async function setupAccountAction(
       .is("accepted_at", null);
   }
 
-  redirect("/");
+  // Sign out so the invitee must log in with their new password
+  await supabase.auth.signOut();
+  redirect("/login?setup=done");
 }

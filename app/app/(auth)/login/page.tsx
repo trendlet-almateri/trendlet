@@ -10,13 +10,14 @@ export const metadata = { title: "Sign in · Trendlet" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string };
+  searchParams: { next?: string; error?: string; setup?: string };
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/");
 
   const next = searchParams.next?.startsWith("/") ? searchParams.next : "/";
   const forbidden = searchParams.error === "forbidden";
+  const accountReady = searchParams.setup === "done";
 
   return (
     <section
@@ -37,6 +38,15 @@ export default async function LoginPage({
           priority
         />
       </div>
+
+      {accountReady && (
+        <p
+          role="status"
+          className="mb-4 rounded-sm border border-[#86efac] bg-[#f0fdf4] px-3 py-2 text-[12px] text-[#166534]"
+        >
+          Password created successfully. Sign in to continue.
+        </p>
+      )}
 
       {forbidden && (
         <p
