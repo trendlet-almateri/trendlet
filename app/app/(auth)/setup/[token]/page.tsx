@@ -7,33 +7,10 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Set up your account · Trendslet Operations" };
 
-type SearchParams = {
-  token_hash?: string;
-  type?: string;
-};
-
-/**
- * Account setup landing for Supabase invite emails.
- *
- * Supabase invite links arrive with `?token_hash=...&type=invite` appended.
- * We exchange the token for a session here, then render the password form.
- * The `[token]` path segment is reserved for future custom-mint invite flows.
- */
-export default async function SetupPage({
-  searchParams,
-}: {
-  params: { token: string };
-  searchParams: SearchParams;
-}) {
+export default async function SetupPage() {
+  // Session is already established by /auth/callback (Route Handler).
+  // Server Components can't set cookies, so verifyOtp must happen there.
   const supabase = createClient();
-
-  if (searchParams.token_hash && searchParams.type) {
-    await supabase.auth.verifyOtp({
-      token_hash: searchParams.token_hash,
-      type: searchParams.type as "invite" | "signup" | "recovery" | "email_change",
-    });
-  }
-
   const {
     data: { user },
   } = await supabase.auth.getUser();

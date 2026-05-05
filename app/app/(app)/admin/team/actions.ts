@@ -61,7 +61,7 @@ export async function inviteTeamMemberAction(
   const { data: invited, error: inviteErr } = await sb.auth.admin.inviteUserByEmail(
     parsed.data.email,
     {
-      redirectTo: `${siteUrl}/setup/invited`,
+      redirectTo: `${siteUrl}/auth/callback?next=/setup/invited`,
       data: {
         full_name: parsed.data.full_name,
         roles: [parsed.data.role],
