@@ -21,7 +21,6 @@ import { createClient } from "@/lib/supabase/client";
 import { TeamRolesModal } from "@/components/modals/team-roles-modal";
 import { BrandsModal } from "@/components/modals/brands-modal";
 import { ProfileModal } from "@/components/modals/profile-modal";
-import { PreferencesModal } from "@/components/modals/preferences-modal";
 import { StoresModal } from "@/components/modals/stores-modal";
 import { CarriersModal } from "@/components/modals/carriers-modal";
 import { IntegrationsModal } from "@/components/modals/integrations-modal";
@@ -57,7 +56,6 @@ export function MobileUserMenu({ fullName, email, primaryRole, initials, unassig
       {activeModal === "team" && <TeamRolesModal onClose={() => setActiveModal(null)} />}
       {activeModal === "brands" && <BrandsModal onClose={() => setActiveModal(null)} />}
       {activeModal === "profile" && <ProfileModal fullName={fullName} email={email} primaryRole={primaryRole} initials={initials} onClose={() => setActiveModal(null)} />}
-      {activeModal === "preferences" && <PreferencesModal onClose={() => setActiveModal(null)} />}
       {activeModal === "stores" && <StoresModal onClose={() => setActiveModal(null)} />}
       {activeModal === "carriers" && <CarriersModal onClose={() => setActiveModal(null)} />}
       {activeModal === "integrations" && <IntegrationsModal onClose={() => setActiveModal(null)} />}
@@ -104,9 +102,6 @@ export function MobileUserMenu({ fullName, email, primaryRole, initials, unassig
             <SectionLabel>Account</SectionLabel>
             <ItemButton icon={CircleUser} onSelect={() => setActiveModal("profile")}>
               Profile
-            </ItemButton>
-            <ItemButton icon={Settings2} right="EN · SAR" onSelect={() => setActiveModal("preferences")}>
-              My preferences
             </ItemButton>
 
             <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />

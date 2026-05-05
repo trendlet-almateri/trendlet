@@ -11,7 +11,6 @@ import { createClient } from "@/lib/supabase/client";
 import { TeamRolesModal } from "@/components/modals/team-roles-modal";
 import { BrandsModal } from "@/components/modals/brands-modal";
 import { ProfileModal } from "@/components/modals/profile-modal";
-import { PreferencesModal } from "@/components/modals/preferences-modal";
 import { StoresModal } from "@/components/modals/stores-modal";
 import { CarriersModal } from "@/components/modals/carriers-modal";
 import { IntegrationsModal } from "@/components/modals/integrations-modal";
@@ -19,7 +18,7 @@ import { SecurityModal } from "@/components/modals/security-modal";
 import { UnassignedModal } from "@/components/modals/unassigned-modal";
 
 type ModalKey =
-  | "team" | "brands" | "profile" | "preferences"
+  | "team" | "brands" | "profile"
   | "stores" | "carriers" | "integrations" | "security" | "unassigned";
 
 type Props = {
@@ -65,7 +64,6 @@ export function MobileProfileSheet({
       {activeModal === "team"         && <TeamRolesModal onClose={() => setActiveModal(null)} />}
       {activeModal === "brands"       && <BrandsModal onClose={() => setActiveModal(null)} />}
       {activeModal === "profile"      && <ProfileModal fullName={fullName} email={email} primaryRole={primaryRole} initials={initials} onClose={() => setActiveModal(null)} />}
-      {activeModal === "preferences"  && <PreferencesModal onClose={() => setActiveModal(null)} />}
       {activeModal === "stores"       && <StoresModal onClose={() => setActiveModal(null)} />}
       {activeModal === "carriers"     && <CarriersModal onClose={() => setActiveModal(null)} />}
       {activeModal === "integrations" && <IntegrationsModal onClose={() => setActiveModal(null)} />}
@@ -126,7 +124,7 @@ export function MobileProfileSheet({
           <SheetItem icon={CircleUser} onPress={() => openModal("profile")}>
             Profile
           </SheetItem>
-          <SheetItem icon={Settings2} right="EN · SAR" onPress={() => openModal("preferences")}>
+          <SheetItem icon={Settings2} onPress={() => openModal("profile")}>
             My preferences
           </SheetItem>
 
