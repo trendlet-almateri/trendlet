@@ -98,6 +98,8 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
           side="right"
           align="start"
           sideOffset={12}
+          avoidCollisions
+          collisionPadding={12}
           className={cn(
             "popover-dark z-50 w-[380px] overflow-hidden rounded-xl",
             "border border-white/[0.08] bg-[#17191d]",
