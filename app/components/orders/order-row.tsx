@@ -74,7 +74,11 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
     const target = e.target as HTMLElement;
     if (target.closest("a, button, [data-no-row-click]")) return;
     if (window.getSelection()?.toString()) return;
-    setExpanded((v) => !v);
+    if (window.innerWidth < 768) {
+      setShowDetail(true);
+    } else {
+      setExpanded((v) => !v);
+    }
   }
 
   return (
