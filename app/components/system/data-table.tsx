@@ -69,11 +69,12 @@ export function DataTable<Row>({
                 key={col.key}
                 scope="col"
                 className={cn(
-                  "px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.6px] text-ink-tertiary",
+                  "whitespace-nowrap px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.6px] text-ink-tertiary",
                   col.width,
                   col.align === "right" && "text-right",
+                  col.align === "left" && "text-left",
+                  !col.align && "text-center",
                   col.align === "center" && "text-center",
-                  col.align !== "right" && col.align !== "center" && "text-left",
                 )}
               >
                 {col.header}

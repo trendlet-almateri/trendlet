@@ -94,10 +94,10 @@ function RoleSection({
       <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)]">
         <table className="w-full text-[12px]">
           <thead className="bg-[var(--bg)]/50 text-[10px] uppercase tracking-[0.4px] text-[var(--muted)]">
-            <tr>
-              <th className="w-[22%] px-4 py-2 text-left font-medium">If sub-order is at…</th>
-              <th className="px-4 py-2 text-left font-medium">…dropdown shows</th>
-              <th className="w-[34%] px-4 py-2 text-left font-medium">Customer would receive</th>
+            <tr className="text-center">
+              <th className="w-[22%] whitespace-nowrap px-4 py-2 text-left font-medium">If sub-order is at…</th>
+              <th className="whitespace-nowrap px-4 py-2 font-medium">…dropdown shows</th>
+              <th className="w-[34%] whitespace-nowrap px-4 py-2 font-medium">Customer would receive</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)]">
