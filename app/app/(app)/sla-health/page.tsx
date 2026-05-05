@@ -113,10 +113,10 @@ export default async function SlaHealthPage() {
                             {s.label}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-ink-primary">{b.total}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-status-sourcing-fg">{b.at_risk || "—"}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-status-danger-fg">{b.delayed || "—"}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-ink-primary">{onTime != null ? `${onTime}%` : "—"}</td>
+                        <td className="px-3 py-3 text-center tabular-nums text-ink-primary">{b.total}</td>
+                        <td className="px-3 py-3 text-center tabular-nums text-status-sourcing-fg">{b.at_risk || "—"}</td>
+                        <td className="px-3 py-3 text-center tabular-nums text-status-danger-fg">{b.delayed || "—"}</td>
+                        <td className="px-3 py-3 text-center tabular-nums text-ink-primary">{onTime != null ? `${onTime}%` : "—"}</td>
                       </tr>
                     );
                   })}
