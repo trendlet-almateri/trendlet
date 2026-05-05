@@ -60,13 +60,13 @@ export default async function ShipmentsPage() {
         <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="px-4 py-2 font-medium">Tracking</th>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Carrier</th>
-                <th className="px-3 py-2 font-medium">Route</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Shipped</th>
+              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Tracking</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Carrier</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Route</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Status</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Shipped</th>
               </tr>
             </thead>
             <tbody>

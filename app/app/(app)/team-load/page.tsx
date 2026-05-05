@@ -83,22 +83,22 @@ export default async function TeamLoadPage() {
           <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  <th className="px-4 py-2 font-medium">Employee</th>
-                  <th className="px-3 py-2 font-medium">Role</th>
-                  <th className="px-3 py-2 font-medium">Region</th>
-                  <th className="px-3 py-2 text-right font-medium">Completed</th>
-                  <th className="px-3 py-2 text-right font-medium">On time</th>
+                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Employee</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Role</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Region</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Completed</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">On time</th>
                 </tr>
               </thead>
               <tbody>
                 {perf.map((p) => (
                   <tr key={p.employee_id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                     <td className="px-4 py-3 font-medium text-ink-primary">{p.full_name}</td>
-                    <td className="px-3 py-3 capitalize text-ink-secondary">{p.role}</td>
-                    <td className="px-3 py-3 text-ink-secondary">{p.region ?? "—"}</td>
-                    <td className="px-3 py-3 text-right tabular-nums text-ink-primary">{p.items_completed_30d}</td>
-                    <td className="px-3 py-3 text-right tabular-nums text-ink-primary">
+                    <td className="px-3 py-3 text-center capitalize text-ink-secondary">{p.role}</td>
+                    <td className="px-3 py-3 text-center text-ink-secondary">{p.region ?? "—"}</td>
+                    <td className="px-3 py-3 text-center tabular-nums text-ink-primary">{p.items_completed_30d}</td>
+                    <td className="px-3 py-3 text-center tabular-nums text-ink-primary">
                       {p.on_time_pct != null ? `${Number(p.on_time_pct).toFixed(0)}%` : "—"}
                     </td>
                   </tr>

@@ -65,14 +65,14 @@ export default async function UnassignedQueuePage() {
         <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="px-4 py-2 font-medium">Sub-order</th>
-                <th className="px-3 py-2 font-medium">Product</th>
-                <th className="px-3 py-2 font-medium">Brand (raw)</th>
-                <th className="px-3 py-2 font-medium">Order</th>
-                <th className="px-3 py-2 text-right font-medium">Value</th>
-                <th className="px-3 py-2 font-medium">Age</th>
-                <th className="px-3 py-2 text-right font-medium">Action</th>
+              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Sub-order</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Product</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Brand (raw)</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Order</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Value</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Age</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>

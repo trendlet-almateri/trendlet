@@ -63,12 +63,12 @@ export default async function ReportsPage() {
           <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                  <th className="px-4 py-2 font-medium">Currency</th>
-                  <th className="px-3 py-2 text-right font-medium">Orders 30d</th>
-                  <th className="px-3 py-2 text-right font-medium">Revenue 30d</th>
-                  <th className="px-3 py-2 text-right font-medium">Prev period</th>
-                  <th className="px-3 py-2 text-right font-medium">Change</th>
+                <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                  <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Currency</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Orders 30d</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Revenue 30d</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Prev period</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Change</th>
                 </tr>
               </thead>
               <tbody>
