@@ -91,7 +91,7 @@ export function UnassignedModal({ onClose }: Props) {
       <div className="relative flex h-[580px] max-h-[calc(100svh-2rem)] w-full max-w-[920px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]" style={{ animation: "riseIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards" }}>
 
         {/* Sidebar */}
-        <aside className="flex w-[220px] shrink-0 flex-col border-r border-[var(--line)] bg-[var(--hover)]">
+        <aside className="hidden sm:flex w-[220px] shrink-0 flex-col border-r border-[var(--line)] bg-[var(--hover)]">
           <div className="flex items-center gap-2.5 px-4 py-4">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--rose)]">
               <AlertTriangle className="h-4 w-4 text-white" />
