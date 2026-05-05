@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, Search, Users, UserPlus } from "lucide-react";
+import { useFormState, useFormStatus } from "react-dom";
+import { X, Search, Users, UserPlus, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandSpinner } from "@/components/spinner/brand-spinner";
+import { inviteTeamMemberAction, type InviteState } from "@/app/(app)/admin/team/actions";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
 
 type TeamMember = {
   id: string;
@@ -68,8 +71,9 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = React.useState(true);
   const [activeFilter, setActiveFilter] = React.useState("all");
   const [search, setSearch] = React.useState("");
+  const [showInvite, setShowInvite] = React.useState(false);
 
-  React.useEffect(() => {
+  function fetchMembers() {
     fetch("/api/admin/team")
       .then((r) => r.json())
       .then(({ members, pending }) => {
@@ -78,7 +82,9 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }
+
+  React.useEffect(() => { fetchMembers(); }, []);
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -176,13 +182,19 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <a
-                href="/admin/team"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90"
+              <button
+                type="button"
+                onClick={() => setShowInvite((v) => !v)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
+                  showInvite
+                    ? "bg-[var(--hover)] text-[var(--ink)] border border-[var(--line)]"
+                    : "bg-[var(--accent)] text-white hover:opacity-90",
+                )}
               >
                 <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                Invite members
-              </a>
+                {showInvite ? "Cancel" : "Invite members"}
+              </button>
               <button
                 type="button"
                 onClick={onClose}
@@ -193,6 +205,13 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </div>
+
+          {/* Inline invite panel */}
+          {showInvite && (
+            <div className="border-b border-[var(--line)] bg-[var(--hover)] px-4 py-3">
+              <InlineInviteForm onSuccess={() => { setShowInvite(false); fetchMembers(); }} />
+            </div>
+          )}
 
           {/* Search */}
           <div className="border-b border-[var(--line)] px-4 py-2.5">
@@ -325,5 +344,97 @@ function MemberRow({ member: m }: { member: TeamMember }) {
         </svg>
       </button>
     </div>
+  );
+}
+
+// ─── Inline invite form ────────────────────────────────────────────────────────
+
+const ROLE_OPTIONS = [
+  { value: "sourcing",     label: "Sourcing" },
+  { value: "fulfiller",   label: "Fulfiller" },
+  { value: "warehouse",   label: "Warehouse" },
+  { value: "ksa_operator",label: "KSA Operator" },
+  { value: "admin",       label: "Admin" },
+];
+
+const REGION_OPTIONS = [
+  { value: "",       label: "— region —" },
+  { value: "US",    label: "US" },
+  { value: "EU",    label: "EU" },
+  { value: "KSA",   label: "KSA" },
+  { value: "GLOBAL",label: "GLOBAL" },
+];
+
+const initialInviteState: InviteState = { ok: false, error: null };
+
+function InlineInviteForm({ onSuccess }: { onSuccess: () => void }) {
+  const [state, dispatch] = useFormState(inviteTeamMemberAction, initialInviteState);
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const [role, setRole] = React.useState("sourcing");
+  const [region, setRegion] = React.useState("");
+
+  React.useEffect(() => {
+    if (state.ok) {
+      formRef.current?.reset();
+      setRole("sourcing");
+      setRegion("");
+      // slight delay so user sees success flash before panel closes
+      const t = setTimeout(onSuccess, 800);
+      return () => clearTimeout(t);
+    }
+  }, [state.ok, onSuccess]);
+
+  return (
+    <form
+      ref={formRef}
+      action={dispatch}
+      className="flex flex-wrap items-center gap-2"
+    >
+      <input
+        name="email"
+        type="email"
+        required
+        maxLength={254}
+        placeholder="email@trendlet.com"
+        className="h-8 min-w-[180px] flex-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+      />
+      <input
+        name="full_name"
+        type="text"
+        required
+        maxLength={120}
+        placeholder="Full name"
+        className="h-8 min-w-[140px] flex-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+      />
+      <input type="hidden" name="role" value={role} />
+      <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} size="sm" />
+      <input type="hidden" name="region" value={region} />
+      <DropdownSelect value={region} onChange={setRegion} options={REGION_OPTIONS} size="sm" placeholder="— region —" />
+      <InlineSubmitButton />
+      {state.error && (
+        <span className="flex items-center gap-1 text-[11px] text-red-600">
+          <AlertTriangle className="h-3 w-3" aria-hidden /> {state.error}
+        </span>
+      )}
+      {state.ok && (
+        <span className="flex items-center gap-1 text-[11px] text-emerald-600">
+          <CheckCircle2 className="h-3 w-3" aria-hidden /> Invitation sent
+        </span>
+      )}
+    </form>
+  );
+}
+
+function InlineSubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+    >
+      {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <UserPlus className="h-3.5 w-3.5" aria-hidden />}
+      Send invite
+    </button>
   );
 }
