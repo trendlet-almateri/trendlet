@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
   BarChart3,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/types/database";
@@ -68,6 +69,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/team-load", label: "Team load", icon: Users, roles: ["admin"] },
       { href: "/payroll", label: "Payroll", icon: Wallet, roles: ["admin"] },
       { href: "/reports", label: "Reports", icon: BarChart3, roles: ["admin"] },
+      { href: "/security", label: "Security", icon: ShieldCheck, roles: ["admin"], disabled: true },
     ],
   },
 ];
