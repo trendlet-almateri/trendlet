@@ -109,6 +109,29 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
             </button>
           </div>
 
+          {/* Mobile tab bar — only visible when sidebar is hidden */}
+          <div className="flex sm:hidden border-b border-[var(--line)] overflow-x-auto scrollbar-none">
+            {TABS.map(({ key, icon: Icon, label, soon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => !soon && setActiveTab(key)}
+                disabled={soon}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 px-4 py-2.5 text-[12px] font-medium transition-colors border-b-2 -mb-px",
+                  soon
+                    ? "cursor-not-allowed border-transparent text-[var(--muted)] opacity-40"
+                    : activeTab === key
+                      ? "border-[var(--accent)] text-[var(--accent)]"
+                      : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {label.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+
           <div className="flex-1 overflow-y-auto px-6 py-6">
 
             {/* ── Profile tab ── */}
