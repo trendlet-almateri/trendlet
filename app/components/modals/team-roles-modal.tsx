@@ -208,7 +208,7 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
 
           {/* Inline invite panel */}
           {showInvite && (
-            <div className="border-b border-[var(--line)] bg-[var(--hover)] px-4 py-3">
+            <div className="border-b border-[var(--line)] bg-[var(--hover)] px-5 py-4">
               <InlineInviteForm onSuccess={() => { setShowInvite(false); fetchMembers(); }} />
             </div>
           )}
@@ -378,50 +378,71 @@ function InlineInviteForm({ onSuccess }: { onSuccess: () => void }) {
       formRef.current?.reset();
       setRole("sourcing");
       setRegion("");
-      // slight delay so user sees success flash before panel closes
-      const t = setTimeout(onSuccess, 800);
+      const t = setTimeout(onSuccess, 900);
       return () => clearTimeout(t);
     }
   }, [state.ok, onSuccess]);
 
   return (
-    <form
-      ref={formRef}
-      action={dispatch}
-      className="flex flex-wrap items-center gap-2"
-    >
-      <input
-        name="email"
-        type="email"
-        required
-        maxLength={254}
-        placeholder="email@trendlet.com"
-        className="h-8 min-w-[180px] flex-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
-      />
-      <input
-        name="full_name"
-        type="text"
-        required
-        maxLength={120}
-        placeholder="Full name"
-        className="h-8 min-w-[140px] flex-1 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
-      />
-      <input type="hidden" name="role" value={role} />
-      <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} size="sm" />
-      <input type="hidden" name="region" value={region} />
-      <DropdownSelect value={region} onChange={setRegion} options={REGION_OPTIONS} size="sm" placeholder="— region —" />
-      <InlineSubmitButton />
-      {state.error && (
-        <span className="flex items-center gap-1 text-[11px] text-red-600">
-          <AlertTriangle className="h-3 w-3" aria-hidden /> {state.error}
-        </span>
-      )}
-      {state.ok && (
-        <span className="flex items-center gap-1 text-[11px] text-emerald-600">
-          <CheckCircle2 className="h-3 w-3" aria-hidden /> Invitation sent
-        </span>
-      )}
-    </form>
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+        New invitation
+      </p>
+      <form ref={formRef} action={dispatch} className="flex flex-col gap-3">
+        {/* Row 1: email + name */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-[var(--muted)]">Email</label>
+            <input
+              name="email"
+              type="email"
+              required
+              maxLength={254}
+              placeholder="email@trendlet.com"
+              className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-[var(--muted)]">Full name</label>
+            <input
+              name="full_name"
+              type="text"
+              required
+              maxLength={120}
+              placeholder="e.g. Sarah Al-Mansoori"
+              className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+            />
+          </div>
+        </div>
+
+        {/* Row 2: role + region + submit */}
+        <div className="flex items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-[var(--muted)]">Role</label>
+            <input type="hidden" name="role" value={role} />
+            <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} size="sm" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-medium text-[var(--muted)]">Region</label>
+            <input type="hidden" name="region" value={region} />
+            <DropdownSelect value={region} onChange={setRegion} options={REGION_OPTIONS} size="sm" placeholder="— region —" />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {state.error && (
+              <span className="flex items-center gap-1 text-[11px] text-red-600">
+                <AlertTriangle className="h-3 w-3" aria-hidden /> {state.error}
+              </span>
+            )}
+            {state.ok && (
+              <span className="flex items-center gap-1 text-[11px] text-emerald-600">
+                <CheckCircle2 className="h-3 w-3" aria-hidden /> Sent!
+              </span>
+            )}
+            <InlineSubmitButton />
+          </div>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -431,7 +452,7 @@ function InlineSubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] px-3 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
     >
       {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <UserPlus className="h-3.5 w-3.5" aria-hidden />}
       Send invite
