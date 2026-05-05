@@ -133,14 +133,14 @@ export function BrandsModal({ onClose }: { onClose: () => void }) {
   });
 
   const content = (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4">
       <div
         className="absolute inset-0 bg-[rgba(15,20,25,0.5)]"
         style={{ animation: "backdropIn 0.2s ease forwards" }}
         onClick={onClose}
       />
       <div
-        className="relative flex h-[640px] w-full max-w-[960px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
+        className="relative flex h-[640px] max-h-[calc(100svh-2rem)] w-full max-w-[960px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
         style={{ animation: "riseIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards" }}
       >
         {/* ── Left sidebar ── */}

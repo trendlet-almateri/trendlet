@@ -43,9 +43,9 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
   const activeDot = PRESENCE_OPTIONS.find((p) => p.key === presence)!.dot;
 
   const content = (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-[rgba(15,20,25,0.5)]" style={{ animation: "backdropIn 0.2s ease forwards" }} onClick={onClose} />
-      <div className="relative flex h-[520px] w-full max-w-[760px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]" style={{ animation: "riseIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards" }}>
+      <div className="relative flex h-[520px] max-h-[calc(100svh-2rem)] w-full max-w-[760px] overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]" style={{ animation: "riseIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards" }}>
 
         {/* Sidebar */}
         <aside className="flex w-[220px] shrink-0 flex-col border-r border-[var(--line)] bg-[var(--hover)]">
