@@ -184,16 +184,11 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowInvite((v) => !v)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors whitespace-nowrap",
-                  showInvite
-                    ? "bg-[var(--hover)] text-[var(--ink)] border border-[var(--line)]"
-                    : "bg-[var(--accent)] text-white hover:opacity-90",
-                )}
+                onClick={() => setShowInvite(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
               >
                 <UserPlus className="h-3.5 w-3.5" aria-hidden />
-                {showInvite ? "Cancel" : "Invite"}
+                Invite
               </button>
               <button
                 type="button"
@@ -205,13 +200,6 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </div>
-
-          {/* Inline invite panel */}
-          {showInvite && (
-            <div className="border-b border-[var(--line)] bg-[var(--hover)] px-5 py-4">
-              <InlineInviteForm onSuccess={() => { setShowInvite(false); fetchMembers(); }} />
-            </div>
-          )}
 
           {/* Search */}
           <div className="border-b border-[var(--line)] px-4 py-2.5">
@@ -251,7 +239,18 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 
-  return createPortal(content, document.body);
+  return (
+    <>
+      {createPortal(content, document.body)}
+      {showInvite && createPortal(
+        <InviteModal
+          onClose={() => setShowInvite(false)}
+          onSuccess={() => { setShowInvite(false); fetchMembers(); }}
+        />,
+        document.body,
+      )}
+    </>
+  );
 }
 
 function SidebarFilter({
@@ -347,112 +346,157 @@ function MemberRow({ member: m }: { member: TeamMember }) {
   );
 }
 
-// ─── Inline invite form ────────────────────────────────────────────────────────
+// ─── Invite modal ─────────────────────────────────────────────────────────────
 
 const ROLE_OPTIONS = [
-  { value: "sourcing",     label: "Sourcing" },
-  { value: "fulfiller",   label: "Fulfiller" },
-  { value: "warehouse",   label: "Warehouse" },
-  { value: "ksa_operator",label: "KSA Operator" },
-  { value: "admin",       label: "Admin" },
+  { value: "sourcing",      label: "Sourcing" },
+  { value: "fulfiller",     label: "Fulfiller" },
+  { value: "warehouse",     label: "Warehouse" },
+  { value: "ksa_operator",  label: "KSA Operator" },
+  { value: "admin",         label: "Admin" },
 ];
 
 const REGION_OPTIONS = [
-  { value: "",       label: "— region —" },
-  { value: "US",    label: "US" },
-  { value: "EU",    label: "EU" },
-  { value: "KSA",   label: "KSA" },
-  { value: "GLOBAL",label: "GLOBAL" },
+  { value: "",        label: "— none —" },
+  { value: "US",      label: "US" },
+  { value: "EU",      label: "EU" },
+  { value: "KSA",     label: "KSA" },
+  { value: "GLOBAL",  label: "GLOBAL" },
 ];
 
 const initialInviteState: InviteState = { ok: false, error: null };
 
-function InlineInviteForm({ onSuccess }: { onSuccess: () => void }) {
+function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [state, dispatch] = useFormState(inviteTeamMemberAction, initialInviteState);
   const formRef = React.useRef<HTMLFormElement>(null);
   const [role, setRole] = React.useState("sourcing");
   const [region, setRegion] = React.useState("");
 
   React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  React.useEffect(() => {
     if (state.ok) {
-      formRef.current?.reset();
-      setRole("sourcing");
-      setRegion("");
       const t = setTimeout(onSuccess, 900);
       return () => clearTimeout(t);
     }
   }, [state.ok, onSuccess]);
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
-        New invitation
-      </p>
-      <form ref={formRef} action={dispatch} className="flex flex-col gap-3">
-        {/* Row 1: email + name */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-[var(--muted)]">Email</label>
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-[rgba(15,20,25,0.55)]"
+        style={{ animation: "backdropIn 0.15s ease forwards" }}
+        onClick={onClose}
+      />
+
+      {/* Card */}
+      <div
+        className="relative w-full max-w-[460px] rounded-2xl border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
+        style={{ animation: "riseIn 0.18s cubic-bezier(0.16,1,0.3,1) forwards" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--accent)]">
+              <UserPlus className="h-4 w-4 text-white" aria-hidden />
+            </span>
+            <div>
+              <p className="text-[14px] font-semibold text-[var(--ink)]">Invite team member</p>
+              <p className="text-[11px] text-[var(--muted)]">They&apos;ll receive a setup email from Supabase</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-7 w-7 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form ref={formRef} action={dispatch} className="flex flex-col gap-4 px-5 py-5">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-medium text-[var(--ink)]">Email address</label>
             <input
               name="email"
               type="email"
               required
               maxLength={254}
               placeholder="email@trendlet.com"
-              className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+              className="h-9 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-3 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-[var(--muted)]">Full name</label>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-medium text-[var(--ink)]">Full name</label>
             <input
               name="full_name"
               type="text"
               required
               maxLength={120}
               placeholder="e.g. Sarah Al-Mansoori"
-              className="h-8 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-2.5 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
+              className="h-9 w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--hover)] px-3 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/40"
             />
           </div>
-        </div>
 
-        {/* Row 2: role + region + submit */}
-        <div className="flex items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-[var(--muted)]">Role</label>
-            <input type="hidden" name="role" value={role} />
-            <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} size="sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-[var(--ink)]">Role</label>
+              <input type="hidden" name="role" value={role} />
+              <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-[var(--ink)]">Region</label>
+              <input type="hidden" name="region" value={region} />
+              <DropdownSelect value={region} onChange={setRegion} options={REGION_OPTIONS} placeholder="— none —" />
+            </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-medium text-[var(--muted)]">Region</label>
-            <input type="hidden" name="region" value={region} />
-            <DropdownSelect value={region} onChange={setRegion} options={REGION_OPTIONS} size="sm" placeholder="— region —" />
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-[var(--line)] pt-4">
+            <div>
+              {state.error && (
+                <span className="flex items-center gap-1 text-[12px] text-red-600">
+                  <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> {state.error}
+                </span>
+              )}
+              {state.ok && (
+                <span className="flex items-center gap-1 text-[12px] text-emerald-600">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Invitation sent!
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-[var(--radius-sm)] border border-[var(--line)] px-4 py-2 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+              >
+                Cancel
+              </button>
+              <InviteSubmitButton />
+            </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            {state.error && (
-              <span className="flex items-center gap-1 text-[11px] text-red-600">
-                <AlertTriangle className="h-3 w-3" aria-hidden /> {state.error}
-              </span>
-            )}
-            {state.ok && (
-              <span className="flex items-center gap-1 text-[11px] text-emerald-600">
-                <CheckCircle2 className="h-3 w-3" aria-hidden /> Sent!
-              </span>
-            )}
-            <InlineSubmitButton />
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
 
-function InlineSubmitButton() {
+function InviteSubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
     >
       {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <UserPlus className="h-3.5 w-3.5" aria-hidden />}
       Send invite
