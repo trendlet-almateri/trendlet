@@ -17,11 +17,11 @@ function avatarColor(name: string) {
 
 type Tab = "profile" | "language" | "notifications" | "appearance";
 
-const TABS: { key: Tab; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
+const TABS: { key: Tab; icon: React.ComponentType<{ className?: string }>; label: string; soon?: boolean }[] = [
   { key: "profile",       icon: CircleUser, label: "Profile" },
-  { key: "language",      icon: Globe,      label: "Language & region" },
-  { key: "notifications", icon: Bell,       label: "Notifications" },
   { key: "appearance",    icon: SunMedium,  label: "Appearance" },
+  { key: "language",      icon: Globe,      label: "Language & region", soon: true },
+  { key: "notifications", icon: Bell,       label: "Notifications",     soon: true },
 ];
 
 type Props = {
@@ -65,20 +65,28 @@ export function ProfileModal({ fullName, email, primaryRole, initials, onClose }
           </div>
           <div className="mx-3 h-px bg-[var(--line)]" />
           <nav className="flex flex-col gap-0.5 p-2 pt-3">
-            {TABS.map(({ key, icon: Icon, label }) => (
+            {TABS.map(({ key, icon: Icon, label, soon }) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => setActiveTab(key)}
+                onClick={() => !soon && setActiveTab(key)}
+                disabled={soon}
                 className={cn(
                   "flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-[13px] text-left transition-colors",
-                  activeTab === key
-                    ? "bg-[var(--accent)]/10 font-medium text-[var(--accent)]"
-                    : "text-[var(--muted)] hover:bg-[var(--line)] hover:text-[var(--ink)]",
+                  soon
+                    ? "cursor-not-allowed text-[var(--muted)] opacity-50"
+                    : activeTab === key
+                      ? "bg-[var(--accent)]/10 font-medium text-[var(--accent)]"
+                      : "text-[var(--muted)] hover:bg-[var(--line)] hover:text-[var(--ink)]",
                 )}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {soon && (
+                  <span className="rounded-full bg-[var(--line)] px-1.5 py-px text-[9px] font-medium text-[var(--muted)]">
+                    Soon
+                  </span>
+                )}
               </button>
             ))}
           </nav>
