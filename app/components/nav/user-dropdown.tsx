@@ -162,9 +162,14 @@ export function UserDropdown({
               <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>
                 Integrations
               </ItemButton>
-              <ItemButton icon={ShieldCheck} right="2FA off" onSelect={() => setActiveModal("security")}>
-                Security
-              </ItemButton>
+              <DropdownMenu.Item
+                disabled
+                className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none opacity-50 text-neutral-200"
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
+                <span className="flex-1 truncate">Security</span>
+                <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-px text-[9px] font-medium text-neutral-400">Soon</span>
+              </DropdownMenu.Item>
             </>
           )}
 

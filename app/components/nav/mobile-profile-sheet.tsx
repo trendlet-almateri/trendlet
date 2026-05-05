@@ -153,7 +153,7 @@ export function MobileProfileSheet({
               <SheetItem icon={Users}       right="Team"       onPress={() => openModal("team")}>Team &amp; roles</SheetItem>
               <SheetItem icon={Truck}       right="3 active"  onPress={() => openModal("carriers")}>Carriers</SheetItem>
               <SheetItem icon={Plug}        right="4 active"  onPress={() => openModal("integrations")}>Integrations</SheetItem>
-              <SheetItem icon={ShieldCheck} right="2FA off"   onPress={() => openModal("security")}>Security</SheetItem>
+              <SheetItem icon={ShieldCheck} right={<span className="rounded-full bg-[var(--line)] px-1.5 py-px text-[9px] font-medium text-[var(--muted)]">Soon</span>} soon onPress={() => {}}>Security</SheetItem>
             </>
           )}
 
@@ -190,18 +190,22 @@ type SheetItemProps = {
   right?: React.ReactNode;
   onPress: () => void;
   tone?: "danger";
+  soon?: boolean;
 };
 
-function SheetItem({ icon: Icon, children, right, onPress, tone }: SheetItemProps) {
+function SheetItem({ icon: Icon, children, right, onPress, tone, soon }: SheetItemProps) {
   return (
     <button
       type="button"
-      onClick={onPress}
+      onClick={soon ? undefined : onPress}
+      disabled={soon}
       className={cn(
         "flex w-full items-center gap-3 px-4 py-2.5 text-[13px] transition-colors",
-        tone === "danger"
-          ? "bg-red-50/60 text-red-600 hover:bg-red-50"
-          : "text-[var(--ink)] hover:bg-[var(--hover)]",
+        soon
+          ? "cursor-not-allowed opacity-50 text-[var(--ink)]"
+          : tone === "danger"
+            ? "bg-red-50/60 text-red-600 hover:bg-red-50"
+            : "text-[var(--ink)] hover:bg-[var(--hover)]",
       )}
     >
       <span
