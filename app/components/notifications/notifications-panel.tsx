@@ -95,13 +95,13 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
 
       <Popover.Portal>
         <Popover.Content
-          side="right"
-          align="start"
-          sideOffset={12}
+          side="bottom"
+          align="end"
+          sideOffset={8}
           avoidCollisions
           collisionPadding={12}
           className={cn(
-            "popover-dark z-50 w-[380px] overflow-hidden rounded-xl",
+            "popover-dark z-50 w-[min(380px,calc(100vw-24px))] overflow-hidden rounded-xl",
             "border border-white/[0.08] bg-[#17191d]",
             "shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
           )}
