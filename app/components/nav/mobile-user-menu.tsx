@@ -35,7 +35,7 @@ type Props = {
   unassignedCount: number;
 };
 
-type ModalKey = "team" | "brands" | "profile" | "preferences" | "stores" | "carriers" | "integrations" | "security" | "unassigned";
+type ModalKey = "team" | "brands" | "profile" | "stores" | "carriers" | "integrations" | "security" | "unassigned";
 
 export function MobileUserMenu({ fullName, email, primaryRole, initials, unassignedCount }: Props) {
   const router = useRouter();

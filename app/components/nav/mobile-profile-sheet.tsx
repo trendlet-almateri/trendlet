@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  X, CircleUser, Settings2, AlertTriangle,
+  X, CircleUser, AlertTriangle,
   Store, Tag, Users, Truck, Plug, ShieldCheck, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -123,9 +123,6 @@ export function MobileProfileSheet({
           <SectionLabel>Account</SectionLabel>
           <SheetItem icon={CircleUser} onPress={() => openModal("profile")}>
             Profile
-          </SheetItem>
-          <SheetItem icon={Settings2} onPress={() => openModal("profile")}>
-            My preferences
           </SheetItem>
 
           {isAdmin && (
