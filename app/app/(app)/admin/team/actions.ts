@@ -54,9 +54,14 @@ export async function inviteTeamMemberAction(
   const region = parsed.data.region === "" ? null : parsed.data.region ?? null;
 
   // Step 1: create the auth user via invite (sends email).
+  // redirectTo must point to the setup page so Supabase appends
+  // ?token_hash=...&type=invite — the setup page exchanges the token
+  // and shows the "create password" form.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://trendlet.vercel.app";
   const { data: invited, error: inviteErr } = await sb.auth.admin.inviteUserByEmail(
     parsed.data.email,
     {
+      redirectTo: `${siteUrl}/setup/invited`,
       data: {
         full_name: parsed.data.full_name,
         roles: [parsed.data.role],
