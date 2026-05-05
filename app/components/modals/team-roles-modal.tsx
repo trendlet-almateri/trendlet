@@ -218,9 +218,9 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
           {/* Column headers */}
           <div className="grid grid-cols-[2fr_1.2fr_0.8fr_1fr_32px] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
             <span>Member</span>
-            <span>Role</span>
-            <span>Status</span>
-            <span>Last active</span>
+            <span className="text-center">Role</span>
+            <span className="text-center">Status</span>
+            <span className="text-center">Last active</span>
             <span />
           </div>
 
@@ -300,7 +300,7 @@ function MemberRow({ member: m }: { member: TeamMember }) {
       </div>
 
       {/* Roles */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap justify-center gap-1">
         {m.roles.length === 0 ? (
           <span className="text-[11px] text-[var(--muted)]">—</span>
         ) : (
@@ -316,13 +316,13 @@ function MemberRow({ member: m }: { member: TeamMember }) {
       </div>
 
       {/* Status */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-center gap-1.5">
         <span className={cn("h-1.5 w-1.5 rounded-full", m.is_active ? "bg-[var(--green)]" : "bg-[var(--muted-2)]")} />
         <span className="text-[12px] text-[var(--muted)]">{m.is_active ? "Active" : "Inactive"}</span>
       </div>
 
       {/* Last active */}
-      <span className="text-[12px] text-[var(--muted)]">
+      <span className="text-center text-[12px] text-[var(--muted)]">
         {m.last_seen_at
           ? formatRelative(m.last_seen_at)
           : m.joined_at
