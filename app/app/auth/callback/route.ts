@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Invite / magic-link / OTP flow — Supabase appends ?token_hash=...&type=invite
     const { error } = await supabase.auth.verifyOtp({
       token_hash,
-      type: type as Parameters<typeof supabase.auth.verifyOtp>[0]["type"],
+      type: type as "invite" | "recovery" | "email" | "email_change" | "magiclink",
     });
     if (!error) {
       return NextResponse.redirect(`${origin}/setup/invited`);
