@@ -148,11 +148,11 @@ export function MobileProfileSheet({
               <div className="mx-4 my-2 h-px bg-[var(--line)]" />
 
               <SectionLabel>Workspace setup</SectionLabel>
-              <SheetItem icon={Store}       right="0 active"  onPress={() => openModal("stores")}>Stores</SheetItem>
               <SheetItem icon={Tag}         right="Brands"     onPress={() => openModal("brands")}>Brands &amp; assignments</SheetItem>
               <SheetItem icon={Users}       right="Team"       onPress={() => openModal("team")}>Team &amp; roles</SheetItem>
               <SheetItem icon={Truck}       right="3 active"  onPress={() => openModal("carriers")}>Carriers</SheetItem>
               <SheetItem icon={Plug}        right="4 active"  onPress={() => openModal("integrations")}>Integrations</SheetItem>
+              <SheetItem icon={Store}       right={<span className="rounded-full bg-[var(--line)] px-1.5 py-px text-[9px] font-medium text-[var(--muted)]">Soon</span>} soon onPress={() => {}}>Stores</SheetItem>
               <SheetItem icon={ShieldCheck} right={<span className="rounded-full bg-[var(--line)] px-1.5 py-px text-[9px] font-medium text-[var(--muted)]">Soon</span>} soon onPress={() => {}}>Security</SheetItem>
             </>
           )}

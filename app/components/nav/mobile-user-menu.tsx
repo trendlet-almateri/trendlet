@@ -125,11 +125,18 @@ export function MobileUserMenu({ fullName, email, primaryRole, initials, unassig
             <DropdownMenu.Separator className="my-1 h-px bg-[var(--line)]" />
 
             <SectionLabel>Workspace setup</SectionLabel>
-            <ItemButton icon={Store} right="0 active" onSelect={() => setActiveModal("stores")}>Stores</ItemButton>
             <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>Brands &amp; assignments</ItemButton>
             <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>Team &amp; roles</ItemButton>
             <ItemButton icon={Truck} right="3 active" onSelect={() => setActiveModal("carriers")}>Carriers</ItemButton>
             <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>Integrations</ItemButton>
+            <DropdownMenu.Item
+              disabled
+              className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none opacity-50 text-[var(--ink)]"
+            >
+              <Store className="h-4 w-4 shrink-0 text-[var(--muted)]" aria-hidden />
+              <span className="flex-1 truncate">Stores</span>
+              <span className="shrink-0 rounded-full bg-[var(--line)] px-1.5 py-px text-[9px] font-medium text-[var(--muted)]">Soon</span>
+            </DropdownMenu.Item>
             <DropdownMenu.Item
               disabled
               className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none opacity-50 text-[var(--ink)]"

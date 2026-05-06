@@ -147,9 +147,6 @@ export function UserDropdown({
 
               {/* WORKSPACE SETUP */}
               <SectionLabel>Workspace setup</SectionLabel>
-              <ItemButton icon={Store} right="0 active" onSelect={() => setActiveModal("stores")}>
-                Stores
-              </ItemButton>
               <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
                 Brands &amp; assignments
               </ItemButton>
@@ -162,6 +159,14 @@ export function UserDropdown({
               <ItemButton icon={Plug} right="4 active" onSelect={() => setActiveModal("integrations")}>
                 Integrations
               </ItemButton>
+              <DropdownMenu.Item
+                disabled
+                className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none opacity-50 text-neutral-200"
+              >
+                <Store className="h-4 w-4 shrink-0 text-neutral-400" aria-hidden />
+                <span className="flex-1 truncate">Stores</span>
+                <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-px text-[9px] font-medium text-neutral-400">Soon</span>
+              </DropdownMenu.Item>
               <DropdownMenu.Item
                 disabled
                 className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none opacity-50 text-neutral-200"
