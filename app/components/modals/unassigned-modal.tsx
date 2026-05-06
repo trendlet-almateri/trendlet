@@ -147,14 +147,14 @@ export function UnassignedModal({ onClose }: Props) {
 
           {/* Table header */}
           {!loading && rows.length > 0 && (
-            <div className="grid grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr] items-center gap-2 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
+            <div className="grid grid-cols-[1.2fr_2fr_1fr_1fr_1fr] items-center gap-2 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr]">
               <span>Sub-order</span>
-              <span>Product</span>
-              <span>Brand (raw)</span>
-              <span>Order</span>
-              <span className="text-right">Value</span>
-              <span>Age</span>
-              <span className="text-right">Action</span>
+              <span className="text-center">Product</span>
+              <span className="text-center">Brand (raw)</span>
+              <span className="text-center">Order</span>
+              <span className="hidden text-center md:block">Value</span>
+              <span className="hidden text-center md:block">Age</span>
+              <span className="text-center">Action</span>
             </div>
           )}
 
@@ -178,28 +178,28 @@ export function UnassignedModal({ onClose }: Props) {
               const lineValue = r.unit_price != null ? r.unit_price * r.quantity : null;
               const isAssigning = assigning === r.id;
               return (
-                <div key={r.id} className="grid grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr] items-center gap-2 border-b border-[var(--line)] px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] last:border-0">
+                <div key={r.id} className="grid grid-cols-[1.2fr_2fr_1fr_1fr_1fr] items-center gap-2 border-b border-[var(--line)] px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] last:border-0 md:grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr]">
                   <span className="truncate font-medium text-[var(--ink)]">{r.sub_order_number}</span>
-                  <div className="flex min-w-0 flex-col">
+                  <div className="flex min-w-0 flex-col text-center">
                     <span className="truncate text-[var(--ink)]">{r.product_title}</span>
                     <span className="text-[11px] text-[var(--muted)]">qty {r.quantity}</span>
                   </div>
-                  <div>
+                  <div className="text-center">
                     {r.brand_name_raw
                       ? <span className="rounded border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-semibold text-[var(--amber)]">{r.brand_name_raw}</span>
                       : <span className="text-[var(--muted)]">—</span>}
                   </div>
-                  <div className="flex min-w-0 flex-col">
+                  <div className="flex min-w-0 flex-col items-center">
                     <span className="truncate font-medium text-[var(--accent)]">
                       {r.order?.shopify_order_number ?? "—"}
                     </span>
                     <span className="truncate text-[11px] text-[var(--muted)]">{customerName}</span>
                   </div>
-                  <span className="text-right tabular-nums text-[var(--ink)]">
+                  <span className="hidden text-center tabular-nums text-[var(--ink)] md:block">
                     {lineValue != null ? fmt(lineValue, r.currency) : "—"}
                   </span>
-                  <span className="text-[11px] text-[var(--muted)]">{age(r.created_at)}</span>
-                  <div className="flex flex-col items-end gap-1">
+                  <span className="hidden text-center text-[11px] text-[var(--muted)] md:block">{age(r.created_at)}</span>
+                  <div className="flex flex-col items-center gap-1">
                     <button type="button" onClick={() => autoAssign(r.id)} disabled={isAssigning}
                       className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50">
                       {isAssigning ? "Assigning…" : "Auto-assign"}
