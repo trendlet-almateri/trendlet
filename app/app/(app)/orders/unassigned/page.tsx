@@ -63,16 +63,16 @@ export default async function UnassignedQueuePage() {
         />
       ) : (
         <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full table-fixed border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Sub-order</th>
+                <th className="w-[30%] whitespace-nowrap px-4 py-2 text-left font-medium md:w-auto">Sub-order</th>
                 <th className="whitespace-nowrap px-3 py-2 font-medium">Product</th>
                 <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Brand (raw)</th>
                 <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Order</th>
                 <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Value</th>
                 <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Age</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Action</th>
+                <th className="w-[110px] whitespace-nowrap px-3 py-2 font-medium md:w-auto">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -83,11 +83,11 @@ export default async function UnassignedQueuePage() {
                 const lineValue = r.unit_price != null ? r.unit_price * r.quantity : null;
                 return (
                   <tr key={r.id} className="border-b border-hairline last:border-0 hover:bg-neutral-50/50">
-                    <td className="whitespace-nowrap px-4 py-3 align-top font-medium text-ink-primary">
+                    <td className="whitespace-nowrap px-4 py-3 align-middle font-medium text-ink-primary">
                       {r.sub_order_number}
                     </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="text-ink-primary">{r.product_title}</div>
+                    <td className="px-3 py-3 align-middle">
+                      <div className="truncate text-ink-primary">{r.product_title}</div>
                       <div className="mt-0.5 text-[11px] text-ink-tertiary">qty {r.quantity}</div>
                     </td>
                     <td className="hidden px-3 py-3 align-top text-ink-secondary md:table-cell">
@@ -118,7 +118,7 @@ export default async function UnassignedQueuePage() {
                     <td className="hidden whitespace-nowrap px-3 py-3 align-top text-center text-[12px] text-ink-tertiary md:table-cell">
                       {relativeTime(r.created_at)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right align-top">
+                    <td className="whitespace-nowrap px-3 py-3 text-center align-middle">
                       <AutoAssignButton subOrderId={r.id} subOrderNumber={r.sub_order_number} />
                     </td>
                   </tr>
