@@ -196,9 +196,8 @@ export function UnassignedModal({ onClose }: Props) {
                         ? <span className="rounded border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-semibold text-[var(--amber)]">{r.brand_name_raw}</span>
                         : <span className="text-[var(--muted)]">—</span>}
                     </div>
-                    <div className="flex min-w-0 flex-col items-center">
+                    <div className="text-center">
                       <span className="truncate font-medium text-[var(--accent)]">{r.order?.shopify_order_number ?? "—"}</span>
-                      <span className="truncate text-[11px] text-[var(--muted)]">{customerName}</span>
                     </div>
                     <span className="hidden text-center tabular-nums text-[var(--ink)] md:block">
                       {lineValue != null ? fmt(lineValue, r.currency) : "—"}
@@ -206,7 +205,7 @@ export function UnassignedModal({ onClose }: Props) {
                     <span className="hidden text-center text-[11px] text-[var(--muted)] md:block">{age(r.created_at)}</span>
                     <div className="flex flex-col items-center gap-1">
                       <button type="button" onClick={() => autoAssign(r.id)} disabled={isAssigning}
-                        className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50">
+                        className="w-full whitespace-nowrap rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2 py-1 text-[10px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50">
                         {isAssigning ? "Assigning…" : "Auto-assign"}
                       </button>
                       {errors[r.id] && <span className="text-[10px] text-[var(--rose)]">{errors[r.id]}</span>}
