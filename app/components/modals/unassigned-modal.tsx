@@ -156,7 +156,7 @@ export function UnassignedModal({ onClose }: Props) {
 
           {/* Table header */}
           {!loading && rows.length > 0 && (
-            <div className="grid grid-cols-[1.5fr_1fr_1fr_80px_32px] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.6fr_80px_32px]">
+            <div className="grid grid-cols-[auto_1fr_1fr_80px_32px] items-center gap-3 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid-cols-[auto_1fr_1fr_0.8fr_0.6fr_80px_32px]">
               <span>Sub-order</span>
               <span className="text-center">Brand</span>
               <span className="text-center">Order</span>
@@ -189,7 +189,7 @@ export function UnassignedModal({ onClose }: Props) {
               const isExpanded = expanded.has(r.id);
               return (
                 <div key={r.id} className="border-b border-[var(--line)] last:border-0">
-                  <div className="grid grid-cols-[1.5fr_1fr_1fr_80px_32px] items-center gap-3 px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] md:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.6fr_80px_32px]">
+                  <div className="grid grid-cols-[auto_1fr_1fr_80px_32px] items-center gap-3 px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] md:grid-cols-[auto_1fr_1fr_0.8fr_0.6fr_80px_32px]">
                     <span className="truncate font-medium text-[var(--ink)]">{r.sub_order_number}</span>
                     <div className="text-center">
                       {r.brand_name_raw
