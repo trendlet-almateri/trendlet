@@ -369,7 +369,7 @@ const initialInviteState: InviteState = { ok: false, error: null };
 function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [state, dispatch] = useFormState(inviteTeamMemberAction, initialInviteState);
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [role, setRole] = React.useState("sourcing");
+  const [role, setRole] = React.useState("");
   const [region, setRegion] = React.useState("");
 
   React.useEffect(() => {
@@ -450,7 +450,7 @@ function InviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-medium text-[var(--ink)]">Role</label>
               <input type="hidden" name="role" value={role} />
-              <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} />
+              <DropdownSelect value={role} onChange={setRole} options={ROLE_OPTIONS} placeholder="— select —" />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-medium text-[var(--ink)]">Region</label>
