@@ -1,30 +1,46 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-/**
- * Auth callback page — handles Supabase's implicit flow where tokens arrive
- * as hash fragments (#access_token=...). Route Handlers never see hash
- * fragments (browser-only), so this must be a client component.
- *
- * Supabase JS SDK detects the hash automatically on getSession().
- * Invite links always land here → redirect to /setup/invited.
- */
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+    const code = searchParams.get("code");
+
+    async function handle() {
+      if (code) {
+        // PKCE flow — exchange the one-time code for a session
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          router.replace("/login?error=invalid_link");
+          return;
+        }
+      }
+
+      // Implicit flow fallback — getSession() reads the #access_token hash
+      const { data } = await supabase.auth.getSession();
       if (data.session) {
         router.replace("/setup/invited");
       } else {
         router.replace("/login?error=invalid_link");
       }
-    });
-  }, [router]);
+    }
+
+    handle();
+  }, [router, searchParams]);
 
   return null;
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <CallbackHandler />
+    </Suspense>
+  );
 }
