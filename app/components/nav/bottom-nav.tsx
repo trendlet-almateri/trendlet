@@ -115,7 +115,7 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         <div className="flex shrink-0 items-stretch">
           <button
             type="button"
-            onClick={() => setMoreOpen((o) => !o)}
+            onClick={() => { setMoreOpen((o) => !o); setProfileOpen(false); }}
             aria-label="More"
             aria-expanded={moreOpen}
             className={cn(
@@ -134,7 +134,7 @@ export function BottomNav({ roles, fullName, email, primaryRole, initials, unass
         <div className="flex shrink-0 items-stretch">
           <button
             type="button"
-            onClick={() => setProfileOpen((o) => !o)}
+            onClick={() => { setProfileOpen((o) => !o); setMoreOpen(false); }}
             aria-label="Profile"
             aria-expanded={profileOpen}
             className={cn(
