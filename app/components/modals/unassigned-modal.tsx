@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, AlertTriangle, RefreshCw } from "lucide-react";
+import { X, AlertTriangle, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandSpinner } from "@/components/spinner/brand-spinner";
 
@@ -46,6 +46,15 @@ export function UnassignedModal({ onClose }: Props) {
   const [loading, setLoading] = React.useState(true);
   const [assigning, setAssigning] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   const load = React.useCallback(() => {
     setLoading(true);
@@ -147,14 +156,14 @@ export function UnassignedModal({ onClose }: Props) {
 
           {/* Table header */}
           {!loading && rows.length > 0 && (
-            <div className="grid grid-cols-[1.2fr_2fr_1fr_1fr_1fr] items-center gap-2 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr]">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_auto_32px] items-center gap-2 border-b border-[var(--line)] bg-[var(--hover)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)] md:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.6fr_1fr_32px]">
               <span>Sub-order</span>
-              <span className="text-center">Product</span>
-              <span className="text-center">Brand (raw)</span>
+              <span className="text-center">Brand</span>
               <span className="text-center">Order</span>
               <span className="hidden text-center md:block">Value</span>
               <span className="hidden text-center md:block">Age</span>
               <span className="text-center">Action</span>
+              <span />
             </div>
           )}
 
@@ -177,37 +186,50 @@ export function UnassignedModal({ onClose }: Props) {
                 : "—";
               const lineValue = r.unit_price != null ? r.unit_price * r.quantity : null;
               const isAssigning = assigning === r.id;
+              const isExpanded = expanded.has(r.id);
               return (
-                <div key={r.id} className="grid grid-cols-[1.2fr_2fr_1fr_1fr_1fr] items-center gap-2 border-b border-[var(--line)] px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] last:border-0 md:grid-cols-[1.2fr_2fr_1fr_1fr_0.8fr_0.6fr_1fr]">
-                  <span className="truncate font-medium text-[var(--ink)]">{r.sub_order_number}</span>
-                  <div className="flex min-w-0 flex-col text-center">
-                    <span className="truncate text-[var(--ink)]">{r.product_title}</span>
-                    <span className="text-[11px] text-[var(--muted)]">qty {r.quantity}</span>
-                  </div>
-                  <div className="text-center">
-                    {r.brand_name_raw
-                      ? <span className="rounded border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-semibold text-[var(--amber)]">{r.brand_name_raw}</span>
-                      : <span className="text-[var(--muted)]">—</span>}
-                  </div>
-                  <div className="flex min-w-0 flex-col items-center">
-                    <span className="truncate font-medium text-[var(--accent)]">
-                      {r.order?.shopify_order_number ?? "—"}
+                <div key={r.id} className="border-b border-[var(--line)] last:border-0">
+                  <div className="grid grid-cols-[1.5fr_1fr_1fr_auto_32px] items-center gap-2 px-4 py-3 text-[13px] transition-colors hover:bg-[var(--hover)] md:grid-cols-[1.5fr_1fr_1fr_0.8fr_0.6fr_1fr_32px]">
+                    <span className="truncate font-medium text-[var(--ink)]">{r.sub_order_number}</span>
+                    <div className="text-center">
+                      {r.brand_name_raw
+                        ? <span className="rounded border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-semibold text-[var(--amber)]">{r.brand_name_raw}</span>
+                        : <span className="text-[var(--muted)]">—</span>}
+                    </div>
+                    <div className="flex min-w-0 flex-col items-center">
+                      <span className="truncate font-medium text-[var(--accent)]">{r.order?.shopify_order_number ?? "—"}</span>
+                      <span className="truncate text-[11px] text-[var(--muted)]">{customerName}</span>
+                    </div>
+                    <span className="hidden text-center tabular-nums text-[var(--ink)] md:block">
+                      {lineValue != null ? fmt(lineValue, r.currency) : "—"}
                     </span>
-                    <span className="truncate text-[11px] text-[var(--muted)]">{customerName}</span>
-                  </div>
-                  <span className="hidden text-center tabular-nums text-[var(--ink)] md:block">
-                    {lineValue != null ? fmt(lineValue, r.currency) : "—"}
-                  </span>
-                  <span className="hidden text-center text-[11px] text-[var(--muted)] md:block">{age(r.created_at)}</span>
-                  <div className="flex flex-col items-center gap-1">
-                    <button type="button" onClick={() => autoAssign(r.id)} disabled={isAssigning}
-                      className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50">
-                      {isAssigning ? "Assigning…" : "Auto-assign"}
+                    <span className="hidden text-center text-[11px] text-[var(--muted)] md:block">{age(r.created_at)}</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <button type="button" onClick={() => autoAssign(r.id)} disabled={isAssigning}
+                        className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50">
+                        {isAssigning ? "Assigning…" : "Auto-assign"}
+                      </button>
+                      {errors[r.id] && <span className="text-[10px] text-[var(--rose)]">{errors[r.id]}</span>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(r.id)}
+                      className="grid h-6 w-6 place-items-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+                      aria-label={isExpanded ? "Hide details" : "Show details"}
+                    >
+                      {isExpanded ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </button>
-                    {errors[r.id] && (
-                      <span className="text-[10px] text-[var(--rose)]">{errors[r.id]}</span>
-                    )}
                   </div>
+                  {isExpanded && (
+                    <div className="border-t border-[var(--line)] bg-[var(--hover)]/50 px-4 py-2.5 text-[12px] text-[var(--muted)]">
+                      <p className="font-medium text-[var(--ink)]">{r.product_title}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                        <span>Qty: {r.quantity}</span>
+                        {lineValue != null && <span>Value: {fmt(lineValue, r.currency)}</span>}
+                        <span>Age: {age(r.created_at)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
