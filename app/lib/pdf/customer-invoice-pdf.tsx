@@ -343,22 +343,14 @@ function CustomerInvoiceDocument({
           </Vw>
         </Vw>
 
-        {/* Customer — name (Arabic-aware) + email only. Address intentionally
-            omitted from the customer-facing invoice. */}
+        {/* Customer — email only. Customer name is intentionally omitted
+            from the PDF: @react-pdf/textkit's bidi reorder pass crashes
+            on Arabic content (which most of our customers have), and a
+            Latin-fallback name was both ugly and inaccurate. The customer
+            name still lives in the database and on every admin-facing
+            screen. */}
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
-          {(() => {
-            const cleanName = safeText(customer.name) || "Customer";
-            const useArabic = arabicAvailable && hasArabic(cleanName);
-            // If the Arabic font failed to register, strip Arabic from the
-            // name so we don't try to render glyphs Helvetica can't draw.
-            const display = useArabic ? cleanName : safeText(cleanName).replace(/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g, "").trim() || "Customer";
-            return (
-              <Tx style={useArabic ? styles.customerNameArabic : styles.customerName}>
-                {display}
-              </Tx>
-            );
-          })()}
           {customer.email && (
             <Tx style={styles.customerLine}>{safeText(customer.email)}</Tx>
           )}
@@ -444,12 +436,12 @@ function CustomerInvoiceDocument({
  * Loads the Trendlet logo from /public/logo.png at render time.
  */
 export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
-  // Register the Arabic font once per process so non-Latin customer data
-  // (names, addresses) renders correctly. No-op after the first call.
-  // If registration fails (font file missing, base64 read error), we
-  // continue without it; safeText() will strip Arabic chars before they
-  // reach a font that can't render them, so the layout still holds.
-  const arabicAvailable = await ensureArabicFont();
+  // Arabic font registration is currently disabled — see customer-block
+  // comment in CustomerInvoiceDocument for context. Keep the call as a
+  // no-op-from-the-document-perspective so the function stays available
+  // when we re-enable Arabic rendering with a stabler approach.
+  const arabicAvailable = false;
+  void ensureArabicFont; // silence unused-binding warning
 
   let barcodeImageDataUrl: string | null = null;
   if (data.barcode) {
