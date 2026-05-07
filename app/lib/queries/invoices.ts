@@ -26,9 +26,13 @@ export type InvoiceRow = {
 
 export async function fetchInvoices({
   status,
+  generatedBy,
   limit = 100,
 }: {
   status?: InvoiceStatus;
+  /** Restrict to invoices created by this user. Used for non-admin views
+   *  (sourcing / EU fulfiller see only their own work). */
+  generatedBy?: string;
   limit?: number;
 } = {}): Promise<InvoiceRow[]> {
   const sb = createServiceClient();
@@ -45,6 +49,7 @@ export async function fetchInvoices({
     .limit(limit);
 
   if (status) q = q.eq("status", status);
+  if (generatedBy) q = q.eq("generated_by", generatedBy);
 
   const { data, error } = await q;
   if (error) {
@@ -54,11 +59,13 @@ export async function fetchInvoices({
   return (data ?? []) as unknown as InvoiceRow[];
 }
 
-export async function fetchInvoiceCounts(): Promise<Record<InvoiceStatus, number>> {
+export async function fetchInvoiceCounts(
+  options: { generatedBy?: string } = {},
+): Promise<Record<InvoiceStatus, number>> {
   const sb = createServiceClient();
-  const { data, error } = await sb
-    .from("customer_invoices")
-    .select("status");
+  let q = sb.from("customer_invoices").select("status");
+  if (options.generatedBy) q = q.eq("generated_by", options.generatedBy);
+  const { data, error } = await q;
   if (error) {
     console.error("[fetchInvoiceCounts]", error);
     return { draft: 0, pending_review: 0, approved: 0, sent: 0, rejected: 0 };

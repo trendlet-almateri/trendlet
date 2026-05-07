@@ -89,15 +89,32 @@ export async function updateInvoiceAction(
 
   const sb = createServiceClient();
 
-  // Status guard.
+  // Role + ownership + status guard. Mirrors the server page so direct
+  // POSTs from a non-admin user can't bypass the UI lock.
+  const isAdmin = user.roles.includes("admin");
+  const isEmployee =
+    user.roles.includes("sourcing") || user.roles.includes("fulfiller");
+  if (!isAdmin && !isEmployee) {
+    return { ok: false, error: "Not allowed to edit invoices." };
+  }
+
   const { data: cur } = await sb
     .from("customer_invoices")
-    .select("status")
+    .select("status, generated_by")
     .eq("id", v.id)
     .maybeSingle();
   if (!cur) return { ok: false, error: "Invoice not found." };
   const status = (cur as { status: string }).status;
-  if (status !== "draft" && status !== "pending_review" && status !== "rejected") {
+  const generatedBy = (cur as { generated_by: string | null }).generated_by;
+  if (!isAdmin && generatedBy !== user.id) {
+    return { ok: false, error: "Not your invoice." };
+  }
+  // Admin: draft/pending_review/rejected. Employee: draft only (locked from
+  // their side once submitted).
+  const editableForRole = isAdmin
+    ? status === "draft" || status === "pending_review" || status === "rejected"
+    : status === "draft";
+  if (!editableForRole) {
     return { ok: false, error: `Can't edit a ${status} invoice.` };
   }
 

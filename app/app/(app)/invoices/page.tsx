@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Plus,
 } from "lucide-react";
-import { requireAdmin } from "@/lib/auth/require-role";
+import { requireRole } from "@/lib/auth/require-role";
 import { fetchInvoices, fetchInvoiceCounts, type InvoiceStatus } from "@/lib/queries/invoices";
 import { PageHeader, TabPills } from "@/components/system";
 import { EmptyState } from "@/components/common/empty-state";
@@ -43,14 +43,23 @@ export default async function InvoicesPage({
 }: {
   searchParams: { filter?: string };
 }) {
-  await requireAdmin();
+  // Sourcing + EU fulfiller can also access this page — they see only
+  // invoices they created (filtered by generated_by). Warehouse stays
+  // out per spec.
+  const user = await requireRole(["admin", "sourcing", "fulfiller"]);
+  const isAdmin = user.roles.includes("admin");
 
   const requested = searchParams.filter as FilterKey | undefined;
   const filter: FilterKey = requested && VALID.includes(requested) ? requested : "all";
 
+  const scope = isAdmin ? {} : { generatedBy: user.id };
   const [counts, invoices] = await Promise.all([
-    fetchInvoiceCounts(),
-    fetchInvoices(filter === "all" ? {} : { status: filter as InvoiceStatus }),
+    fetchInvoiceCounts(scope),
+    fetchInvoices(
+      filter === "all"
+        ? scope
+        : { ...scope, status: filter as InvoiceStatus },
+    ),
   ]);
 
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { requireAdmin } from "@/lib/auth/require-role";
+import { requireRole } from "@/lib/auth/require-role";
 import { NewInvoiceForm } from "./new-invoice-form";
 
 export const dynamic = "force-dynamic";
@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "New invoice · Trendslet Operations" };
 
 export default async function NewInvoicePage() {
-  // Admin-only entry. Sourcing/EU will get role-specific entry points later.
-  await requireAdmin();
+  // Admin + sourcing + EU fulfiller can create invoices. Warehouse cannot
+  // (already enforced inside searchSubOrders + createInvoiceAction too).
+  await requireRole(["admin", "sourcing", "fulfiller"]);
 
   return (
     <div className="flex flex-col gap-5">
