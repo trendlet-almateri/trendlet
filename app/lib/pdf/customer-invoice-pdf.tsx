@@ -9,11 +9,47 @@ import {
   View,
   StyleSheet,
   Image,
+  Font,
   pdf,
 } from "@react-pdf/renderer";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { generateBarcodePng } from "./barcode";
+
+/* ── Arabic font registration ─────────────────────────────────────────
+   Helvetica has no Arabic glyphs. We register Noto Sans Arabic so customer
+   names + addresses in Arabic render correctly. Registration is a one-time
+   side-effect — guarded by a module-level flag so multiple PDF renders in
+   the same serverless invocation don't re-register. */
+let arabicFontRegistered = false;
+async function ensureArabicFont(): Promise<boolean> {
+  if (arabicFontRegistered) return true;
+  const candidates = [
+    join(process.cwd(), "public", "fonts", "NotoSansArabic-Regular.ttf"),
+    join(process.cwd(), "app", "public", "fonts", "NotoSansArabic-Regular.ttf"),
+    "/var/task/public/fonts/NotoSansArabic-Regular.ttf",
+  ];
+  for (const p of candidates) {
+    try {
+      const bytes = await readFile(p);
+      Font.register({
+        family: "NotoArabic",
+        src: bytes as unknown as string, // Font.register accepts Buffer at runtime
+      });
+      arabicFontRegistered = true;
+      return true;
+    } catch {
+      // try next
+    }
+  }
+  console.warn("[customer-invoice-pdf] NotoSansArabic-Regular.ttf not found in any of:", candidates);
+  return false;
+}
+
+const ARABIC_RANGE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+function hasArabic(s: string | null | undefined): boolean {
+  return !!s && ARABIC_RANGE.test(s);
+}
 
 /* ── data shape (kept narrow — built up in approveInvoiceAction) ─────── */
 
@@ -85,11 +121,6 @@ const styles = StyleSheet.create({
     height: 30,
     objectFit: "contain",
   },
-  brandSub: {
-    fontSize: 9,
-    color: "#71717a",
-    marginTop: 2,
-  },
   meta: {
     textAlign: "right",
   },
@@ -117,6 +148,13 @@ const styles = StyleSheet.create({
   customerName: {
     fontFamily: "Helvetica-Bold",
     marginBottom: 2,
+  },
+  customerNameArabic: {
+    fontFamily: "NotoArabic",
+    fontSize: 12,
+    marginBottom: 2,
+    textAlign: "right" as const,
+    direction: "rtl" as const,
   },
   customerLine: {
     fontSize: 9,
@@ -227,6 +265,26 @@ function fmtDate(iso: string): string {
   });
 }
 
+/**
+ * Strip characters that fall outside both Helvetica AND Noto Sans
+ * Arabic (CJK, emoji, etc.) so the PDF doesn't collapse on unsupported
+ * glyphs. Arabic and Latin are both kept; the customer block picks the
+ * right font per line based on hasArabic().
+ */
+function safeText(s: string | null | undefined): string {
+  if (!s) return "";
+  // Keep printable ASCII + Latin-1 supplements + Arabic blocks + common
+  // punctuation. Anything else (CJK, emoji, etc.) is stripped so the
+  // PDF layout doesn't collapse on unsupported glyphs.
+  const ARABIC_OK = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+  const LATIN_OK = /[\x20-\x7E -ɏ‐-‧]/;
+  const out: string[] = [];
+  for (const ch of s) {
+    if (LATIN_OK.test(ch) || ARABIC_OK.test(ch)) out.push(ch);
+  }
+  return out.join("").trim();
+}
+
 /* ── component ───────────────────────────────────────────────────────── */
 
 function CustomerInvoiceDocument({
@@ -239,7 +297,6 @@ function CustomerInvoiceDocument({
   logoDataUrl: string | null;
 }) {
   const { invoice_number, generated_at, customer, order, items, totals, barcode } = data;
-  const addr = customer.address;
   const Doc = Document as any;
   const Pg = Page as any;
   const Vw = View as any;
@@ -257,7 +314,6 @@ function CustomerInvoiceDocument({
             ) : (
               <Tx style={styles.brand}>TRENDLET</Tx>
             )}
-            <Tx style={styles.brandSub}>Sourcing &amp; fulfillment, KSA</Tx>
           </Vw>
           <Vw style={styles.meta}>
             <Tx style={styles.metaLabel}>Invoice</Tx>
@@ -273,16 +329,20 @@ function CustomerInvoiceDocument({
           </Vw>
         </Vw>
 
-        {/* Customer */}
+        {/* Customer — name (Arabic-aware) + email only. Address intentionally
+            omitted from the customer-facing invoice. */}
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
-          <Tx style={styles.customerName}>{customer.name}</Tx>
-          {customer.email && <Tx style={styles.customerLine}>{customer.email}</Tx>}
-          {addr?.line1 && <Tx style={styles.customerLine}>{addr.line1}</Tx>}
-          {(addr?.city || addr?.country) && (
-            <Tx style={styles.customerLine}>
-              {[addr?.city, addr?.country].filter(Boolean).join(", ")}
-            </Tx>
+          {(() => {
+            const cleanName = safeText(customer.name) || "Customer";
+            return (
+              <Tx style={hasArabic(cleanName) ? styles.customerNameArabic : styles.customerName}>
+                {cleanName}
+              </Tx>
+            );
+          })()}
+          {customer.email && (
+            <Tx style={styles.customerLine}>{safeText(customer.email)}</Tx>
           )}
         </Vw>
 
@@ -366,19 +426,37 @@ function CustomerInvoiceDocument({
  * Loads the Trendlet logo from /public/logo.png at render time.
  */
 export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
+  // Register the Arabic font once per process so non-Latin customer data
+  // (names, addresses) renders correctly. No-op after the first call.
+  await ensureArabicFont();
+
   let barcodeImageDataUrl: string | null = null;
   if (data.barcode) {
     const png = await generateBarcodePng(data.barcode);
     barcodeImageDataUrl = `data:image/png;base64,${png.toString("base64")}`;
   }
 
+  // Try several plausible roots — Vercel's serverless function bundles
+  // the project at /var/task; local Next.js dev uses process.cwd() at the
+  // app root. We attempt them in order and log the failure path on miss
+  // so future deploys leave a trail.
   let logoDataUrl: string | null = null;
-  try {
-    const logoBytes = await readFile(join(process.cwd(), "public", "logo.png"));
-    logoDataUrl = `data:image/png;base64,${logoBytes.toString("base64")}`;
-  } catch {
-    // Fall back to text wordmark if the logo asset is missing.
-    logoDataUrl = null;
+  const candidates = [
+    join(process.cwd(), "public", "logo.png"),
+    join(process.cwd(), "app", "public", "logo.png"),
+    "/var/task/public/logo.png",
+  ];
+  for (const p of candidates) {
+    try {
+      const bytes = await readFile(p);
+      logoDataUrl = `data:image/png;base64,${bytes.toString("base64")}`;
+      break;
+    } catch {
+      // try next
+    }
+  }
+  if (!logoDataUrl) {
+    console.warn("[customer-invoice-pdf] logo.png not found in any of:", candidates);
   }
 
   const blob = await pdf(

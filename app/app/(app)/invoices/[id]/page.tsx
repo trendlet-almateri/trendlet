@@ -100,6 +100,9 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
   const canRegenerate = inv.status === "approved" || inv.status === "sent";
   const canEdit =
     inv.status === "draft" || inv.status === "pending_review" || inv.status === "rejected";
+  // Show a live-rendered preview for non-approved invoices so admin can
+  // eyeball the customer-facing artifact before approving.
+  const previewUrl = !pdfSignedUrl && canEdit ? `/api/invoices/${inv.id}/preview` : null;
   const zohoLive = isZohoConfigured();
 
   return (
@@ -152,7 +155,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <FileText className="h-3 w-3" aria-hidden /> PDF preview
+                <FileText className="h-3 w-3" aria-hidden /> PDF {previewUrl ? "preview (draft)" : "preview"}
               </h2>
               {canRegenerate && <RegeneratePdfButton invoiceId={inv.id} />}
             </div>
@@ -162,6 +165,18 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                 title={`Invoice ${inv.invoice_number} PDF`}
                 className="h-[640px] w-full rounded-md border border-[var(--line)] bg-white"
               />
+            ) : previewUrl ? (
+              <div className="flex flex-col gap-2">
+                <iframe
+                  src={previewUrl}
+                  title={`Invoice ${inv.invoice_number} preview`}
+                  className="h-[640px] w-full rounded-md border border-[var(--line)] bg-white"
+                />
+                <p className="text-[11px] text-[var(--muted)]">
+                  Live preview from the current draft. Approving renders the
+                  final PDF and saves it to storage.
+                </p>
+              </div>
             ) : inv.pdf_storage_path ? (
               <div className="rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] px-6 py-12 text-center text-[12px] text-[var(--muted)]">
                 PDF stored at <code className="mono">{inv.pdf_storage_path}</code> —
