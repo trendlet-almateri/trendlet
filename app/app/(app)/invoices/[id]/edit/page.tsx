@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { requireAdmin } from "@/lib/auth/require-role";
+import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EditInvoiceForm, type EditInvoiceInitial } from "./edit-invoice-form";
 
@@ -10,23 +10,33 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit invoice · Trendslet Operations" };
 
 export default async function EditInvoicePage({ params }: { params: { id: string } }) {
-  await requireAdmin();
+  // Admin + sourcing + EU fulfiller can land here; ownership + status are
+  // checked below.
+  const user = await requireRole(["admin", "sourcing", "fulfiller"]);
+  const isAdmin = user.roles.includes("admin");
   const sb = createServiceClient();
 
   const { data: inv, error } = await sb
     .from("customer_invoices")
     .select(
       `id, invoice_number, status, language, cost, cost_currency, markup_percent,
-       discount_amount, shipment_fee, tax_percent, total_currency,
+       discount_amount, shipment_fee, tax_percent, total_currency, generated_by,
        order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name ) )`,
     )
     .eq("id", params.id)
     .maybeSingle();
   if (error || !inv) notFound();
 
+  // Non-admin can edit only their own invoices.
+  const generatedBy = (inv as { generated_by: string | null }).generated_by;
+  if (!isAdmin && generatedBy !== user.id) notFound();
+
   const status = (inv as { status: string }).status;
-  if (status !== "draft" && status !== "pending_review" && status !== "rejected") {
-    // Locked once approved or sent — bounce back to detail page.
+  // Status gate. Admin: draft/pending_review/rejected. Employee: draft only.
+  const editable = isAdmin
+    ? status === "draft" || status === "pending_review" || status === "rejected"
+    : status === "draft";
+  if (!editable) {
     redirect(`/invoices/${params.id}`);
   }
 

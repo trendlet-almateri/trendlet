@@ -59,6 +59,10 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/pipeline", label: "Warehouse", icon: Warehouse, dot: "bg-status-warehouse-border", roles: ["warehouse", "admin"] },
       { href: "/eu-fulfillment", label: "EU fulfillment", icon: Globe, dot: "bg-status-transit-border", roles: ["fulfiller", "admin"] },
       { href: "/ksa-last-mile", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"], disabled: true },
+      // Sourcing + EU fulfiller share the /invoices page (filtered to
+      // their own work). Admin already has the full Invoices view in
+      // Workspace above, so excluded here to avoid a duplicate link.
+      { href: "/invoices", label: "Invoices", icon: Receipt, roles: ["sourcing", "fulfiller"] },
     ],
   },
   {

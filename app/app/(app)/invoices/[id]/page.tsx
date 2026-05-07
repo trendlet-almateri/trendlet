@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, FileText, Brain, Pencil } from "lucide-react";
-import { requireAdmin } from "@/lib/auth/require-role";
+import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCustomerInvoiceSignedUrl } from "@/lib/storage/customer-invoices";
 import { isZohoConfigured } from "@/lib/integrations/zoho-mail";
@@ -25,6 +25,7 @@ type InvoiceDetail = {
   item_price: number;
   discount_amount: number;
   shipment_fee: number;
+  generated_by: string | null;
   tax_percent: number;
   tax_amount: number;
   total: number;
@@ -71,7 +72,9 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  await requireAdmin();
+  // Sourcing + EU fulfiller can view their own invoices; admin sees all.
+  const user = await requireRole(["admin", "sourcing", "fulfiller"]);
+  const isAdmin = user.roles.includes("admin");
   const sb = createServiceClient();
 
   const { data, error } = await sb
@@ -81,7 +84,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
       cost, cost_currency, markup_percent, item_price, discount_amount, shipment_fee,
       tax_percent, tax_amount, total, total_currency,
       profit_amount, profit_percent, language, pdf_storage_path,
-      generated_at, reviewed_at, rejection_reason, sent_at, sent_to_email, created_at,
+      generated_at, generated_by, reviewed_at, rejection_reason, sent_at, sent_to_email, created_at,
       order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name, email, default_address ) )
     `)
     .eq("id", params.id)
@@ -90,6 +93,9 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
   if (error || !data) notFound();
   const inv = data as unknown as InvoiceDetail;
 
+  // Non-admin can only see invoices they created.
+  if (!isAdmin && inv.generated_by !== user.id) notFound();
+
   const customerName = inv.order?.customer
     ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
     : "—";
@@ -97,9 +103,12 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
   const pdfSignedUrl = inv.pdf_storage_path
     ? await getCustomerInvoiceSignedUrl(inv.pdf_storage_path)
     : null;
-  const canRegenerate = inv.status === "approved" || inv.status === "sent";
-  const canEdit =
-    inv.status === "draft" || inv.status === "pending_review" || inv.status === "rejected";
+  const canRegenerate = isAdmin && (inv.status === "approved" || inv.status === "sent");
+  // Admin can edit while not approved/sent. Employee can edit only while draft
+  // (once they submit, it's locked from their side; only admin can edit).
+  const canEdit = isAdmin
+    ? inv.status === "draft" || inv.status === "pending_review" || inv.status === "rejected"
+    : inv.status === "draft";
   // Show a live-rendered preview for non-approved invoices so admin can
   // eyeball the customer-facing artifact before approving.
   const previewUrl = !pdfSignedUrl && canEdit ? `/api/invoices/${inv.id}/preview` : null;
@@ -214,15 +223,24 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
         {/* Right rail: actions, calculation, customer */}
         <aside className="flex flex-col gap-4">
-          <InvoiceActions
-            invoiceId={inv.id}
-            status={inv.status}
-            rejectionReason={inv.rejection_reason}
-            sentAt={inv.sent_at}
-            sentToEmail={inv.sent_to_email}
-            customerEmail={customerEmail}
-            zohoLive={zohoLive}
-          />
+          {isAdmin ? (
+            <InvoiceActions
+              invoiceId={inv.id}
+              status={inv.status}
+              rejectionReason={inv.rejection_reason}
+              sentAt={inv.sent_at}
+              sentToEmail={inv.sent_to_email}
+              customerEmail={customerEmail}
+              zohoLive={zohoLive}
+            />
+          ) : (
+            <EmployeeStatusPanel
+              status={inv.status}
+              rejectionReason={inv.rejection_reason}
+              sentAt={inv.sent_at}
+              sentToEmail={inv.sent_to_email}
+            />
+          )}
 
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
@@ -242,22 +260,34 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
                 return (
                   <>
-                    <Row
-                      label={`Cost (${inv.cost_currency})`}
-                      value={formatCurrency(inv.cost, inv.cost_currency)}
-                    />
-                    {isFx && (
+                    {/* Cost / markup / profit are admin-internal — hidden for
+                        sourcing + EU views. They see only customer-facing rows. */}
+                    {isAdmin && (
+                      <>
+                        <Row
+                          label={`Cost (${inv.cost_currency})`}
+                          value={formatCurrency(inv.cost, inv.cost_currency)}
+                        />
+                        {isFx && (
+                          <Row
+                            label={`Converted to ${inv.total_currency}`}
+                            value={formatCurrency(convertedCost, inv.total_currency)}
+                            hint
+                          />
+                        )}
+                        <Row
+                          label={`Markup ${Number(inv.markup_percent).toFixed(0)}%`}
+                          value={`+${formatCurrency(markupAmount, inv.total_currency)}`}
+                          muted
+                        />
+                      </>
+                    )}
+                    {!isAdmin && (
                       <Row
-                        label={`Converted to ${inv.total_currency}`}
-                        value={formatCurrency(convertedCost, inv.total_currency)}
-                        hint
+                        label="Items"
+                        value={formatCurrency(inv.item_price, inv.total_currency)}
                       />
                     )}
-                    <Row
-                      label={`Markup ${Number(inv.markup_percent).toFixed(0)}%`}
-                      value={`+${formatCurrency(markupAmount, inv.total_currency)}`}
-                      muted
-                    />
                     {Number(inv.discount_amount) > 0 && (
                       <Row
                         label="Discount"
@@ -277,7 +307,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                     )}
                     <div className="my-1 border-t border-[var(--line)]" />
                     <Row label="Total" value={formatCurrency(inv.total, inv.total_currency)} bold />
-                    {inv.profit_amount != null && (
+                    {isAdmin && inv.profit_amount != null && (
                       <Row
                         label="Profit"
                         value={
@@ -355,5 +385,79 @@ function Row({
       </dt>
       <dd className={cn("mono text-[var(--ink)]", bold && "font-medium")}>{value}</dd>
     </div>
+  );
+}
+
+/* Read-only status panel for sourcing + EU fulfiller. They see what the
+   admin reviewer did, but no Approve/Reject/Send buttons. */
+function EmployeeStatusPanel({
+  status,
+  rejectionReason,
+  sentAt,
+  sentToEmail,
+}: {
+  status: "draft" | "pending_review" | "approved" | "sent" | "rejected";
+  rejectionReason: string | null;
+  sentAt: string | null;
+  sentToEmail: string | null;
+}) {
+  if (status === "draft") {
+    return (
+      <section className="rounded-md border border-hairline bg-surface p-4 text-[13px] text-ink-secondary">
+        <h2 className="mb-1 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
+          Status
+        </h2>
+        <p>
+          Draft. Edit and submit when ready — admin will review before sending.
+        </p>
+      </section>
+    );
+  }
+  if (status === "pending_review") {
+    return (
+      <section className="rounded-md border border-status-sourcing-border/40 bg-status-sourcing-bg p-4 text-[13px] text-status-sourcing-fg">
+        <h2 className="mb-1 text-[10px] font-medium uppercase tracking-[0.14em]">
+          Awaiting admin review
+        </h2>
+        <p>Submitted. Admin will approve or reject — no changes possible from your side now.</p>
+      </section>
+    );
+  }
+  if (status === "approved") {
+    return (
+      <section className="rounded-md border border-status-warehouse-border/40 bg-status-warehouse-bg p-4 text-[13px] text-status-warehouse-fg">
+        <h2 className="mb-1 text-[10px] font-medium uppercase tracking-[0.14em]">
+          Approved
+        </h2>
+        <p>Approved by admin. Awaiting send to customer.</p>
+      </section>
+    );
+  }
+  if (status === "sent") {
+    return (
+      <section className="rounded-md border border-status-delivered-border/40 bg-status-delivered-bg p-4 text-[13px] text-status-delivered-fg">
+        <h2 className="mb-1 text-[10px] font-medium uppercase tracking-[0.14em]">
+          Sent to customer
+        </h2>
+        {sentToEmail && (
+          <p className="text-[11px] opacity-80">
+            {sentToEmail}
+            {sentAt && ` · ${new Date(sentAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`}
+          </p>
+        )}
+      </section>
+    );
+  }
+  // rejected
+  return (
+    <section className="rounded-md border border-status-danger-border/40 bg-status-danger-bg p-4 text-[13px] text-status-danger-fg">
+      <h2 className="mb-1 text-[10px] font-medium uppercase tracking-[0.14em]">
+        Rejected by admin
+      </h2>
+      {rejectionReason && <p className="mb-2">{rejectionReason}</p>}
+      <p className="text-[11px] opacity-80">
+        Admin will fix this and resubmit, or contact you with what to change.
+      </p>
+    </section>
   );
 }
