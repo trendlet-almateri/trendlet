@@ -23,6 +23,7 @@ type InvoiceDetail = {
   cost_currency: string;
   markup_percent: number;
   item_price: number;
+  discount_amount: number;
   shipment_fee: number;
   tax_percent: number;
   tax_amount: number;
@@ -77,7 +78,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
     .from("customer_invoices")
     .select(`
       id, invoice_number, status, ai_confidence, ai_reasoning,
-      cost, cost_currency, markup_percent, item_price, shipment_fee,
+      cost, cost_currency, markup_percent, item_price, discount_amount, shipment_fee,
       tax_percent, tax_amount, total, total_currency,
       profit_amount, profit_percent, language, pdf_storage_path,
       generated_at, reviewed_at, rejection_reason, sent_at, sent_to_email, created_at,
@@ -242,6 +243,13 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                       value={`+${formatCurrency(markupAmount, inv.total_currency)}`}
                       muted
                     />
+                    {Number(inv.discount_amount) > 0 && (
+                      <Row
+                        label="Discount"
+                        value={`− ${formatCurrency(Number(inv.discount_amount), inv.total_currency)}`}
+                        muted
+                      />
+                    )}
                     {inv.shipment_fee > 0 && (
                       <Row label="Shipping" value={`+${formatCurrency(inv.shipment_fee, inv.total_currency)}`} muted />
                     )}

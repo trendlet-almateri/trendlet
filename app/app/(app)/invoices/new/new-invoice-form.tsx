@@ -46,6 +46,7 @@ export function NewInvoiceForm() {
   const [costCurrency, setCostCurrency] = useState<string>("USD");
   const [markupPercent, setMarkupPercent] = useState<string>("0");
   const [shipmentFee, setShipmentFee] = useState<string>("0");
+  const [discountAmount, setDiscountAmount] = useState<string>("0");
   // Default 0 — Shopify totals are typically tax-inclusive. Admin can opt in.
   const [taxPercent, setTaxPercent] = useState<string>("0");
   const [totalCurrency, setTotalCurrency] = useState<string>("SAR");
@@ -56,13 +57,18 @@ export function NewInvoiceForm() {
     () => items.reduce((s, it) => s + it.quantity * it.unit_price, 0),
     [items],
   );
+  const discount = useMemo(
+    () => Math.min(Number(discountAmount || 0), itemPrice),
+    [discountAmount, itemPrice],
+  );
+  const discountedItems = useMemo(() => itemPrice - discount, [itemPrice, discount]);
   const taxAmount = useMemo(
-    () => (itemPrice + Number(shipmentFee || 0)) * (Number(taxPercent || 0) / 100),
-    [itemPrice, shipmentFee, taxPercent],
+    () => (discountedItems + Number(shipmentFee || 0)) * (Number(taxPercent || 0) / 100),
+    [discountedItems, shipmentFee, taxPercent],
   );
   const total = useMemo(
-    () => itemPrice + Number(shipmentFee || 0) + taxAmount,
-    [itemPrice, shipmentFee, taxAmount],
+    () => discountedItems + Number(shipmentFee || 0) + taxAmount,
+    [discountedItems, shipmentFee, taxAmount],
   );
 
   /* ── form action wiring ── */
@@ -92,6 +98,13 @@ export function NewInvoiceForm() {
       },
     ]);
 
+    // Roll up Shopify line-item discounts as we accumulate sub-orders.
+    if (hit.discount > 0) {
+      setDiscountAmount((prev) =>
+        (Number(prev || 0) + hit.discount).toFixed(2),
+      );
+    }
+
     // First pick: pre-fill currency from order's sub-order currency.
     if (selected.length === 0) {
       setCostCurrency(hit.currency);
@@ -100,8 +113,14 @@ export function NewInvoiceForm() {
   }
 
   function removeSubOrder(subOrderId: string) {
+    const removed = selected.find((s) => s.sub_order_id === subOrderId);
     setSelected((prev) => prev.filter((s) => s.sub_order_id !== subOrderId));
     setItems((prev) => prev.filter((it) => it.sub_order_id !== subOrderId));
+    if (removed && removed.discount > 0) {
+      setDiscountAmount((prev) =>
+        Math.max(0, Number(prev || 0) - removed.discount).toFixed(2),
+      );
+    }
   }
 
   function addBlankItem() {
@@ -286,6 +305,16 @@ export function NewInvoiceForm() {
               <Field label="Total ccy">
                 <CurrencyPicker name="total_currency" value={totalCurrency} onChange={setTotalCurrency} />
               </Field>
+              <Field label="Discount">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  name="discount_amount"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(e.target.value)}
+                />
+              </Field>
               <Field label="Shipping">
                 <Input
                   type="number"
@@ -307,6 +336,11 @@ export function NewInvoiceForm() {
                 />
               </Field>
             </div>
+            {discount > 0 && (
+              <p className="mt-2 text-[11px] text-ink-tertiary">
+                Pulled from Shopify order discount allocations. Edit if needed.
+              </p>
+            )}
           </Section>
         </div>
 
@@ -335,6 +369,12 @@ export function NewInvoiceForm() {
           <Section title="Totals">
             <dl className="flex flex-col gap-1.5 text-[13px]">
               <Row label="Items" value={formatCurrency(itemPrice, totalCurrency)} />
+              {discount > 0 && (
+                <Row
+                  label="Discount"
+                  value={`− ${formatCurrency(discount, totalCurrency)}`}
+                />
+              )}
               {Number(shipmentFee) > 0 && (
                 <Row label="Shipping" value={formatCurrency(Number(shipmentFee), totalCurrency)} />
               )}

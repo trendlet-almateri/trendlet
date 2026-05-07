@@ -17,6 +17,7 @@ export type EditInvoiceInitial = {
   cost: number;
   cost_currency: string;
   markup_percent: number;
+  discount_amount: number;
   shipment_fee: number;
   tax_percent: number;
   total_currency: string;
@@ -45,6 +46,7 @@ export function EditInvoiceForm({ initial }: { initial: EditInvoiceInitial }) {
   const [cost, setCost] = useState(String(initial.cost));
   const [costCurrency, setCostCurrency] = useState(initial.cost_currency);
   const [markupPercent, setMarkupPercent] = useState(String(initial.markup_percent));
+  const [discountAmount, setDiscountAmount] = useState(String(initial.discount_amount));
   const [shipmentFee, setShipmentFee] = useState(String(initial.shipment_fee));
   const [taxPercent, setTaxPercent] = useState(String(initial.tax_percent));
   const [totalCurrency, setTotalCurrency] = useState(initial.total_currency);
@@ -53,13 +55,18 @@ export function EditInvoiceForm({ initial }: { initial: EditInvoiceInitial }) {
     () => items.reduce((s, it) => s + it.quantity * it.unit_price, 0),
     [items],
   );
+  const discount = useMemo(
+    () => Math.min(Number(discountAmount || 0), itemPrice),
+    [discountAmount, itemPrice],
+  );
+  const discountedItems = useMemo(() => itemPrice - discount, [itemPrice, discount]);
   const taxAmount = useMemo(
-    () => (itemPrice + Number(shipmentFee || 0)) * (Number(taxPercent || 0) / 100),
-    [itemPrice, shipmentFee, taxPercent],
+    () => (discountedItems + Number(shipmentFee || 0)) * (Number(taxPercent || 0) / 100),
+    [discountedItems, shipmentFee, taxPercent],
   );
   const total = useMemo(
-    () => itemPrice + Number(shipmentFee || 0) + taxAmount,
-    [itemPrice, shipmentFee, taxAmount],
+    () => discountedItems + Number(shipmentFee || 0) + taxAmount,
+    [discountedItems, shipmentFee, taxAmount],
   );
 
   const [state, dispatch] = useFormState(updateInvoiceAction, initialState);
@@ -180,6 +187,9 @@ export function EditInvoiceForm({ initial }: { initial: EditInvoiceInitial }) {
               <Field label="Total ccy">
                 <CurrencyPicker name="total_currency" value={totalCurrency} onChange={setTotalCurrency} />
               </Field>
+              <Field label="Discount">
+                <Input type="number" min={0} step="0.01" name="discount_amount" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} />
+              </Field>
               <Field label="Shipping">
                 <Input type="number" min={0} step="0.01" name="shipment_fee" value={shipmentFee} onChange={(e) => setShipmentFee(e.target.value)} />
               </Field>
@@ -194,6 +204,12 @@ export function EditInvoiceForm({ initial }: { initial: EditInvoiceInitial }) {
           <Section title="Totals">
             <dl className="flex flex-col gap-1.5 text-[13px]">
               <Row label="Items" value={formatCurrency(itemPrice, totalCurrency)} />
+              {discount > 0 && (
+                <Row
+                  label="Discount"
+                  value={`− ${formatCurrency(discount, totalCurrency)}`}
+                />
+              )}
               {Number(shipmentFee) > 0 && (
                 <Row label="Shipping" value={formatCurrency(Number(shipmentFee), totalCurrency)} />
               )}

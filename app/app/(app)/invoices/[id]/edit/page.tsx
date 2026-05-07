@@ -17,7 +17,7 @@ export default async function EditInvoicePage({ params }: { params: { id: string
     .from("customer_invoices")
     .select(
       `id, invoice_number, status, language, cost, cost_currency, markup_percent,
-       shipment_fee, tax_percent, total_currency,
+       discount_amount, shipment_fee, tax_percent, total_currency,
        order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name ) )`,
     )
     .eq("id", params.id)
@@ -89,6 +89,7 @@ export default async function EditInvoicePage({ params }: { params: { id: string
     cost: Number((inv as { cost: number }).cost),
     cost_currency: (inv as { cost_currency: string }).cost_currency,
     markup_percent: Number((inv as { markup_percent: number }).markup_percent),
+    discount_amount: Number((inv as { discount_amount: number }).discount_amount ?? 0),
     shipment_fee: Number((inv as { shipment_fee: number }).shipment_fee),
     tax_percent: Number((inv as { tax_percent: number }).tax_percent),
     total_currency: (inv as { total_currency: string }).total_currency,

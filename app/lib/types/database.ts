@@ -426,6 +426,7 @@ export type Database = {
           cost: number
           cost_currency: Database["public"]["Enums"]["currency_code"]
           created_at: string
+          discount_amount: number
           generated_at: string | null
           generated_by: string | null
           id: string
@@ -460,6 +461,7 @@ export type Database = {
           cost: number
           cost_currency: Database["public"]["Enums"]["currency_code"]
           created_at?: string
+          discount_amount?: number
           generated_at?: string | null
           generated_by?: string | null
           id?: string
@@ -494,6 +496,7 @@ export type Database = {
           cost?: number
           cost_currency?: Database["public"]["Enums"]["currency_code"]
           created_at?: string
+          discount_amount?: number
           generated_at?: string | null
           generated_by?: string | null
           id?: string
