@@ -331,6 +331,93 @@ export type Database = {
           },
         ]
       }
+      customer_invoice_items: {
+        Row: {
+          created_at: string
+          customer_invoice_id: string
+          id: string
+          line_total: number
+          position: number
+          quantity: number
+          sku: string | null
+          sub_order_id: string | null
+          title: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_invoice_id: string
+          id?: string
+          line_total?: number
+          position?: number
+          quantity?: number
+          sku?: string | null
+          sub_order_id?: string | null
+          title: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_invoice_id?: string
+          id?: string
+          line_total?: number
+          position?: number
+          quantity?: number
+          sku?: string | null
+          sub_order_id?: string | null
+          title?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_items_customer_invoice_id_fkey"
+            columns: ["customer_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_items_sub_order_id_fkey"
+            columns: ["sub_order_id"]
+            isOneToOne: false
+            referencedRelation: "sub_orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      customer_invoice_sub_orders: {
+        Row: {
+          customer_invoice_id: string
+          sub_order_id: string
+        }
+        Insert: {
+          customer_invoice_id: string
+          sub_order_id: string
+        }
+        Update: {
+          customer_invoice_id?: string
+          sub_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_sub_orders_customer_invoice_id_fkey"
+            columns: ["customer_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_sub_orders_sub_order_id_fkey"
+            columns: ["sub_order_id"]
+            isOneToOne: false
+            referencedRelation: "sub_orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       customer_invoices: {
         Row: {
           ai_confidence: Database["public"]["Enums"]["ai_confidence"] | null

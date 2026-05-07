@@ -11,6 +11,8 @@ import {
   Image,
   pdf,
 } from "@react-pdf/renderer";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { generateBarcodePng } from "./barcode";
 
 /* ── data shape (kept narrow — built up in approveInvoiceAction) ─────── */
@@ -31,11 +33,14 @@ export type InvoicePdfData = {
   order: {
     shopify_order_number: string | null;
   };
-  // Line items: one per sub_order on the originating order.
+  // Line items. If the invoice has rows in customer_invoice_items those are
+  // used; otherwise we fall back to sub_orders on the originating order.
   items: {
     title: string;
     sku: string | null;
     quantity: number;
+    unit_price?: number;
+    line_total?: number;
   }[];
   totals: {
     item_price: number;
@@ -72,6 +77,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Helvetica-Bold",
     letterSpacing: 0.5,
+  },
+  brandLogo: {
+    width: 110,
+    height: 30,
+    objectFit: "contain",
   },
   brandSub: {
     fontSize: 9,
@@ -220,9 +230,11 @@ function fmtDate(iso: string): string {
 function CustomerInvoiceDocument({
   data,
   barcodeImageDataUrl,
+  logoDataUrl,
 }: {
   data: InvoicePdfData;
   barcodeImageDataUrl: string | null;
+  logoDataUrl: string | null;
 }) {
   const { invoice_number, generated_at, customer, order, items, totals, barcode } = data;
   const addr = customer.address;
@@ -238,7 +250,11 @@ function CustomerInvoiceDocument({
         {/* Header */}
         <Vw style={styles.headerRow}>
           <Vw>
-            <Tx style={styles.brand}>TRENDSLET</Tx>
+            {logoDataUrl ? (
+              <Img src={logoDataUrl} style={styles.brandLogo} />
+            ) : (
+              <Tx style={styles.brand}>TRENDLET</Tx>
+            )}
             <Tx style={styles.brandSub}>Sourcing &amp; fulfillment, KSA</Tx>
           </Vw>
           <Vw style={styles.meta}>
@@ -273,6 +289,8 @@ function CustomerInvoiceDocument({
           <Vw style={styles.thead}>
             <Tx style={styles.thItem}>Item</Tx>
             <Tx style={styles.thQty}>Qty</Tx>
+            <Tx style={styles.thQty}>Unit</Tx>
+            <Tx style={styles.thQty}>Line</Tx>
           </Vw>
           {items.map((item, i) => (
             <Vw key={i} style={styles.row}>
@@ -281,6 +299,12 @@ function CustomerInvoiceDocument({
                 {item.sku && <Tx style={styles.cellSku}>SKU {item.sku}</Tx>}
               </Vw>
               <Tx style={styles.cellQty}>{item.quantity}</Tx>
+              <Tx style={styles.cellQty}>
+                {item.unit_price != null ? fmt(item.unit_price, totals.currency) : "—"}
+              </Tx>
+              <Tx style={styles.cellQty}>
+                {item.line_total != null ? fmt(item.line_total, totals.currency) : "—"}
+              </Tx>
             </Vw>
           ))}
         </Vw>
@@ -319,7 +343,7 @@ function CustomerInvoiceDocument({
 
         {/* Footer */}
         <Tx style={styles.footer} fixed>
-          Trendslet · Riyadh, Saudi Arabia · contact@trendlet.com
+          Trendlet · Riyadh, Saudi Arabia · contact@trendlet.com
         </Tx>
       </Pg>
     </Doc>
@@ -331,6 +355,7 @@ function CustomerInvoiceDocument({
 /**
  * Render the invoice to a PDF Buffer ready for storage upload.
  * Generates the barcode PNG inline if a value is present on the data.
+ * Loads the Trendlet logo from /public/logo.png at render time.
  */
 export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
   let barcodeImageDataUrl: string | null = null;
@@ -339,8 +364,21 @@ export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Bu
     barcodeImageDataUrl = `data:image/png;base64,${png.toString("base64")}`;
   }
 
+  let logoDataUrl: string | null = null;
+  try {
+    const logoBytes = await readFile(join(process.cwd(), "public", "logo.png"));
+    logoDataUrl = `data:image/png;base64,${logoBytes.toString("base64")}`;
+  } catch {
+    // Fall back to text wordmark if the logo asset is missing.
+    logoDataUrl = null;
+  }
+
   const blob = await pdf(
-    <CustomerInvoiceDocument data={data} barcodeImageDataUrl={barcodeImageDataUrl} />,
+    <CustomerInvoiceDocument
+      data={data}
+      barcodeImageDataUrl={barcodeImageDataUrl}
+      logoDataUrl={logoDataUrl}
+    />,
   ).toBlob();
   const arrayBuffer = await blob.arrayBuffer();
   return Buffer.from(arrayBuffer);
