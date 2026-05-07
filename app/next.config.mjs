@@ -7,8 +7,8 @@ const nextConfig = {
     // PDF renderer). Without this, Vercel's tracer doesn't follow runtime
     // fs.readFile calls and the asset is missing in production.
     outputFileTracingIncludes: {
-      "/invoices/**": ["./public/logo.png"],
-      "/api/**": ["./public/logo.png"],
+      "/invoices/**": ["./public/logo.png", "./public/fonts/**"],
+      "/api/**": ["./public/logo.png", "./public/fonts/**"],
     },
   },
   images: {
