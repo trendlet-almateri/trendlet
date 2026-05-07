@@ -12,7 +12,7 @@ import {
   Font,
   pdf,
 } from "@react-pdf/renderer";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { generateBarcodePng } from "./barcode";
 
@@ -21,6 +21,9 @@ import { generateBarcodePng } from "./barcode";
    names + addresses in Arabic render correctly. Registration is a one-time
    side-effect — guarded by a module-level flag so multiple PDF renders in
    the same serverless invocation don't re-register. */
+// Font.register's `src` accepts a filesystem path (lazily read by fontkit),
+// a URL, or a data URI — NOT a raw Buffer. We stat each candidate root to
+// confirm presence, then register the path that exists.
 let arabicFontRegistered = false;
 async function ensureArabicFont(): Promise<boolean> {
   if (arabicFontRegistered) return true;
@@ -31,18 +34,18 @@ async function ensureArabicFont(): Promise<boolean> {
   ];
   for (const p of candidates) {
     try {
-      const bytes = await readFile(p);
-      Font.register({
-        family: "NotoArabic",
-        src: bytes as unknown as string, // Font.register accepts Buffer at runtime
-      });
+      await stat(p);
+      Font.register({ family: "NotoArabic", src: p });
       arabicFontRegistered = true;
       return true;
     } catch {
       // try next
     }
   }
-  console.warn("[customer-invoice-pdf] NotoSansArabic-Regular.ttf not found in any of:", candidates);
+  console.warn(
+    "[customer-invoice-pdf] NotoSansArabic-Regular.ttf not found in any of:",
+    candidates,
+  );
   return false;
 }
 
