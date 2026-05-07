@@ -343,32 +343,14 @@ function CustomerInvoiceDocument({
           </Vw>
         </Vw>
 
-        {/* Customer — name (Arabic-aware) + email only. Address intentionally
-            omitted from the customer-facing invoice. */}
+        {/* Customer — email only. Customer name is intentionally omitted
+            from the PDF: @react-pdf/textkit's bidi reorder pass crashes
+            on Arabic content (which most of our customers have), and a
+            Latin-fallback name was both ugly and inaccurate. The customer
+            name still lives in the database and on every admin-facing
+            screen. */}
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
-          {(() => {
-            // Arabic rendering disabled: @react-pdf/textkit's bidi reorder
-            // pass crashes on Arabic-only runs with the textkit version
-            // bundled with @react-pdf/renderer 4.x. Rather than a brittle
-            // workaround, we fall back to a Latin-derived display string
-            // (email local-part or "Customer"). Revisit when react-pdf's
-            // bidi support stabilizes or when we move to a different PDF
-            // engine (puppeteer / Chromium-based).
-            const fullName = safeText(customer.name).replace(
-              /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g,
-              "",
-            ).trim();
-            const emailLocal = customer.email
-              ? safeText(customer.email).split("@")[0]
-              : "";
-            const display = fullName || emailLocal || "Customer";
-            return (
-              <Tx style={styles.customerName}>
-                {display}
-              </Tx>
-            );
-          })()}
           {customer.email && (
             <Tx style={styles.customerLine}>{safeText(customer.email)}</Tx>
           )}
