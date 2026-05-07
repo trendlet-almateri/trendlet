@@ -85,11 +85,6 @@ const styles = StyleSheet.create({
     height: 30,
     objectFit: "contain",
   },
-  brandSub: {
-    fontSize: 9,
-    color: "#71717a",
-    marginTop: 2,
-  },
   meta: {
     textAlign: "right",
   },
@@ -257,7 +252,6 @@ function CustomerInvoiceDocument({
             ) : (
               <Tx style={styles.brand}>TRENDLET</Tx>
             )}
-            <Tx style={styles.brandSub}>Sourcing &amp; fulfillment, KSA</Tx>
           </Vw>
           <Vw style={styles.meta}>
             <Tx style={styles.metaLabel}>Invoice</Tx>
