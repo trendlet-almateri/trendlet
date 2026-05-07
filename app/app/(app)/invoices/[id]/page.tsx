@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, FileText, Brain } from "lucide-react";
+import { ChevronRight, FileText, Brain, Pencil } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCustomerInvoiceSignedUrl } from "@/lib/storage/customer-invoices";
@@ -97,6 +97,8 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
     ? await getCustomerInvoiceSignedUrl(inv.pdf_storage_path)
     : null;
   const canRegenerate = inv.status === "approved" || inv.status === "sent";
+  const canEdit =
+    inv.status === "draft" || inv.status === "pending_review" || inv.status === "rejected";
   const zohoLive = isZohoConfigured();
 
   return (
@@ -123,13 +125,23 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
             </span>
           )}
         </div>
-        <div className="flex flex-col items-end gap-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            Total
-          </span>
-          <span className="mono text-[22px] font-semibold text-[var(--ink)]">
-            {formatCurrency(inv.total, inv.total_currency)}
-          </span>
+        <div className="flex items-start gap-3">
+          {canEdit && (
+            <Link
+              href={`/invoices/${inv.id}/edit`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-hairline bg-white px-3 text-[12px] font-medium text-ink-primary hover:bg-neutral-50"
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden /> Edit
+            </Link>
+          )}
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+              Total
+            </span>
+            <span className="mono text-[22px] font-semibold text-[var(--ink)]">
+              {formatCurrency(inv.total, inv.total_currency)}
+            </span>
+          </div>
         </div>
       </header>
 

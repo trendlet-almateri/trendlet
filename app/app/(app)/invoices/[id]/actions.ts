@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -17,6 +18,147 @@ import {
 export type ActionState = { ok: boolean; error: string | null };
 
 const idSchema = z.string().uuid("invalid invoice id");
+
+/* ── update (edit) ──────────────────────────────────────────────────── */
+
+const CURRENCY = z.enum(["SAR", "USD", "EUR", "GBP", "AED"]);
+const lineItemUpdateSchema = z.object({
+  title: z.string().trim().min(1),
+  sku: z.string().trim().nullable().optional(),
+  quantity: z.coerce.number().int().positive(),
+  unit_price: z.coerce.number().nonnegative(),
+  sub_order_id: z.string().uuid().nullable().optional(),
+});
+
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  cost: z.coerce.number().nonnegative(),
+  cost_currency: CURRENCY,
+  markup_percent: z.coerce.number().nonnegative(),
+  shipment_fee: z.coerce.number().nonnegative().default(0),
+  tax_percent: z.coerce.number().nonnegative().default(0),
+  total_currency: CURRENCY,
+  language: z.enum(["en", "ar", "bilingual"]).default("en"),
+  items: z.array(lineItemUpdateSchema).min(1),
+  submit_for_review: z.coerce.boolean().default(false),
+});
+
+/**
+ * Edit a non-approved invoice. Replaces line items wholesale (delete + insert).
+ *
+ * Status guard: only draft / pending_review / rejected can be edited.
+ * Approved + sent are locked (the PDF and any sent email are immutable).
+ *
+ * If submit_for_review=true and current status is draft|rejected, we flip
+ * status to pending_review at the same time.
+ */
+export async function updateInvoiceAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const itemsRaw = formData.get("items_json");
+  let parsedItems: unknown = [];
+  try {
+    parsedItems = typeof itemsRaw === "string" ? JSON.parse(itemsRaw) : [];
+  } catch {
+    return { ok: false, error: "Invalid line items payload." };
+  }
+
+  const parsed = updateSchema.safeParse({
+    id: formData.get("id"),
+    cost: formData.get("cost"),
+    cost_currency: formData.get("cost_currency"),
+    markup_percent: formData.get("markup_percent"),
+    shipment_fee: formData.get("shipment_fee") || 0,
+    tax_percent: formData.get("tax_percent") || 0,
+    total_currency: formData.get("total_currency"),
+    language: formData.get("language") || "en",
+    items: parsedItems,
+    submit_for_review:
+      formData.get("submit_for_review") === "on" || formData.get("submit_for_review") === "true",
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const v = parsed.data;
+
+  const sb = createServiceClient();
+
+  // Status guard.
+  const { data: cur } = await sb
+    .from("customer_invoices")
+    .select("status")
+    .eq("id", v.id)
+    .maybeSingle();
+  if (!cur) return { ok: false, error: "Invoice not found." };
+  const status = (cur as { status: string }).status;
+  if (status !== "draft" && status !== "pending_review" && status !== "rejected") {
+    return { ok: false, error: `Can't edit a ${status} invoice.` };
+  }
+
+  // Recompute totals from the line items.
+  const itemPrice = v.items.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
+  const taxAmount = (itemPrice + v.shipment_fee) * (v.tax_percent / 100);
+  const total = itemPrice + v.shipment_fee + taxAmount;
+  const profitAmount = total - v.cost - v.shipment_fee - taxAmount;
+  const profitPercent = v.cost > 0 ? (profitAmount / v.cost) * 100 : null;
+
+  const newStatus =
+    v.submit_for_review && (status === "draft" || status === "rejected")
+      ? "pending_review"
+      : status;
+
+  // Patch header.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: updErr } = await (sb.from("customer_invoices") as any)
+    .update({
+      cost: v.cost,
+      cost_currency: v.cost_currency,
+      markup_percent: v.markup_percent,
+      item_price: itemPrice,
+      shipment_fee: v.shipment_fee,
+      tax_percent: v.tax_percent,
+      tax_amount: taxAmount,
+      total,
+      total_currency: v.total_currency,
+      profit_amount: profitAmount,
+      profit_percent: profitPercent,
+      language: v.language,
+      status: newStatus,
+      // Clear rejection_reason if re-submitting.
+      ...(v.submit_for_review && status === "rejected" ? { rejection_reason: null } : {}),
+    })
+    .eq("id", v.id);
+  if (updErr) return { ok: false, error: updErr.message };
+
+  // Replace line items wholesale. CASCADE on delete makes this safe.
+  const { error: delErr } = await sb
+    .from("customer_invoice_items")
+    .delete()
+    .eq("customer_invoice_id", v.id);
+  if (delErr) return { ok: false, error: `Items delete: ${delErr.message}` };
+
+  const itemRows = v.items.map((it, i) => ({
+    customer_invoice_id: v.id,
+    position: i,
+    title: it.title,
+    sku: it.sku || null,
+    quantity: it.quantity,
+    unit_price: it.unit_price,
+    line_total: it.quantity * it.unit_price,
+    sub_order_id: it.sub_order_id || null,
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: insErr } = await (sb.from("customer_invoice_items") as any).insert(itemRows);
+  if (insErr) return { ok: false, error: `Items insert: ${insErr.message}` };
+
+  revalidatePath(`/invoices/${v.id}`);
+  revalidatePath("/invoices");
+  redirect(`/invoices/${v.id}`);
+}
 
 const rejectSchema = z.object({
   id: z.string().uuid(),
@@ -304,7 +446,7 @@ async function generateAndStoreInvoicePdf(
         order:orders (
           shopify_order_number,
           customer:customers ( first_name, last_name, email, default_address ),
-          sub_orders ( shopify_line_item_title, shopify_sku, quantity )
+          sub_orders ( product_title, sku, quantity )
         ),
         supplier_invoice:supplier_invoices ( barcode )
       `)
@@ -313,6 +455,15 @@ async function generateAndStoreInvoicePdf(
 
     if (fetchErr) return { ok: false, error: fetchErr.message };
     if (!inv) return { ok: false, error: "Invoice not found." };
+
+    // Prefer admin-edited line items over the sub_orders 1:1 join.
+    // Falls back to sub_orders only when no rows exist (legacy AI-generated
+    // invoices that pre-date customer_invoice_items).
+    const { data: itemRows } = await sb
+      .from("customer_invoice_items")
+      .select("title, sku, quantity, unit_price, line_total")
+      .eq("customer_invoice_id", invoiceId)
+      .order("position", { ascending: true });
 
     type Addr = { address1?: string | null; city?: string | null; country?: string | null } | null;
     const order = (inv as { order: unknown }).order as {
@@ -323,7 +474,7 @@ async function generateAndStoreInvoicePdf(
         email: string | null;
         default_address: Addr;
       } | null;
-      sub_orders: { shopify_line_item_title: string | null; shopify_sku: string | null; quantity: number | null }[] | null;
+      sub_orders: { product_title: string | null; sku: string | null; quantity: number | null }[] | null;
     } | null;
     const supplierInv = (inv as { supplier_invoice: unknown }).supplier_invoice as {
       barcode: string | null;
@@ -346,11 +497,26 @@ async function generateAndStoreInvoicePdf(
           : null,
       },
       order: { shopify_order_number: order?.shopify_order_number ?? null },
-      items: (order?.sub_orders ?? []).map((s) => ({
-        title: s.shopify_line_item_title ?? "Item",
-        sku: s.shopify_sku,
-        quantity: s.quantity ?? 1,
-      })),
+      items:
+        itemRows && itemRows.length > 0
+          ? (itemRows as {
+              title: string;
+              sku: string | null;
+              quantity: number;
+              unit_price: number | null;
+              line_total: number | null;
+            }[]).map((r) => ({
+              title: r.title,
+              sku: r.sku,
+              quantity: r.quantity,
+              unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
+              line_total: r.line_total != null ? Number(r.line_total) : undefined,
+            }))
+          : (order?.sub_orders ?? []).map((s) => ({
+              title: s.product_title ?? "Item",
+              sku: s.sku,
+              quantity: s.quantity ?? 1,
+            })),
       totals: {
         item_price: Number(inv.item_price),
         shipment_fee: Number(inv.shipment_fee),

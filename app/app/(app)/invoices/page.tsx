@@ -6,6 +6,7 @@ import {
   Send,
   DollarSign,
   ChevronRight,
+  Plus,
 } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchInvoices, fetchInvoiceCounts, type InvoiceStatus } from "@/lib/queries/invoices";
@@ -69,7 +70,16 @@ export default async function InvoicesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Invoices" />
+      <div className="flex items-center justify-between gap-3">
+        <PageHeader title="Invoices" />
+        <Link
+          href="/invoices/new"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-navy-deep px-4 text-[13px] font-medium text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#063367] hover:shadow-[0_4px_12px_rgba(12,68,124,0.18)]"
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          New invoice
+        </Link>
+      </div>
 
       {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-4">
