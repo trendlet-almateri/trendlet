@@ -35,6 +35,7 @@ const updateSchema = z.object({
   cost: z.coerce.number().nonnegative(),
   cost_currency: CURRENCY,
   markup_percent: z.coerce.number().nonnegative(),
+  discount_amount: z.coerce.number().nonnegative().default(0),
   shipment_fee: z.coerce.number().nonnegative().default(0),
   tax_percent: z.coerce.number().nonnegative().default(0),
   total_currency: CURRENCY,
@@ -72,6 +73,7 @@ export async function updateInvoiceAction(
     cost: formData.get("cost"),
     cost_currency: formData.get("cost_currency"),
     markup_percent: formData.get("markup_percent"),
+    discount_amount: formData.get("discount_amount") || 0,
     shipment_fee: formData.get("shipment_fee") || 0,
     tax_percent: formData.get("tax_percent") || 0,
     total_currency: formData.get("total_currency"),
@@ -101,8 +103,10 @@ export async function updateInvoiceAction(
 
   // Recompute totals from the line items.
   const itemPrice = v.items.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
-  const taxAmount = (itemPrice + v.shipment_fee) * (v.tax_percent / 100);
-  const total = itemPrice + v.shipment_fee + taxAmount;
+  const discount = Math.min(v.discount_amount, itemPrice);
+  const discountedItems = itemPrice - discount;
+  const taxAmount = (discountedItems + v.shipment_fee) * (v.tax_percent / 100);
+  const total = discountedItems + v.shipment_fee + taxAmount;
   const profitAmount = total - v.cost - v.shipment_fee - taxAmount;
   const profitPercent = v.cost > 0 ? (profitAmount / v.cost) * 100 : null;
 
@@ -119,6 +123,7 @@ export async function updateInvoiceAction(
       cost_currency: v.cost_currency,
       markup_percent: v.markup_percent,
       item_price: itemPrice,
+      discount_amount: discount,
       shipment_fee: v.shipment_fee,
       tax_percent: v.tax_percent,
       tax_amount: taxAmount,
@@ -441,8 +446,8 @@ async function generateAndStoreInvoicePdf(
     const { data: inv, error: fetchErr } = await sb
       .from("customer_invoices")
       .select(`
-        invoice_number, generated_at, language, item_price, shipment_fee,
-        tax_amount, tax_percent, total, total_currency,
+        invoice_number, generated_at, language, item_price, discount_amount,
+        shipment_fee, tax_amount, tax_percent, total, total_currency,
         order:orders (
           shopify_order_number,
           customer:customers ( first_name, last_name, email, default_address ),
@@ -519,6 +524,7 @@ async function generateAndStoreInvoicePdf(
             })),
       totals: {
         item_price: Number(inv.item_price),
+        discount_amount: Number((inv as { discount_amount?: number }).discount_amount ?? 0),
         shipment_fee: Number(inv.shipment_fee),
         tax_amount: Number(inv.tax_amount),
         tax_percent: Number(inv.tax_percent),

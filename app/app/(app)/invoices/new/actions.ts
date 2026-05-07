@@ -13,6 +13,10 @@ export type SubOrderSearchHit = {
   sku: string | null;
   quantity: number;
   unit_price: number;
+  /** Discount allocated to this sub-order's matching Shopify line item.
+   *  Pulled from raw_payload.line_items[].discount_allocations so admin
+   *  doesn't lose the order-level discount when invoicing. */
+  discount: number;
   currency: string;
   order_id: string;
   shopify_order_number: string;
@@ -42,8 +46,9 @@ export async function searchSubOrders(query: string): Promise<SubOrderSearchHit[
     .from("sub_orders")
     .select(`
       id, sub_order_number, product_title, sku, quantity, unit_price, currency,
+      shopify_line_item_id,
       order:orders (
-        id, shopify_order_number,
+        id, shopify_order_number, raw_payload,
         customer:customers ( id, first_name, last_name, email )
       )
     `)
@@ -64,9 +69,11 @@ export async function searchSubOrders(query: string): Promise<SubOrderSearchHit[
     quantity: number;
     unit_price: number | null;
     currency: string;
+    shopify_line_item_id: string | null;
     order: {
       id: string;
       shopify_order_number: string;
+      raw_payload: ShopifyOrderPayload | null;
       customer: {
         id: string;
         first_name: string | null;
@@ -88,6 +95,7 @@ export async function searchSubOrders(query: string): Promise<SubOrderSearchHit[
         sku: r.sku,
         quantity: r.quantity,
         unit_price: Number(r.unit_price ?? 0),
+        discount: lineItemDiscount(r.order!.raw_payload, r.shopify_line_item_id),
         currency: r.currency,
         order_id: r.order!.id,
         shopify_order_number: r.order!.shopify_order_number,
@@ -96,6 +104,33 @@ export async function searchSubOrders(query: string): Promise<SubOrderSearchHit[
         customer_email: cust?.email ?? null,
       };
     });
+}
+
+/**
+ * Sum of discount_allocations for a Shopify line item (in shop currency).
+ * Returns 0 if no payload, no matching line, or no allocations.
+ */
+type ShopifyDiscountAlloc = { amount?: string | number };
+type ShopifyLineItem = {
+  id?: number | string;
+  discount_allocations?: ShopifyDiscountAlloc[];
+};
+type ShopifyOrderPayload = {
+  line_items?: ShopifyLineItem[];
+};
+
+function lineItemDiscount(
+  rawPayload: ShopifyOrderPayload | null,
+  lineItemId: string | null,
+): number {
+  if (!rawPayload || !lineItemId) return 0;
+  const items = rawPayload.line_items;
+  if (!Array.isArray(items)) return 0;
+  const match = items.find((li) => String(li.id) === lineItemId);
+  if (!match) return 0;
+  const allocations = match.discount_allocations ?? [];
+  const total = allocations.reduce((sum, a) => sum + Number(a.amount ?? 0), 0);
+  return Number(total.toFixed(2));
 }
 
 /* ── create invoice ──────────────────────────────────────────────────── */
@@ -117,6 +152,7 @@ const createSchema = z.object({
   cost: z.coerce.number().nonnegative(),
   cost_currency: CURRENCY,
   markup_percent: z.coerce.number().nonnegative(),
+  discount_amount: z.coerce.number().nonnegative().default(0),
   shipment_fee: z.coerce.number().nonnegative().default(0),
   tax_percent: z.coerce.number().nonnegative().default(0),
   total_currency: CURRENCY,
@@ -174,6 +210,7 @@ export async function createInvoiceAction(
     cost: formData.get("cost"),
     cost_currency: formData.get("cost_currency"),
     markup_percent: formData.get("markup_percent"),
+    discount_amount: formData.get("discount_amount") || 0,
     shipment_fee: formData.get("shipment_fee") || 0,
     tax_percent: formData.get("tax_percent") || 0,
     total_currency: formData.get("total_currency"),
@@ -187,9 +224,12 @@ export async function createInvoiceAction(
   const v = parsed.data;
 
   // Compute totals from line items (don't trust the client value).
+  // Discount applied to gross item price BEFORE shipping + VAT.
   const itemPrice = v.items.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
-  const taxAmount = (itemPrice + v.shipment_fee) * (v.tax_percent / 100);
-  const total = itemPrice + v.shipment_fee + taxAmount;
+  const discount = Math.min(v.discount_amount, itemPrice); // can't discount more than items
+  const discountedItems = itemPrice - discount;
+  const taxAmount = (discountedItems + v.shipment_fee) * (v.tax_percent / 100);
+  const total = discountedItems + v.shipment_fee + taxAmount;
   const profitAmount = total - v.cost - v.shipment_fee - taxAmount;
   const profitPercent = v.cost > 0 ? (profitAmount / v.cost) * 100 : null;
 
@@ -216,6 +256,7 @@ export async function createInvoiceAction(
       cost_currency: v.cost_currency,
       markup_percent: v.markup_percent,
       item_price: itemPrice,
+      discount_amount: discount,
       shipment_fee: v.shipment_fee,
       tax_percent: v.tax_percent,
       tax_amount: taxAmount,

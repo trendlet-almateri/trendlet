@@ -44,6 +44,8 @@ export type InvoicePdfData = {
   }[];
   totals: {
     item_price: number;
+    /** Discount applied to item_price before shipping + VAT. 0 if none. */
+    discount_amount: number;
     shipment_fee: number;
     tax_amount: number;
     tax_percent: number;
@@ -315,6 +317,12 @@ function CustomerInvoiceDocument({
             <Tx style={styles.totalLabel}>Items</Tx>
             <Tx style={styles.totalValue}>{fmt(totals.item_price, totals.currency)}</Tx>
           </Vw>
+          {totals.discount_amount > 0 && (
+            <Vw style={styles.totalRow}>
+              <Tx style={styles.totalLabel}>Discount</Tx>
+              <Tx style={styles.totalValue}>− {fmt(totals.discount_amount, totals.currency)}</Tx>
+            </Vw>
+          )}
           {totals.shipment_fee > 0 && (
             <Vw style={styles.totalRow}>
               <Tx style={styles.totalLabel}>Shipping</Tx>
