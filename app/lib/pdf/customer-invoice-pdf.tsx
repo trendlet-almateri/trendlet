@@ -158,11 +158,15 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   customerNameArabic: {
+    // No `direction: rtl` — @react-pdf/textkit's bidi reorder pass throws
+    // "Cannot read properties of undefined (reading 'id')" when direction
+    // is set on a Tx with our Arabic content. textkit handles Arabic glyph
+    // SHAPING natively (medial/initial/final forms work without help);
+    // textAlign:right gives the visual RTL flow we want.
     fontFamily: "NotoArabic",
     fontSize: 12,
     marginBottom: 2,
     textAlign: "right" as const,
-    direction: "rtl" as const,
   },
   customerLine: {
     fontSize: 9,
