@@ -46,7 +46,8 @@ export function NewInvoiceForm() {
   const [costCurrency, setCostCurrency] = useState<string>("USD");
   const [markupPercent, setMarkupPercent] = useState<string>("0");
   const [shipmentFee, setShipmentFee] = useState<string>("0");
-  const [taxPercent, setTaxPercent] = useState<string>("15");
+  // Default 0 — Shopify totals are typically tax-inclusive. Admin can opt in.
+  const [taxPercent, setTaxPercent] = useState<string>("0");
   const [totalCurrency, setTotalCurrency] = useState<string>("SAR");
   const [language] = useState<"en" | "ar" | "bilingual">("en");
 
