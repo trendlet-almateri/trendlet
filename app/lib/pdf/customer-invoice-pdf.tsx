@@ -348,13 +348,23 @@ function CustomerInvoiceDocument({
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
           {(() => {
-            const cleanName = safeText(customer.name) || "Customer";
-            const useArabic = arabicAvailable && hasArabic(cleanName);
-            // If the Arabic font failed to register, strip Arabic from the
-            // name so we don't try to render glyphs Helvetica can't draw.
-            const display = useArabic ? cleanName : safeText(cleanName).replace(/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g, "").trim() || "Customer";
+            // Arabic rendering disabled: @react-pdf/textkit's bidi reorder
+            // pass crashes on Arabic-only runs with the textkit version
+            // bundled with @react-pdf/renderer 4.x. Rather than a brittle
+            // workaround, we fall back to a Latin-derived display string
+            // (email local-part or "Customer"). Revisit when react-pdf's
+            // bidi support stabilizes or when we move to a different PDF
+            // engine (puppeteer / Chromium-based).
+            const fullName = safeText(customer.name).replace(
+              /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g,
+              "",
+            ).trim();
+            const emailLocal = customer.email
+              ? safeText(customer.email).split("@")[0]
+              : "";
+            const display = fullName || emailLocal || "Customer";
             return (
-              <Tx style={useArabic ? styles.customerNameArabic : styles.customerName}>
+              <Tx style={styles.customerName}>
                 {display}
               </Tx>
             );
@@ -444,12 +454,12 @@ function CustomerInvoiceDocument({
  * Loads the Trendlet logo from /public/logo.png at render time.
  */
 export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
-  // Register the Arabic font once per process so non-Latin customer data
-  // (names, addresses) renders correctly. No-op after the first call.
-  // If registration fails (font file missing, base64 read error), we
-  // continue without it; safeText() will strip Arabic chars before they
-  // reach a font that can't render them, so the layout still holds.
-  const arabicAvailable = await ensureArabicFont();
+  // Arabic font registration is currently disabled — see customer-block
+  // comment in CustomerInvoiceDocument for context. Keep the call as a
+  // no-op-from-the-document-perspective so the function stays available
+  // when we re-enable Arabic rendering with a stabler approach.
+  const arabicAvailable = false;
+  void ensureArabicFont; // silence unused-binding warning
 
   let barcodeImageDataUrl: string | null = null;
   if (data.barcode) {
