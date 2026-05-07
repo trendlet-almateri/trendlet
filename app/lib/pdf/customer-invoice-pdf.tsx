@@ -160,13 +160,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#3f3f46",
   },
-  customerLineArabic: {
-    fontFamily: "NotoArabic",
-    fontSize: 9,
-    color: "#3f3f46",
-    textAlign: "right" as const,
-    direction: "rtl" as const,
-  },
   table: {
     marginTop: 8,
     borderTopWidth: 0.5,
@@ -304,7 +297,6 @@ function CustomerInvoiceDocument({
   logoDataUrl: string | null;
 }) {
   const { invoice_number, generated_at, customer, order, items, totals, barcode } = data;
-  const addr = customer.address;
   const Doc = Document as any;
   const Pg = Page as any;
   const Vw = View as any;
@@ -337,7 +329,8 @@ function CustomerInvoiceDocument({
           </Vw>
         </Vw>
 
-        {/* Customer — Arabic font + RTL when the value contains Arabic */}
+        {/* Customer — name (Arabic-aware) + email only. Address intentionally
+            omitted from the customer-facing invoice. */}
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
           {(() => {
@@ -351,31 +344,6 @@ function CustomerInvoiceDocument({
           {customer.email && (
             <Tx style={styles.customerLine}>{safeText(customer.email)}</Tx>
           )}
-          {addr?.line1 && safeText(addr.line1) && (
-            <Tx
-              style={
-                hasArabic(addr.line1)
-                  ? styles.customerLineArabic
-                  : styles.customerLine
-              }
-            >
-              {safeText(addr.line1)}
-            </Tx>
-          )}
-          {(addr?.city || addr?.country) && (() => {
-            const cityCountry = [safeText(addr?.city ?? ""), safeText(addr?.country ?? "")]
-              .filter(Boolean)
-              .join(", ");
-            return (
-              <Tx
-                style={
-                  hasArabic(cityCountry) ? styles.customerLineArabic : styles.customerLine
-                }
-              >
-                {cityCountry}
-              </Tx>
-            );
-          })()}
         </Vw>
 
         {/* Items table */}
