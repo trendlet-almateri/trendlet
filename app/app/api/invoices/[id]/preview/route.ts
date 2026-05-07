@@ -116,17 +116,30 @@ export async function GET(
     barcode: supplierInv?.barcode ?? null,
   };
 
-  const buffer = await renderCustomerInvoicePdf(data);
-  // Coerce to Uint8Array for tighter NextResponse body compatibility.
-  const body = new Uint8Array(buffer);
+  // Wrap render in try/catch so production iframes don't show a generic
+  // 500 — we surface the actual error message + stack to make Vercel-only
+  // runtime issues (font path, asset bundling, fontkit failures) debuggable.
+  try {
+    const buffer = await renderCustomerInvoicePdf(data);
+    // Coerce to Uint8Array for tighter NextResponse body compatibility.
+    const body = new Uint8Array(buffer);
 
-  return new NextResponse(body, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${data.invoice_number}-preview.pdf"`,
-      // No caching — preview reflects current edits.
-      "Cache-Control": "no-store, must-revalidate",
-    },
-  });
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${data.invoice_number}-preview.pdf"`,
+        // No caching — preview reflects current edits.
+        "Cache-Control": "no-store, must-revalidate",
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown render error";
+    const stack = err instanceof Error ? err.stack ?? "" : "";
+    console.error("[invoice-preview] render failed:", msg, stack);
+    return NextResponse.json(
+      { error: "PDF render failed", message: msg, stack: stack.split("\n").slice(0, 6) },
+      { status: 500 },
+    );
+  }
 }

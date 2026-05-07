@@ -12,18 +12,22 @@ import {
   Font,
   pdf,
 } from "@react-pdf/renderer";
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { generateBarcodePng } from "./barcode";
 
 /* ── Arabic font registration ─────────────────────────────────────────
    Helvetica has no Arabic glyphs. We register Noto Sans Arabic so customer
-   names + addresses in Arabic render correctly. Registration is a one-time
-   side-effect — guarded by a module-level flag so multiple PDF renders in
-   the same serverless invocation don't re-register. */
-// Font.register's `src` accepts a filesystem path (lazily read by fontkit),
-// a URL, or a data URI — NOT a raw Buffer. We stat each candidate root to
-// confirm presence, then register the path that exists.
+   names render correctly.
+
+   Registration strategy: read the TTF bytes and pass as a base64 data URI.
+   Avoids two failure modes that bit us in production:
+     1. Filesystem path resolution (Vercel /var/task vs cwd vs app/)
+     2. fontkit failing to open a path that exists but isn't readable
+   With a data URI, the font travels with the code and there's no path
+   layout to debug. ~825KB font held in memory once registered.
+
+   Module-level cache so we don't re-read on every invocation. */
 let arabicFontRegistered = false;
 async function ensureArabicFont(): Promise<boolean> {
   if (arabicFontRegistered) return true;
@@ -34,8 +38,9 @@ async function ensureArabicFont(): Promise<boolean> {
   ];
   for (const p of candidates) {
     try {
-      await stat(p);
-      Font.register({ family: "NotoArabic", src: p });
+      const bytes = await readFile(p);
+      const dataUri = `data:font/ttf;base64,${bytes.toString("base64")}`;
+      Font.register({ family: "NotoArabic", src: dataUri });
       arabicFontRegistered = true;
       return true;
     } catch {
@@ -294,10 +299,12 @@ function CustomerInvoiceDocument({
   data,
   barcodeImageDataUrl,
   logoDataUrl,
+  arabicAvailable,
 }: {
   data: InvoicePdfData;
   barcodeImageDataUrl: string | null;
   logoDataUrl: string | null;
+  arabicAvailable: boolean;
 }) {
   const { invoice_number, generated_at, customer, order, items, totals, barcode } = data;
   const Doc = Document as any;
@@ -338,9 +345,13 @@ function CustomerInvoiceDocument({
           <Tx style={styles.sectionLabel}>Bill to</Tx>
           {(() => {
             const cleanName = safeText(customer.name) || "Customer";
+            const useArabic = arabicAvailable && hasArabic(cleanName);
+            // If the Arabic font failed to register, strip Arabic from the
+            // name so we don't try to render glyphs Helvetica can't draw.
+            const display = useArabic ? cleanName : safeText(cleanName).replace(/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/g, "").trim() || "Customer";
             return (
-              <Tx style={hasArabic(cleanName) ? styles.customerNameArabic : styles.customerName}>
-                {cleanName}
+              <Tx style={useArabic ? styles.customerNameArabic : styles.customerName}>
+                {display}
               </Tx>
             );
           })()}
@@ -431,7 +442,10 @@ function CustomerInvoiceDocument({
 export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
   // Register the Arabic font once per process so non-Latin customer data
   // (names, addresses) renders correctly. No-op after the first call.
-  await ensureArabicFont();
+  // If registration fails (font file missing, base64 read error), we
+  // continue without it; safeText() will strip Arabic chars before they
+  // reach a font that can't render them, so the layout still holds.
+  const arabicAvailable = await ensureArabicFont();
 
   let barcodeImageDataUrl: string | null = null;
   if (data.barcode) {
@@ -467,6 +481,7 @@ export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Bu
       data={data}
       barcodeImageDataUrl={barcodeImageDataUrl}
       logoDataUrl={logoDataUrl}
+      arabicAvailable={arabicAvailable}
     />,
   ).toBlob();
   const arrayBuffer = await blob.arrayBuffer();
