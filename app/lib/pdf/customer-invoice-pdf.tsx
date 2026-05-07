@@ -222,6 +222,21 @@ function fmtDate(iso: string): string {
   });
 }
 
+/**
+ * Strip characters Helvetica can't render (Arabic, CJK, emoji, etc.) so
+ * the PDF doesn't collapse into overlapping lines. The invoice is
+ * English-first; Arabic customer data should be translated by the admin
+ * during the pre-approval edit step. This is a last-resort fallback so
+ * the layout doesn't break if a non-Latin string slips through.
+ */
+function ascii(s: string | null | undefined): string {
+  if (!s) return "";
+  // Keep printable ASCII + common Latin-1 supplements + currency/punctuation.
+  // Replace anything else with a placeholder so the line still has content.
+  const cleaned = s.replace(/[^\x20-\x7E -ɏ‐-‧]/g, "");
+  return cleaned.trim();
+}
+
 /* ── component ───────────────────────────────────────────────────────── */
 
 function CustomerInvoiceDocument({
@@ -270,12 +285,16 @@ function CustomerInvoiceDocument({
         {/* Customer */}
         <Vw style={styles.section}>
           <Tx style={styles.sectionLabel}>Bill to</Tx>
-          <Tx style={styles.customerName}>{customer.name}</Tx>
-          {customer.email && <Tx style={styles.customerLine}>{customer.email}</Tx>}
-          {addr?.line1 && <Tx style={styles.customerLine}>{addr.line1}</Tx>}
+          <Tx style={styles.customerName}>{ascii(customer.name) || "Customer"}</Tx>
+          {customer.email && <Tx style={styles.customerLine}>{ascii(customer.email)}</Tx>}
+          {addr?.line1 && ascii(addr.line1) && (
+            <Tx style={styles.customerLine}>{ascii(addr.line1)}</Tx>
+          )}
           {(addr?.city || addr?.country) && (
             <Tx style={styles.customerLine}>
-              {[addr?.city, addr?.country].filter(Boolean).join(", ")}
+              {[ascii(addr?.city ?? ""), ascii(addr?.country ?? "")]
+                .filter(Boolean)
+                .join(", ")}
             </Tx>
           )}
         </Vw>
@@ -366,13 +385,27 @@ export async function renderCustomerInvoicePdf(data: InvoicePdfData): Promise<Bu
     barcodeImageDataUrl = `data:image/png;base64,${png.toString("base64")}`;
   }
 
+  // Try several plausible roots — Vercel's serverless function bundles
+  // the project at /var/task; local Next.js dev uses process.cwd() at the
+  // app root. We attempt them in order and log the failure path on miss
+  // so future deploys leave a trail.
   let logoDataUrl: string | null = null;
-  try {
-    const logoBytes = await readFile(join(process.cwd(), "public", "logo.png"));
-    logoDataUrl = `data:image/png;base64,${logoBytes.toString("base64")}`;
-  } catch {
-    // Fall back to text wordmark if the logo asset is missing.
-    logoDataUrl = null;
+  const candidates = [
+    join(process.cwd(), "public", "logo.png"),
+    join(process.cwd(), "app", "public", "logo.png"),
+    "/var/task/public/logo.png",
+  ];
+  for (const p of candidates) {
+    try {
+      const bytes = await readFile(p);
+      logoDataUrl = `data:image/png;base64,${bytes.toString("base64")}`;
+      break;
+    } catch {
+      // try next
+    }
+  }
+  if (!logoDataUrl) {
+    console.warn("[customer-invoice-pdf] logo.png not found in any of:", candidates);
   }
 
   const blob = await pdf(
