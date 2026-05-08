@@ -8,6 +8,7 @@ import {
   Download,
   RefreshCw,
   Zap,
+  Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,14 +37,25 @@ type PollResult =
     }
   | { ok: false; error: string };
 
+type WebhookResult =
+  | {
+      ok: true;
+      action: "created" | "already_registered";
+      webhook: { id: string | number; topic: string; address: string };
+      notice?: string;
+    }
+  | { ok: false; error: string };
+
 const DEFAULT_SINCE = "2026-04-25";
 
 export function ShopifySyncControls() {
   const [since, setSince] = useState(DEFAULT_SINCE);
   const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(null);
   const [pollResult, setPollResult] = useState<PollResult | null>(null);
+  const [webhookResult, setWebhookResult] = useState<WebhookResult | null>(null);
   const [pendingBackfill, startBackfill] = useTransition();
   const [pendingPoll, startPoll] = useTransition();
+  const [pendingWebhook, startWebhook] = useTransition();
 
   function runBackfill() {
     setBackfillResult(null);
@@ -79,6 +91,23 @@ export function ShopifySyncControls() {
         setPollResult({ ok: true, ...data });
       } catch (e) {
         setPollResult({ ok: false, error: e instanceof Error ? e.message : "Network error" });
+      }
+    });
+  }
+
+  function registerWebhook() {
+    setWebhookResult(null);
+    startWebhook(async () => {
+      try {
+        const res = await fetch("/api/admin/shopify-webhook-register", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          setWebhookResult({ ok: false, error: data.message || data.error || "Register failed" });
+          return;
+        }
+        setWebhookResult({ ok: true, action: data.action, webhook: data.webhook, notice: data.notice });
+      } catch (e) {
+        setWebhookResult({ ok: false, error: e instanceof Error ? e.message : "Network error" });
       }
     });
   }
@@ -128,6 +157,63 @@ export function ShopifySyncControls() {
           <div className="mt-3 flex items-start gap-2 rounded-md border border-status-danger-border/40 bg-status-danger-bg p-3 text-[12px] text-status-danger-fg">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
             <span className="break-all">{pollResult.error}</span>
+          </div>
+        )}
+      </section>
+
+      {/* Webhook register */}
+      <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+        <h2 className="mb-3 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
+          <Webhook className="h-3 w-3" aria-hidden /> Live webhook (instant push)
+        </h2>
+        <p className="mb-3 text-[12px] text-ink-secondary">
+          Tell Shopify to push every new <code className="mono">orders/create</code>{" "}
+          to this app instantly. Faster than the 5-min polling cron. Requires{" "}
+          <code className="mono">SHOPIFY_WEBHOOK_SECRET</code> to be set in
+          Vercel env vars after registration — Shopify shows the secret on
+          your Custom App&apos;s API credentials page once a webhook exists.
+        </p>
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={registerWebhook}
+          disabled={pendingWebhook}
+        >
+          {pendingWebhook ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Registering…
+            </>
+          ) : (
+            <>
+              <Webhook className="h-4 w-4" aria-hidden /> Register webhook
+            </>
+          )}
+        </Button>
+
+        {webhookResult?.ok && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-status-success-border/40 bg-status-success-bg p-3 text-[12px] text-status-success-fg">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium">
+                Webhook {webhookResult.action === "created" ? "created" : "already registered"}
+              </span>
+              <span className="break-all text-[11px]">
+                Topic: <code className="mono">{webhookResult.webhook.topic}</code>
+              </span>
+              <span className="break-all text-[11px]">
+                URL: <code className="mono">{webhookResult.webhook.address}</code>
+              </span>
+              {webhookResult.notice && (
+                <span className="mt-2 text-[11px]">{webhookResult.notice}</span>
+              )}
+            </div>
+          </div>
+        )}
+        {webhookResult && !webhookResult.ok && (
+          <div className="mt-3 flex items-start gap-2 rounded-md border border-status-danger-border/40 bg-status-danger-bg p-3 text-[12px] text-status-danger-fg">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+            <span className="break-all">{webhookResult.error}</span>
           </div>
         )}
       </section>

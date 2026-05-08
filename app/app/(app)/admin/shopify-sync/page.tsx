@@ -46,9 +46,11 @@ export default async function ShopifySyncPage() {
       <header className="rise-in flex flex-col gap-1">
         <h1 className="text-h1 text-[var(--ink)]">Shopify sync</h1>
         <p className="max-w-[640px] text-[12px] text-[var(--muted)]">
-          Auto-syncs new orders from Shopify every 5 minutes. Uses your read
-          access token only — no webhook required. Backfill historical orders
-          on demand below.
+          Choose your sync strategy:{" "}
+          <strong>Webhook</strong> (instant push from Shopify, requires{" "}
+          <code className="mono">SHOPIFY_WEBHOOK_SECRET</code>) or{" "}
+          <strong>Polling cron</strong> (every 5 min, no extra secret).
+          Backfill historical orders on demand below.
         </p>
       </header>
 

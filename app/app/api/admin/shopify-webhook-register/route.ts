@@ -138,6 +138,18 @@ export async function POST() {
       { status: 502 },
     );
   }
-  const created = (await createRes.json()) as { webhook: WebhookRow };
-  return NextResponse.json({ ok: true, action: "created", webhook: created.webhook });
+  const created = (await createRes.json()) as {
+    webhook: WebhookRow & { client_secret?: string };
+  };
+
+  // Whether Shopify shows the signing secret already configured on the
+  // app's API credentials page — surface a hint so admin knows where to
+  // copy it from.
+  return NextResponse.json({
+    ok: true,
+    action: "created",
+    webhook: created.webhook,
+    notice:
+      "Webhook created. Copy the webhook signing secret from your Shopify Custom App → API credentials → Webhook subscriptions, then set it as SHOPIFY_WEBHOOK_SECRET in Vercel env vars (Production scope) and redeploy. The webhook handler will reject deliveries until the secret is configured.",
+  });
 }
