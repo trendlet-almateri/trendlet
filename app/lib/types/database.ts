@@ -1497,6 +1497,45 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_tokens: {
+        Row: {
+          access_token: string
+          client_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string
+          refresh_token_expires_at: string
+          scope: string | null
+          shop: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          client_id?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token: string
+          refresh_token_expires_at: string
+          scope?: string | null
+          shop: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          client_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          refresh_token_expires_at?: string
+          scope?: string | null
+          shop?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           created_at: string
