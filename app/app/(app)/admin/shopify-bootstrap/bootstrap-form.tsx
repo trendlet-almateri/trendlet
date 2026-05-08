@@ -56,6 +56,21 @@ export function BootstrapForm() {
         <KeyRound className="h-3 w-3" aria-hidden /> Exchange token
       </h2>
 
+      <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-900">
+        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+        <div>
+          <span className="font-medium">Custom App tokens won&apos;t work here.</span>{" "}
+          Shopify&apos;s token-exchange endpoint only accepts tokens issued
+          through an OAuth install flow. If your{" "}
+          <code className="mono">shpat_*</code> came from{" "}
+          <em>Settings → Apps → Develop apps → Reveal token</em>, it&apos;s
+          already a non-expiring Custom App token — just put it in{" "}
+          <code className="mono">SHOPIFY_ACCESS_TOKEN</code> env var and skip
+          this page. Use this form only when migrating an OAuth-installed
+          app&apos;s token to expiring offline tokens.
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3">
         <Field label="Shop domain" hint="e.g. trendlet.myshopify.com — without https://">
           <Input
