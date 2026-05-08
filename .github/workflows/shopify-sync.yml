@@ -1,0 +1,51 @@
+name: Shopify auto-sync
+
+# Polls /api/cron/shopify-poll every 5 minutes to pull new + updated orders
+# from Shopify into Supabase. Replaces a Vercel cron that the Hobby plan
+# would block (Hobby allows max 1 cron run per day).
+#
+# Required repo secret:
+#   CRON_SECRET — must match the env var in Vercel
+#
+# Required env (or just hardcode the prod URL below):
+#   APP_URL    — e.g. https://trendlet.vercel.app
+#                Default in this workflow points at production.
+
+on:
+  schedule:
+    # Every 5 minutes. GitHub may delay by a few minutes under load —
+    # acceptable since the route is idempotent and uses high-water-mark
+    # tracking.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {} # also allow manual run from the Actions tab
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Shopify sync poll
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://trendlet.vercel.app' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET secret missing — add it under repo Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
+          status=$(
+            curl -sS -o /tmp/body.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "${APP_URL}/api/cron/shopify-poll"
+          )
+
+          echo "HTTP ${status}"
+          cat /tmp/body.json || true
+          echo
+
+          if [ "${status}" != "200" ]; then
+            echo "::error::Shopify poll failed with HTTP ${status}"
+            exit 1
+          fi

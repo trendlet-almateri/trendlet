@@ -118,7 +118,7 @@ export default async function ShopifySyncPage() {
             </h2>
             <ul className="ml-4 flex list-disc flex-col gap-1.5 text-[11px] text-ink-secondary">
               <li>
-                <strong>Auto-sync</strong>: a Vercel cron runs{" "}
+                <strong>Auto-sync</strong>: a GitHub Actions cron hits{" "}
                 <code className="mono">/api/cron/shopify-poll</code> every 5
                 min. Pulls orders updated since last run, ingests them.
               </li>
@@ -127,7 +127,7 @@ export default async function ShopifySyncPage() {
                 you choose — for missing history.
               </li>
               <li>
-                <strong>Force poll now</strong> (button): manually trigger the
+                <strong>Run sync now</strong> (button): manually trigger the
                 same job the cron runs. Useful for testing.
               </li>
               <li>No webhook secret required — only the read access token.</li>
