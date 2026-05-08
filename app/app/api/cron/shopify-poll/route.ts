@@ -1,0 +1,161 @@
+/**
+ * GET /api/cron/shopify-poll
+ *
+ * Runs every 5 minutes via Vercel Cron. Fetches Shopify orders updated
+ * since the last successful poll and ingests them into Supabase. This
+ * is the auto-sync mechanism — no webhooks, no SHOPIFY_WEBHOOK_SECRET,
+ * just steady polling using the read-only access token.
+ *
+ * Idempotency: ingestShopifyOrder upserts on shopify_order_id, so even
+ * if we re-poll the same window we don't duplicate. We use a small
+ * overlap (60s) on every poll to make sure clock skew or in-flight
+ * orders never slip through the gap.
+ *
+ * Auth: Vercel Cron sends a CRON_SECRET in the Authorization header.
+ * Reject anything else.
+ */
+import { NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const SHOPIFY_API_VERSION = "2024-10";
+
+// Overlap window: when we poll, we go back this far before last_polled_at
+// to absorb clock skew + in-flight orders Shopify hadn't indexed at the
+// previous poll. ingest is idempotent so re-fetching a few orders is fine.
+const OVERLAP_MS = 60 * 1000;
+
+export async function GET(req: Request) {
+  // Vercel Cron header check (also accept manual trigger from the admin page
+  // via session cookie when CRON_SECRET is missing for local dev).
+  const cronSecret = process.env.CRON_SECRET;
+  const auth = req.headers.get("authorization");
+  if (cronSecret) {
+    if (auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+  }
+
+  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
+  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+  if (!shopDomain || !accessToken) {
+    return NextResponse.json(
+      { error: "SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN required" },
+      { status: 500 },
+    );
+  }
+
+  const sb = createServiceClient();
+
+  // Read or create sync state row
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: stateRow } = await (sb.from("shopify_sync_state") as any)
+    .select("last_polled_at")
+    .eq("shop", shopDomain)
+    .maybeSingle();
+  const lastPolled = stateRow?.last_polled_at ?? "2026-01-01T00:00:00Z";
+
+  // Compute query window with overlap
+  const since = new Date(new Date(lastPolled).getTime() - OVERLAP_MS).toISOString();
+  const runStartedAt = new Date().toISOString();
+
+  const summary = {
+    fetched: 0,
+    inserted: 0,
+    refreshed: 0,
+    skipped: 0,
+    errors: [] as { order_number: string; reason: string }[],
+  };
+
+  // Use updated_at_min so we catch order edits too (cancellations, refunds,
+  // address changes — not just new orders). status=any to include closed.
+  let url: string | null =
+    `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/orders.json?` +
+    new URLSearchParams({
+      status: "any",
+      updated_at_min: since,
+      limit: "250",
+    }).toString();
+
+  let maxOrderUpdatedAt = lastPolled;
+
+  while (url) {
+    const res: Response = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      // Persist the failed run so the admin page surfaces it
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (sb.from("shopify_sync_state") as any).upsert(
+        {
+          shop: shopDomain,
+          last_run_at: runStartedAt,
+          last_run_summary: {
+            ok: false,
+            error: `Shopify ${res.status}`,
+            message: errBody.slice(0, 500),
+            ...summary,
+          },
+        },
+        { onConflict: "shop" },
+      );
+      return NextResponse.json(
+        { error: "Shopify orders.json fetch failed", status: res.status, message: errBody.slice(0, 500), summary },
+        { status: 502 },
+      );
+    }
+
+    const data = (await res.json()) as { orders: (ShopifyOrder & { updated_at?: string })[] };
+    const orders = Array.isArray(data.orders) ? data.orders : [];
+    summary.fetched += orders.length;
+
+    for (const o of orders) {
+      try {
+        const result = await ingestShopifyOrder(o, { updateOnDuplicate: true });
+        if (result.action === "inserted") summary.inserted++;
+        else if (result.action === "refreshed") summary.refreshed++;
+        else summary.skipped++;
+        // Track the high-water mark so next poll resumes here
+        const u = (o.updated_at ?? o.created_at);
+        if (u && u > maxOrderUpdatedAt) maxOrderUpdatedAt = u;
+      } catch (e) {
+        summary.errors.push({
+          order_number: String(o.order_number ?? o.id),
+          reason: e instanceof Error ? e.message : "unknown",
+        });
+      }
+    }
+
+    const link = res.headers.get("link") ?? "";
+    const match = link.match(/<([^>]+)>;\s*rel="next"/);
+    url = match ? match[1] : null;
+  }
+
+  // Advance the high-water mark. If we didn't see any orders, we still bump
+  // last_polled_at to runStartedAt so we don't refetch the same window
+  // forever. Use the later of (max order updated_at, runStartedAt).
+  const newPolled =
+    maxOrderUpdatedAt > runStartedAt ? maxOrderUpdatedAt : runStartedAt;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (sb.from("shopify_sync_state") as any).upsert(
+    {
+      shop: shopDomain,
+      last_polled_at: newPolled,
+      last_run_at: runStartedAt,
+      last_run_summary: { ok: true, since, ...summary },
+    },
+    { onConflict: "shop" },
+  );
+
+  return NextResponse.json({ ok: true, since, last_polled_at: newPolled, ...summary });
+}

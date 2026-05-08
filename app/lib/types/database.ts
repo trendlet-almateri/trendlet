@@ -1497,6 +1497,36 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_sync_state: {
+        Row: {
+          created_at: string
+          id: string
+          last_polled_at: string
+          last_run_at: string | null
+          last_run_summary: Json | null
+          shop: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_polled_at?: string
+          last_run_at?: string | null
+          last_run_summary?: Json | null
+          shop: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_polled_at?: string
+          last_run_at?: string | null
+          last_run_summary?: Json | null
+          shop?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shopify_tokens: {
         Row: {
           access_token: string
