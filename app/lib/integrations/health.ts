@@ -55,10 +55,29 @@ export async function checkSupabase(): Promise<IntegrationHealth> {
 }
 
 export async function checkShopify(): Promise<IntegrationHealth> {
-  const token = process.env.SHOPIFY_ACCESS_TOKEN;
   const domain = process.env.SHOPIFY_SHOP_DOMAIN;
-  if (!token || !domain) {
-    return { service: "shopify", status: "missing", detail: "missing token or shop domain", latency_ms: null };
+  if (!domain) {
+    return { service: "shopify", status: "missing", detail: "missing SHOPIFY_SHOP_DOMAIN", latency_ms: null };
+  }
+
+  // Pull the auto-refreshed token from shopify_tokens. Falls back to the
+  // env-var SHOPIFY_ACCESS_TOKEN for back-compat with deployments that
+  // haven't run /admin/shopify-bootstrap yet.
+  let token: string;
+  try {
+    const { getValidToken } = await import("@/lib/shopify/token-manager");
+    token = await getValidToken(domain);
+  } catch (e) {
+    const envToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    if (!envToken) {
+      return {
+        service: "shopify",
+        status: "missing",
+        detail: e instanceof Error ? e.message : "no token available",
+        latency_ms: null,
+      };
+    }
+    token = envToken;
   }
 
   const res = await apiCall<{ shop?: { name?: string; myshopify_domain?: string } }>({
