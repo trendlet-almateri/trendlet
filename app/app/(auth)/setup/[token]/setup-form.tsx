@@ -76,7 +76,9 @@ export function SetupForm({ email }: { email: string }) {
         </p>
       )}
 
-      <SubmitButton />
+      <div className="mt-2">
+        <SubmitButton />
+      </div>
     </form>
   );
 }

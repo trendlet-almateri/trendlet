@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/server";
 import { SetupForm } from "./setup-form";
 
@@ -21,8 +21,14 @@ export default async function SetupPage() {
       className="w-full max-w-[380px] rounded-xl bg-surface px-10 py-11 shadow-login"
       style={{ border: "0.5px solid rgba(0,0,0,0.08)" }}
     >
-      <div className="mb-8">
-        <Logo />
+      <div className="mb-10 flex justify-center">
+        <Image
+          src="/logo.png"
+          alt="Trendlet"
+          width={180}
+          height={52}
+          priority
+        />
       </div>
 
       <h1 id="setup-heading" className="text-[22px] font-medium text-ink-primary">
