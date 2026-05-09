@@ -39,7 +39,29 @@ export async function POST(req: Request) {
   // Constant-time compare; lengths must match for timingSafeEqual
   const sigBuf = Buffer.from(signature);
   const compBuf = Buffer.from(computed);
-  if (sigBuf.length !== compBuf.length || !crypto.timingSafeEqual(sigBuf, compBuf)) {
+  const matches =
+    sigBuf.length === compBuf.length && crypto.timingSafeEqual(sigBuf, compBuf);
+  if (!matches) {
+    // TEMP diagnostic — remove once webhook is verified working in production.
+    // Logs only safe-to-show metadata: lengths, first/last chars of secret,
+    // first/last chars of signatures. Never the full secret or full body.
+    console.error("[shopify-webhook] HMAC mismatch", {
+      shop_domain: req.headers.get("x-shopify-shop-domain"),
+      topic: req.headers.get("x-shopify-topic"),
+      webhook_id: req.headers.get("x-shopify-webhook-id"),
+      api_version: req.headers.get("x-shopify-api-version"),
+      secret_len: secret.length,
+      secret_starts_with: secret.slice(0, 7),
+      secret_ends_with: secret.slice(-4),
+      secret_has_whitespace: /\s/.test(secret),
+      sig_received_len: signature.length,
+      sig_received_starts: signature.slice(0, 8),
+      sig_received_ends: signature.slice(-4),
+      sig_computed_len: computed.length,
+      sig_computed_starts: computed.slice(0, 8),
+      sig_computed_ends: computed.slice(-4),
+      body_len: rawBody.length,
+    });
     return NextResponse.json({ error: "invalid hmac" }, { status: 401 });
   }
 
