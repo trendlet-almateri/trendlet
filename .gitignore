@@ -55,3 +55,9 @@ token.json
 # Temp / scratch
 .tmp/
 *.tmp
+
+# Local-only resume notes (per-session handoff scratch, not for the repo)
+RESUME_NEXT.md
+
+# Generated overview PDFs — regenerated on demand from the script
+docs/*.pdf
