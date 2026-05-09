@@ -132,11 +132,21 @@ export async function ingestShopifyOrder(
         phone: c.phone ?? payload.shipping_address?.phone ?? null,
         default_address: (payload.shipping_address ?? null) as Json,
       };
+      // The unique constraint on customers is composite: (store_id, shopify_customer_id).
+      // Using just "shopify_customer_id" as the conflict target makes Postgres reject
+      // the upsert because no single-column unique index matches.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: cust } = await (sb.from("customers") as any)
-        .upsert(customerRow, { onConflict: "shopify_customer_id" })
+      const { data: cust, error: custErr } = await (sb.from("customers") as any)
+        .upsert(customerRow, { onConflict: "store_id,shopify_customer_id" })
         .select("id")
         .maybeSingle();
+      if (custErr) {
+        console.error("[ingestShopifyOrder] customer upsert failed", {
+          shopify_order_id: shopifyOrderId,
+          shopify_customer_id: shopifyCustomerId,
+          error: custErr.message,
+        });
+      }
       customerId = (cust as { id: string } | null)?.id ?? null;
     }
   }
