@@ -49,7 +49,7 @@ export async function setupAccountAction(
 
   await supabase
     .from("profiles")
-    .update({ is_active: true })
+    .update({ is_active: true, joined_at: new Date().toISOString() })
     .eq("id", user.id);
 
   // Mark the matching invitation as accepted so the link can't be reused.
