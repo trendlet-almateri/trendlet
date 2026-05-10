@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchAdminOrders } from "@/lib/queries/orders";
 import { OrdersView } from "@/components/orders/orders-view";
+import { OrdersRealtime } from "@/components/orders/orders-realtime";
 import { PageHeader, TabPills } from "@/components/system";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,7 @@ export default async function OrdersPage({
       />
 
       <OrdersView orders={filtered} totalCount={counts.all} />
+      <OrdersRealtime />
     </div>
   );
 }
