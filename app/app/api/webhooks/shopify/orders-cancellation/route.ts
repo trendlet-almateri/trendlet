@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       status_changed_at: new Date().toISOString(),
     })
     .eq("order_id", order.id)
-    .not("status", "in", `(${TERMINAL.map((s) => `"${s}"`).join(",")})`)
+    .not("status", "in", `(${TERMINAL.join(",")})`)
     .select("id");
 
   const count = cancelled?.length ?? 0;
