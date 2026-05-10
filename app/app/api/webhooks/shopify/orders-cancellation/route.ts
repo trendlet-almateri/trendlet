@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   // Mark all non-terminal sub_orders as cancelled
   const TERMINAL = ["delivered", "returned", "cancelled"];
   const sb = createServiceClient();
-  const { count } = await sb
+  const { data: cancelled } = await sb
     .from("sub_orders")
     .update({
       status: "cancelled",
@@ -68,12 +68,14 @@ export async function POST(req: Request) {
     })
     .eq("order_id", order.id)
     .not("status", "in", `(${TERMINAL.map((s) => `"${s}"`).join(",")})`)
-    .select("id", { count: "exact", head: true });
+    .select("id");
+
+  const count = cancelled?.length ?? 0;
 
   wlog(ctx.topic, "cancelled", {
     shopifyOrderId,
     orderId: order.id,
-    subOrdersCancelled: count ?? 0,
+    subOrdersCancelled: count,
     cancelReason: payload.cancel_reason,
     cancelledAt: payload.cancelled_at,
   });
@@ -82,6 +84,6 @@ export async function POST(req: Request) {
     ok: true,
     action: "cancelled",
     order_id: order.id,
-    sub_orders_cancelled: count ?? 0,
+    sub_orders_cancelled: count,
   });
 }
