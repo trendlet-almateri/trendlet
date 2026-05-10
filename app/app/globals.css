@@ -218,6 +218,11 @@
   to   { transform: translateX(100%); }
 }
 
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
 @keyframes backdropIn {
   from { background-color: rgba(20, 22, 28, 0);    }
   to   { background-color: rgba(20, 22, 28, 0.35); }

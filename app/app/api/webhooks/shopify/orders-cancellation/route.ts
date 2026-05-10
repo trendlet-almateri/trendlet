@@ -7,6 +7,7 @@ import {
   wlog,
   findOrderByShopifyId,
 } from "@/lib/shopify/webhook-utils";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import type { Json } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,16 @@ export async function POST(req: Request) {
     subOrdersCancelled: count,
     cancelReason: payload.cancel_reason,
     cancelledAt: payload.cancelled_at,
+  });
+
+  void writeOrderNotification({
+    type: "order_cancelled",
+    severity: "critical",
+    title: `Order #${payload.order_number} was cancelled`,
+    description: payload.cancel_reason
+      ? `Reason: ${payload.cancel_reason}${count ? ` · ${count} sub-order${count !== 1 ? "s" : ""} cancelled` : ""}`
+      : count ? `${count} sub-order${count !== 1 ? "s" : ""} cancelled` : undefined,
+    href: `/orders/${order.id}`,
   });
 
   return NextResponse.json({

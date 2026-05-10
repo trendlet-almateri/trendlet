@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
 import { verifyShopifyWebhook, isReplay, wlog } from "@/lib/shopify/webhook-utils";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,5 +36,16 @@ export async function POST(req: Request) {
   // Re-sync all order fields including updated line items and totals
   const result = await ingestShopifyOrder(payload, { updateOnDuplicate: true });
   wlog(ctx.topic, result.action, { shopifyOrderId: String(payload.id) });
+
+  if (result.action === "refreshed") {
+    void writeOrderNotification({
+      type: "order_edited",
+      severity: "warning",
+      title: `Order #${payload.order_number} was edited`,
+      description: "Quantities or prices may have changed — check sub-orders",
+      href: `/orders/${result.order_id}`,
+    });
+  }
+
   return NextResponse.json({ ok: true, ...result });
 }

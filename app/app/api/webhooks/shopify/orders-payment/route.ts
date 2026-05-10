@@ -7,6 +7,7 @@ import {
   wlog,
   findOrderByShopifyId,
 } from "@/lib/shopify/webhook-utils";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import type { Json } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,25 @@ export async function POST(req: Request) {
     financialStatus: payload.financial_status,
     total: payload.total_price,
   });
+
+  const fs = payload.financial_status;
+  if (fs === "voided" || fs === "refunded" || fs === "partially_refunded") {
+    void writeOrderNotification({
+      type: "payment_failed",
+      severity: "critical",
+      title: `Payment ${fs} on order #${payload.order_number}`,
+      description: payload.total_price ? `${payload.currency} ${payload.total_price}` : undefined,
+      href: `/orders/${order.id}`,
+    });
+  } else if (fs === "paid") {
+    void writeOrderNotification({
+      type: "payment_confirmed",
+      severity: "info",
+      title: `Payment confirmed for order #${payload.order_number}`,
+      description: payload.total_price ? `${payload.currency} ${payload.total_price}` : undefined,
+      href: `/orders/${order.id}`,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

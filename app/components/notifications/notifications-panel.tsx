@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
-import { Bell, Check, AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
+import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { relativeTime } from "@/lib/utils/date";
@@ -30,14 +31,21 @@ const SEVERITY_COLOR: Record<NotificationRow["severity"], string> = {
   success:  "text-[var(--green)]",
 };
 
+type Toast = { id: string; notification: NotificationRow };
+
 export function NotificationsPanel({ initialNotifications, userId, channelKey }: Props) {
   const router = useRouter();
   const [items, setItems] = React.useState<NotificationRow[]>(initialNotifications);
   const [open, setOpen] = React.useState(false);
+  const [toasts, setToasts] = React.useState<Toast[]>([]);
   const supabaseRef = React.useRef<ReturnType<typeof createClient> | null>(null);
 
   if (!supabaseRef.current) supabaseRef.current = createClient();
   const supabase = supabaseRef.current;
+
+  const dismissToast = React.useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   React.useEffect(() => {
     const channel = supabase
@@ -48,11 +56,17 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
         (payload) => {
           const row = payload.new as NotificationRow;
           setItems((prev) => [row, ...prev].slice(0, 50));
+          // Only show toasts from one instance (desktop) to avoid duplicates
+          if (channelKey === "desktop" && row.severity === "critical") {
+            const toastId = row.id;
+            setToasts((prev) => [...prev, { id: toastId, notification: row }]);
+            setTimeout(() => dismissToast(toastId), 8000);
+          }
         },
       )
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [supabase, userId, channelKey]);
+  }, [supabase, userId, channelKey, dismissToast]);
 
   const unreadCount = items.filter((n) => !n.read_at).length;
 
@@ -72,6 +86,7 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
   }
 
   return (
+    <>
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
@@ -166,8 +181,64 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+
+      {/* Critical toasts — rendered once (desktop only) */}
+      {channelKey === "desktop" && toasts.length > 0 && typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2">
+            {toasts.map((t) => (
+              <CriticalToast
+                key={t.id}
+                notification={t.notification}
+                onDismiss={() => dismissToast(t.id)}
+              />
+            ))}
+          </div>,
+          document.body,
+        )}
+  </>
   );
 }
+
+// ── Critical toast ────────────────────────────────────────────────────────────
+
+function CriticalToast({
+  notification: n,
+  onDismiss,
+}: {
+  notification: NotificationRow;
+  onDismiss: () => void;
+}) {
+  const inner = (
+    <div className="flex w-[min(360px,calc(100vw-40px))] items-start gap-3 rounded-xl border border-[var(--rose)]/30 bg-[#1a0f0f] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+      style={{ animation: "toastIn 0.25s cubic-bezier(.32,.72,.32,1) forwards" }}
+    >
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--rose)]" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-white">{n.title}</p>
+        {n.description && (
+          <p className="mt-0.5 line-clamp-1 text-[12px] text-[#9aa1aa]">{n.description}</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="grid h-5 w-5 shrink-0 place-items-center rounded text-[#6e7581] hover:text-white"
+        aria-label="Dismiss"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+
+  return n.href ? (
+    <Link href={n.href} onClick={onDismiss}>{inner}</Link>
+  ) : (
+    <div>{inner}</div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function NotificationItem({
   notification: n,

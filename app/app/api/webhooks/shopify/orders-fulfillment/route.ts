@@ -7,6 +7,7 @@ import {
   wlog,
   findOrderByShopifyId,
 } from "@/lib/shopify/webhook-utils";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -132,6 +133,16 @@ export async function POST(req: Request) {
     subOrdersShipped: updated,
     fulfillmentCount: successfulFulfillments.length,
   });
+
+  if (updated > 0) {
+    void writeOrderNotification({
+      type: "order_fulfilled",
+      severity: "info",
+      title: `Order #${payload.order_number} shipped`,
+      description: `${updated} sub-order${updated !== 1 ? "s" : ""} marked as shipped`,
+      href: `/orders/${order.id}`,
+    });
+  }
 
   return NextResponse.json({
     ok: true,
