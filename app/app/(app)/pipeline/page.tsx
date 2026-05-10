@@ -1,4 +1,5 @@
 import { Package, CheckCircle2 } from "lucide-react";
+import { RealtimeRefresh } from "@/components/system";
 import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,7 @@ export default async function WarehousePipelinePage({
           <span className="font-semibold text-[var(--ink)]">{completedToday}</span> completed today
         </span>
       </div>
+      <RealtimeRefresh />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { ShoppingBag, CheckCircle2 } from "lucide-react";
+import { RealtimeRefresh } from "@/components/system";
 import { requireRole } from "@/lib/auth/require-role";
 import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfillment";
 import { type Role } from "@/lib/workflow/sub-order-transitions";
@@ -162,6 +163,7 @@ export default async function SourcingQueuePage({
           <span className="font-semibold text-[var(--ink)]">{completedToday}</span> completed today
         </span>
       </div>
+      <RealtimeRefresh />
     </div>
   );
 }

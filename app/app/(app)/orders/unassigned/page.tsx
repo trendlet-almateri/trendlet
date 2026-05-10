@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
-import { PageHeader } from "@/components/system";
+import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
@@ -124,6 +124,7 @@ export default async function UnassignedQueuePage() {
           </table>
         </div>
       )}
+      <RealtimeRefresh />
     </div>
   );
 }

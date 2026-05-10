@@ -1,0 +1,293 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── RGB triplets for Tailwind opacity modifiers ── */
+    --color-page: 246 245 242;         /* #f6f5f2 warm cream */
+    --color-surface: 255 255 255;
+    --color-ink-primary: 15 20 25;     /* #0f1419 */
+    --color-ink-secondary: 42 48 56;   /* #2a3038 */
+    --color-ink-tertiary: 107 114 128; /* #6b7280 */
+    --color-navy: 12 68 124;           /* #0C447C — Direction C upgrade */
+    --color-navy-deep: 7 38 74;        /* #07264a */
+    --color-accent: 12 68 124;         /* #0C447C — aligns with --accent */
+
+    /* ── Optify design tokens (hex) ── */
+    --bg:           #f6f5f2;
+    --panel:        #ffffff;
+    --ink:          #0f1419;
+    --ink-2:        #2a3038;
+    --muted:        #6b7280;
+    --muted-2:      #9aa1aa;
+    --line:         #e7e5df;
+    --line-2:       #efede7;
+    --hover:        #f9f8f4;
+    --accent:       #0C447C;           /* upgraded from #2b3aa0 */
+    --accent-ink:   #ffffff;
+    --accent-soft:  #ddeaf5;           /* updated to blue-tinted soft */
+
+    /* ── Role accent tokens (Phase 1 visual refresh) ── */
+    --role-sourcing:      #b4700a;
+    --role-sourcing-bg:   #fdf3dd;
+    --role-sourcing-fg:   #633806;
+    --role-warehouse:     #1d4ed8;
+    --role-warehouse-bg:  #E6F1FB;
+    --role-warehouse-fg:  #0C447C;
+    --role-fulfiller:     #6d28d9;
+    --role-fulfiller-bg:  #ece2fa;
+    --role-fulfiller-fg:  #3C3489;
+
+    --amber:        #b4700a; --amber-bg:  #fdf3dd;
+    --blue:         #1d4ed8; --blue-bg:   #E6F1FB;
+    --green:        #0e7c4a; --green-bg:  #dcf1e3;
+    --rose:         #b42318; --rose-bg:   #fde3de;
+    --slate:        #475569; --slate-bg:  #e9ecf1;
+    --violet:       #6d28d9; --violet-bg: #ece2fa;
+
+    --radius:    8px;
+    --radius-sm: 6px;
+    --shadow-sm: 0 1px 0 rgba(15,20,25,.04), 0 1px 2px rgba(15,20,25,.04);
+    --shadow-md: 0 1px 0 rgba(15,20,25,.04), 0 2px 6px rgba(15,20,25,.06), 0 12px 32px -16px rgba(15,20,25,.18);
+  }
+
+  html,
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3, h4, h5, h6, b, strong {
+    font-weight: 500;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .hairline {
+    border: 0.5px solid rgba(15, 20, 25, 0.1);
+  }
+  .hairline-strong {
+    border: 0.5px solid rgba(15, 20, 25, 0.18);
+  }
+  .hairline-t {
+    border-top: 0.5px solid rgba(15, 20, 25, 0.1);
+  }
+  .hairline-b {
+    border-bottom: 0.5px solid rgba(15, 20, 25, 0.1);
+  }
+
+  .card-surface {
+    background: var(--panel);
+    border: 0.5px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Sidebar nav items */
+  .sidebar-item {
+    @apply flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors;
+    color: #9aa1aa;
+  }
+  .sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e2e4e8;
+  }
+  .sidebar-item-active {
+    background-color: rgba(12, 68, 124, 0.18);  /* #0C447C tint */
+    color: #7ab3e0;
+  }
+
+  /* Status pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    border: 0.5px solid transparent;
+  }
+
+  /* Mono numbers */
+  .mono {
+    font-family: var(--font-jetbrains, "JetBrains Mono", monospace);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ── Keyframe animations ─────────────────────────────────────── */
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(48, 183, 102, 0.6); }
+  70%  { box-shadow: 0 0 0 6px rgba(48, 183, 102, 0);   }
+  100% { box-shadow: 0 0 0 0   rgba(48, 183, 102, 0);   }
+}
+
+@keyframes alarmPulse {
+  0%, 100% { background: linear-gradient(90deg, rgba(180,35,24,.04) 0%, transparent 60%); }
+  50%       { background: linear-gradient(90deg, rgba(180,35,24,.09) 0%, transparent 60%); }
+}
+
+@keyframes badgePulse {
+  0%   { box-shadow: 0 0 0 0   rgba(180, 35, 24, 0.5); }
+  70%  { box-shadow: 0 0 0 5px rgba(180, 35, 24, 0);   }
+  100% { box-shadow: 0 0 0 0   rgba(180, 35, 24, 0);   }
+}
+
+@keyframes sparkWave {
+  0%, 100% { transform: scaleY(1);   }
+  50%       { transform: scaleY(1.6); }
+}
+
+@keyframes ribbonScan {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes valueTick {
+  0%, 94% { opacity: 1;    }
+  95%      { opacity: 0.55; }
+  100%     { opacity: 1;    }
+}
+
+@keyframes popoverIn {
+  from { opacity: 0; transform: translateX(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);   }
+}
+
+@keyframes popoverOut {
+  from { opacity: 1; transform: translateX(0)     scale(1);   }
+  to   { opacity: 0; transform: translateX(-8px) scale(0.98); }
+}
+
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0);    }
+}
+
+@keyframes drawerOut {
+  from { transform: translateX(0);    }
+  to   { transform: translateX(100%); }
+}
+
+@keyframes backdropIn {
+  from { background-color: rgba(20, 22, 28, 0);    }
+  to   { background-color: rgba(20, 22, 28, 0.35); }
+}
+
+/* ── Brand spinner gold halo ────────────────────────────────── */
+
+@keyframes brandGlow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(184, 128, 26, 0.45)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(245, 208, 99, 0.75)); }
+}
+
+.brand-spinner-glow {
+  animation: brandGlow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-spinner-glow { animation: none; }
+}
+
+/* Live dot */
+.live-dot {
+  animation: pulse 1.8s infinite;
+}
+
+/* Alarm row glow */
+[data-alarm="true"] {
+  animation: alarmPulse 2.4s ease-in-out infinite;
+}
+
+/* Sparkline kinetic wave (stagger via CSS custom prop) */
+.spark-bar {
+  transform-origin: bottom center;
+}
+.spark-wave .spark-bar {
+  animation: sparkWave 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.18s);
+}
+
+/* Popover animations for Radix (override zoom-in with translate+scale) */
+.popover-dark[data-state="open"]  { animation: popoverIn  0.15s cubic-bezier(.32,.72,.32,1) forwards; }
+.popover-dark[data-state="closed"]{ animation: popoverOut 0.12s cubic-bezier(.32,.72,.32,1) forwards; }
+
+/* ── "More live" motion utilities ───────────────────────────────────── */
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes barFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes dotBreathe {
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%       { opacity: 0.55; transform: scale(0.92); }
+}
+
+/* Stagger entrance — set --stagger-index inline on each child */
+.rise-in {
+  opacity: 0;
+  animation: riseIn 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--stagger-index, 0) * 60ms);
+}
+
+/* Slow value tick — subtle "still alive" pulse on big numbers */
+.value-tick {
+  animation: valueTick 6s ease-in-out infinite;
+}
+
+/* Animated bar fill — grows from 0 → target width on mount */
+.bar-fill {
+  transform-origin: left center;
+  animation: barFill 720ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 200ms;
+}
+
+/* Breathing status dot — apply only when count > 0 */
+.dot-breathe {
+  animation: dotBreathe 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .value-tick,
+  .bar-fill,
+  .dot-breathe {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

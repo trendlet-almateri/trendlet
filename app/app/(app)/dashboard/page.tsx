@@ -10,7 +10,7 @@ import { TeamLoadCard } from "@/components/dashboard/team-load-card";
 import { OrdersTable } from "@/components/orders/orders-table";
 import { OrdersPipeline } from "@/components/orders/orders-pipeline";
 import { formatCurrency } from "@/lib/utils/currency";
-import { PageHeader } from "@/components/system";
+import { PageHeader, RealtimeRefresh } from "@/components/system";
 import {
   LayoutList,
   Activity,
@@ -196,6 +196,7 @@ export default async function DashboardPage() {
         </div>
         <OrdersPipeline orders={orders} />
       </section>
+      <RealtimeRefresh />
     </div>
   );
 }

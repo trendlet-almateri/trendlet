@@ -1,6 +1,6 @@
 import { Activity } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
-import { PageHeader } from "@/components/system";
+import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { cn } from "@/lib/utils";
@@ -131,6 +131,7 @@ export default async function SlaHealthPage() {
           </section>
         </>
       )}
+      <RealtimeRefresh />
     </div>
   );
 }

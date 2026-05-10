@@ -1,6 +1,6 @@
 import { CornerDownLeft } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
-import { PageHeader } from "@/components/system";
+import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { relativeTime } from "@/lib/utils/date";
@@ -75,6 +75,7 @@ export default async function ReturnsPage() {
           </table>
         </div>
       )}
+      <RealtimeRefresh />
     </div>
   );
 }
