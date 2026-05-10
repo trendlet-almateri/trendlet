@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
 import {
   verifyShopifyWebhook,
@@ -15,12 +14,6 @@ export const runtime = "nodejs";
 type Fulfillment = {
   id: number | string;
   status: string; // "success" | "pending" | "cancelled" | "error" | "failure"
-  tracking_company?: string | null;
-  tracking_number?: string | null;
-  tracking_url?: string | null;
-  line_items?: Array<{ id: number | string }>;
-  created_at?: string | null;
-  updated_at?: string | null;
 };
 
 type FulfilledOrder = ShopifyOrder & {
@@ -31,15 +24,23 @@ type FulfilledOrder = ShopifyOrder & {
 /**
  * Shopify orders/fulfilled webhook.
  *
- * Fires when one or more fulfillments are created/updated on an order.
+ * Fires when one or more fulfillments are created/updated on an order in
+ * Shopify (e.g. an admin manually marks the order fulfilled).
  *
- * 1. Sync order raw_payload
- * 2. For each successful fulfillment, update the matching sub_orders
- *    (matched by shopify_line_item_id) to status "shipped" and persist
- *    tracking info in the raw_payload of the sub_order.
+ * Sub-order status (pending → … → shipped → delivered) is owned by the
+ * Trendlet operations workflow (sourcing → warehouse → fulfiller). The
+ * "shipped" transition belongs to the warehouse role and must NOT be
+ * overwritten by Shopify-side fulfillment events, which would otherwise
+ * shortcut a `pending` row straight to `shipped` and skip every
+ * intermediate step.
  *
- * Only sub_orders currently in a pre-ship status are updated — already
- * delivered/returned rows are left untouched.
+ * This handler therefore only:
+ *   1. Verifies HMAC + replay-protects
+ *   2. Refreshes raw_payload via ingestShopifyOrder (so the Timeline tab
+ *      reflects the Shopify-side fulfillment event)
+ *   3. Emits an info notification for visibility
+ *
+ * It does NOT touch sub_order.status.
  */
 export async function POST(req: Request) {
   const verified = await verifyShopifyWebhook(req);
@@ -67,87 +68,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, action: "skipped", reason: "order not in DB" });
   }
 
-  const sb = createServiceClient();
-  const successfulFulfillments = (payload.fulfillments ?? []).filter(
+  const successfulCount = (payload.fulfillments ?? []).filter(
     (f) => f.status === "success",
-  );
+  ).length;
 
-  // Collect all shipped line item IDs across successful fulfillments
-  const shippedLineItemIds = new Set<string>();
-  const trackingByLineItem = new Map<
-    string,
-    { company: string | null; number: string | null; url: string | null }
-  >();
-
-  for (const f of successfulFulfillments) {
-    const tracking = {
-      company: f.tracking_company ?? null,
-      number: f.tracking_number ?? null,
-      url: f.tracking_url ?? null,
-    };
-    for (const li of f.line_items ?? []) {
-      const liId = String(li.id);
-      shippedLineItemIds.add(liId);
-      trackingByLineItem.set(liId, tracking);
-    }
-  }
-
-  if (shippedLineItemIds.size === 0) {
-    wlog(ctx.topic, "no_successful_fulfillments", { shopifyOrderId });
-    return NextResponse.json({ ok: true, action: "noop", reason: "no successful fulfillments" });
-  }
-
-  // Fetch matching sub_orders
-  const PRE_SHIP = ["pending", "sourcing", "warehouse", "ready"];
-  const { data: subOrders } = await sb
-    .from("sub_orders")
-    .select("id, shopify_line_item_id")
-    .eq("order_id", order.id)
-    .in("shopify_line_item_id", [...shippedLineItemIds])
-    .in("status", PRE_SHIP);
-
-  let updated = 0;
-  for (const sub of subOrders ?? []) {
-    const tracking = trackingByLineItem.get(sub.shopify_line_item_id ?? "") ?? null;
-    await sb
-      .from("sub_orders")
-      .update({
-        status: "shipped",
-        status_changed_at: new Date().toISOString(),
-        // Store tracking in raw_payload via a separate tracking column if it exists,
-        // otherwise we embed it in notes for now.
-        ...(tracking
-          ? {
-              // If you add a tracking_data jsonb column this is the place to write it.
-              // For now we surface it via the order's raw_payload which already holds fulfillments.
-            }
-          : {}),
-      })
-      .eq("id", sub.id);
-    updated++;
-  }
-
-  wlog(ctx.topic, "shipped", {
+  wlog(ctx.topic, "recorded", {
     shopifyOrderId,
     orderId: order.id,
-    subOrdersShipped: updated,
-    fulfillmentCount: successfulFulfillments.length,
+    successfulFulfillments: successfulCount,
   });
 
-  if (updated > 0) {
-    void writeOrderNotification({
-      type: "order_fulfilled",
-      severity: "info",
-      title: `Order #${payload.order_number} shipped`,
-      description: `${updated} sub-order${updated !== 1 ? "s" : ""} marked as shipped`,
-      href: `/orders/${order.id}`,
-    });
-  }
+  void writeOrderNotification({
+    type: "order_fulfilled",
+    severity: "info",
+    title: `Fulfillment recorded for order #${payload.order_number}`,
+    description: `Shopify reported ${successfulCount} successful fulfillment${successfulCount !== 1 ? "s" : ""}. Sub-order status is unchanged — warehouse owns the shipped transition.`,
+    href: `/orders/${order.id}`,
+  });
 
   return NextResponse.json({
     ok: true,
-    action: "shipped",
+    action: "recorded",
     order_id: order.id,
-    sub_orders_shipped: updated,
+    successful_fulfillments: successfulCount,
   });
 }
