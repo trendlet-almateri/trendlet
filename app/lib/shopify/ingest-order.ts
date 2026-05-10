@@ -97,6 +97,31 @@ export async function ingestShopifyOrder(
     if (!options.updateOnDuplicate) {
       return { action: "skipped", reason: "already ingested" };
     }
+
+    // Upsert customer so the name stays current even on updates
+    let updatedCustomerId: string | null = null;
+    if (payload.customer?.id) {
+      const c = payload.customer;
+      const shopifyCustomerId = String(c.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cust } = await (sb.from("customers") as any)
+        .upsert(
+          {
+            store_id: TRENDLET_STORE_ID,
+            shopify_customer_id: shopifyCustomerId,
+            email: c.email ?? null,
+            first_name: c.first_name ?? null,
+            last_name: c.last_name ?? null,
+            phone: c.phone ?? payload.shipping_address?.phone ?? null,
+            default_address: (payload.shipping_address ?? null) as Json,
+          },
+          { onConflict: "store_id,shopify_customer_id" },
+        )
+        .select("id")
+        .maybeSingle();
+      updatedCustomerId = (cust as { id: string } | null)?.id ?? null;
+    }
+
     // Refresh raw_payload + headline fields. Don't touch sub_orders or
     // assignments — those are operations state, not Shopify state.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,6 +134,7 @@ export async function ingestShopifyOrder(
         billing_address: (payload.billing_address ?? null) as Json,
         notes: payload.note ?? null,
         raw_payload: payload as unknown as Json,
+        ...(updatedCustomerId ? { customer_id: updatedCustomerId } : {}),
       })
       .eq("id", existing.id);
     if (updErr) {
