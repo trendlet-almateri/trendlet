@@ -16,28 +16,15 @@ export function OrdersRealtime() {
   useEffect(() => {
     const sb = createClient();
 
+    const refresh = () => router.refresh();
+
     const channel = sb
       .channel("orders-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "orders" },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders" },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "sub_orders" },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "sub_orders" },
-        () => router.refresh(),
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" },    refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" },    refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sub_orders"}, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sub_orders"}, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "customers" }, refresh)
       .subscribe();
 
     return () => {

@@ -14,7 +14,7 @@ type Props = {
  * on the given tables and calls router.refresh() on any change so the parent
  * server component re-fetches fresh data automatically.
  */
-export function RealtimeRefresh({ tables = ["orders", "sub_orders"] }: Props) {
+export function RealtimeRefresh({ tables = ["orders", "sub_orders", "customers"] }: Props) {
   const router = useRouter();
 
   useEffect(() => {
