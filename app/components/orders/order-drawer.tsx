@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate, fullDateTime } from "@/lib/utils/date";
 import { StatusPill } from "@/components/status/status-pill";
-import { createClient } from "@/lib/supabase/client";
 import type { OrderRow } from "@/lib/queries/orders";
 
 // ── Full detail types ─────────────────────────────────────────────────────────
@@ -84,39 +83,13 @@ export function OrderDrawer({ order, onClose }: Props) {
     setHistory([]);
     setLoading(true);
 
-    const sb = createClient();
-
     (async () => {
-      const { data } = await sb
-        .from("orders")
-        .select(`
-          id, shopify_order_id, shopify_order_number, shopify_created_at,
-          total, subtotal, currency, notes, shipping_address,
-          customer:customers ( first_name, last_name, email, phone ),
-          sub_orders (
-            id, sub_order_number, product_title, variant_title, sku,
-            quantity, unit_price, currency, status,
-            is_unassigned, is_delayed, is_at_risk,
-            brand_name_raw, product_image_url
-          )
-        `)
-        .eq("id", order.id)
-        .maybeSingle();
-
-      const fullOrder = data as unknown as FullOrder | null;
-      setFull(fullOrder);
-
-      if (fullOrder?.sub_orders?.length) {
-        const ids = fullOrder.sub_orders.map((s) => s.id);
-        const { data: hist } = await sb
-          .from("status_history")
-          .select("id, sub_order_id, from_status, to_status, notes, created_at")
-          .in("sub_order_id", ids)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        setHistory((hist ?? []) as unknown as HistoryRow[]);
+      const res = await fetch(`/api/orders/${order.id}`);
+      if (res.ok) {
+        const json = await res.json();
+        setFull(json.order as FullOrder);
+        setHistory((json.history ?? []) as HistoryRow[]);
       }
-
       setLoading(false);
     })();
   }, [order]);
