@@ -165,6 +165,13 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </span>
         </td>
 
+        {/* QUANTITY — desktop only */}
+        <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
+          <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
+            {o.sub_orders.reduce((sum, s) => sum + s.quantity, 0)}
+          </span>
+        </td>
+
         {/* ALERTS — desktop only */}
         <td className="hidden px-3 py-3 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1">
