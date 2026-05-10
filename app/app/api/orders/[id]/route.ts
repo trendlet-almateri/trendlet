@@ -34,8 +34,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 
   const subOrderIds = (order.sub_orders as { id: string }[]).map((s) => s.id);
-  let history: unknown[] = [];
 
+  // Status history (sub-order transitions by team)
+  let history: unknown[] = [];
   if (subOrderIds.length) {
     const { data: hist } = await sb
       .from("status_history")
@@ -46,5 +47,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     history = hist ?? [];
   }
 
-  return NextResponse.json({ order, history });
+  // Order-level events from notifications (Shopify webhooks)
+  // Service client bypasses RLS — deduplicate by (type + second) since
+  // one row is written per admin user for the same event.
+  const { data: rawNotifs } = await sb
+    .from("notifications")
+    .select("id, type, severity, title, description, created_at")
+    .eq("href", `/orders/${params.id}`)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const seen = new Set<string>();
+  const events = (rawNotifs ?? []).filter((n: { type: string; created_at: string }) => {
+    const key = `${n.type}:${n.created_at.slice(0, 19)}`; // dedupe within 1s
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return NextResponse.json({ order, history, events });
 }

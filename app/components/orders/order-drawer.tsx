@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, ChevronRight, MapPin, Mail, Phone, Package, Clock } from "lucide-react";
+import { X, ChevronRight, MapPin, Mail, Phone, Package, Clock, AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate, fullDateTime } from "@/lib/utils/date";
@@ -58,6 +58,34 @@ type HistoryRow = {
   created_at: string;
 };
 
+type EventRow = {
+  id: string;
+  type: string;
+  severity: "critical" | "warning" | "info" | "success";
+  title: string;
+  description: string | null;
+  created_at: string;
+};
+
+// Unified timeline entry
+type TimelineEntry =
+  | { kind: "event"; data: EventRow }
+  | { kind: "status"; data: HistoryRow; sub_order_number: string | undefined };
+
+const SEVERITY_ICON = {
+  critical: AlertCircle,
+  warning:  AlertTriangle,
+  info:     Info,
+  success:  CheckCircle,
+};
+
+const SEVERITY_COLOR: Record<string, string> = {
+  critical: "text-[var(--rose)]",
+  warning:  "text-[var(--amber)]",
+  info:     "text-[var(--blue,#60a5fa)]",
+  success:  "text-[var(--green)]",
+};
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -72,6 +100,7 @@ export function OrderDrawer({ order, onClose }: Props) {
   const [visible, setVisible] = React.useState(false);
   const [full, setFull] = React.useState<FullOrder | null>(null);
   const [history, setHistory] = React.useState<HistoryRow[]>([]);
+  const [events, setEvents] = React.useState<EventRow[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   // Animate in + fetch full data when order changes
@@ -81,6 +110,7 @@ export function OrderDrawer({ order, onClose }: Props) {
     setTab("overview");
     setFull(null);
     setHistory([]);
+    setEvents([]);
     setLoading(true);
 
     (async () => {
@@ -89,6 +119,7 @@ export function OrderDrawer({ order, onClose }: Props) {
         const json = await res.json();
         setFull(json.order as FullOrder);
         setHistory((json.history ?? []) as HistoryRow[]);
+        setEvents((json.events ?? []) as EventRow[]);
       }
       setLoading(false);
     })();
@@ -340,23 +371,57 @@ export function OrderDrawer({ order, onClose }: Props) {
             </div>
           )}
 
-          {!loading && tab === "timeline" && (
-            <div className="flex flex-col gap-2">
-              {history.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-12 text-[13px] text-[var(--muted)]">
-                  <Clock className="h-8 w-8 opacity-30" aria-hidden />
-                  No status history yet
-                </div>
-              ) : (
-                history.map((h) => {
-                  const sub = (full?.sub_orders ?? []).find((s) => s.id === h.sub_order_id);
+          {!loading && tab === "timeline" && (() => {
+            // Merge Shopify events + sub-order status changes into one feed
+            const entries: TimelineEntry[] = [
+              ...events.map((e): TimelineEntry => ({ kind: "event", data: e })),
+              ...history.map((h): TimelineEntry => ({
+                kind: "status",
+                data: h,
+                sub_order_number: full?.sub_orders.find((s) => s.id === h.sub_order_id)?.sub_order_number,
+              })),
+            ].sort((a, b) => {
+              const ta = a.kind === "event" ? a.data.created_at : a.data.created_at;
+              const tb = b.kind === "event" ? b.data.created_at : b.data.created_at;
+              return tb.localeCompare(ta); // newest first
+            });
+
+            // Baseline entry from order creation date if nothing else exists
+            const baseline = full?.shopify_created_at ?? order.shopify_created_at;
+
+            return (
+              <div className="flex flex-col gap-2">
+                {entries.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 py-8 text-[13px] text-[var(--muted)]">
+                    <Clock className="h-8 w-8 opacity-30" aria-hidden />
+                    No events recorded yet
+                  </div>
+                )}
+
+                {entries.map((entry) => {
+                  if (entry.kind === "event") {
+                    const e = entry.data;
+                    const Icon = SEVERITY_ICON[e.severity] ?? Info;
+                    return (
+                      <div key={e.id} className="flex items-start gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5">
+                        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", SEVERITY_COLOR[e.severity])} aria-hidden />
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="text-[13px] font-medium text-[var(--ink)]">{e.title}</span>
+                          {e.description && (
+                            <span className="text-[12px] text-[var(--muted)]">{e.description}</span>
+                          )}
+                          <span className="text-[11px] text-[var(--muted)]">{fullDateTime(e.created_at)}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // status history entry
+                  const h = entry.data;
                   return (
-                    <div
-                      key={h.id}
-                      className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-[12px]"
-                    >
+                    <div key={h.id} className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 text-[12px]">
                       <span className="font-[family-name:var(--font-jetbrains,_monospace)] text-[11px] font-medium tabular-nums text-[var(--muted)]">
-                        {sub?.sub_order_number ?? h.sub_order_id.slice(0, 8)}
+                        {entry.sub_order_number ?? h.sub_order_id.slice(0, 8)}
                       </span>
                       {h.from_status && (
                         <>
@@ -365,18 +430,23 @@ export function OrderDrawer({ order, onClose }: Props) {
                         </>
                       )}
                       <StatusPill status={h.to_status} />
-                      <span className="ml-auto text-[11px] text-[var(--muted)]">
-                        {fullDateTime(h.created_at)}
-                      </span>
-                      {h.notes && (
-                        <span className="basis-full text-[12px] text-[var(--ink-2)]">{h.notes}</span>
-                      )}
+                      <span className="ml-auto text-[11px] text-[var(--muted)]">{fullDateTime(h.created_at)}</span>
+                      {h.notes && <span className="basis-full text-[12px] text-[var(--ink-2)]">{h.notes}</span>}
                     </div>
                   );
-                })
-              )}
-            </div>
-          )}
+                })}
+
+                {/* Baseline: order placed */}
+                <div className="flex items-start gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--hover)] px-3 py-2.5 opacity-60">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--muted)]" aria-hidden />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[13px] font-medium text-[var(--ink)]">Order placed on Shopify</span>
+                    <span className="text-[11px] text-[var(--muted)]">{fullDateTime(baseline)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </>
