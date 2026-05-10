@@ -122,8 +122,7 @@ export async function ingestShopifyOrder(
       updatedCustomerId = (cust as { id: string } | null)?.id ?? null;
     }
 
-    // Refresh raw_payload + headline fields. Don't touch sub_orders or
-    // assignments — those are operations state, not Shopify state.
+    // Refresh order headline fields + raw_payload.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: updErr } = await (sb.from("orders") as any)
       .update({
@@ -140,6 +139,25 @@ export async function ingestShopifyOrder(
     if (updErr) {
       return { action: "skipped", reason: `update failed: ${updErr.message}` };
     }
+
+    // Refresh sub_order product fields (qty, price, title, sku) matched by
+    // shopify_line_item_id. Operational fields (status, assignments) are
+    // intentionally left untouched — those are owned by the ops workflow.
+    for (const li of payload.line_items) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (sb.from("sub_orders") as any)
+        .update({
+          quantity: li.quantity,
+          unit_price: li.price ? Number(li.price) : null,
+          product_title: li.title,
+          variant_title: li.variant_title ?? null,
+          sku: li.sku ?? null,
+          ...(li.image_url ? { product_image_url: li.image_url } : {}),
+        })
+        .eq("order_id", existing.id)
+        .eq("shopify_line_item_id", String(li.id));
+    }
+
     return { action: "refreshed", order_id: existing.id, reason: "raw_payload updated" };
   }
 
