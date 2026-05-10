@@ -85,16 +85,19 @@ export async function POST(req: Request) {
 
   // Count rows that need admin attention. Anything past in_progress has
   // cost (supplier refund / restock / write-off / return-shipment) so admin
-  // must resolve it. Includes `delivered` because in Trendlet's domain
-  // language `delivered` = arrived at the Saudi customer, which on a late
-  // cancellation becomes a return/refund flow that admin owns.
+  // must resolve it. `delivered` is included because it means the parcel
+  // has arrived in Saudi Arabia — a late cancellation at that point is a
+  // return/refund flow that admin owns.
+  //
+  // arrived_in_ksa / out_for_delivery exist in the schema but are dormant
+  // — reserved for a future ksa_operator integration. Not part of the live
+  // US/EU flow today (see sub-order-transitions.ts), so they're excluded
+  // here. Add them back when the ksa_operator role goes live.
   const NEEDS_ADMIN = [
     "purchased_in_store",
     "purchased_online",
     "delivered_to_warehouse",
     "shipped",
-    "arrived_in_ksa",
-    "out_for_delivery",
     "delivered",
     "under_review",
     "preparing_for_shipment",
