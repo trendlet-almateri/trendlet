@@ -56,9 +56,10 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
   const [showDetail,  setShowDetail]  = React.useState(false);
   const isDragging = React.useRef(false);
 
-  const hasUnassigned = o.sub_orders.some((s) => s.is_unassigned);
-  const hasDelayed    = o.sub_orders.some((s) => s.is_delayed);
-  const hasAtRisk     = o.sub_orders.some((s) => s.is_at_risk);
+  const isCancelled   = o.sub_orders.length > 0 && o.sub_orders.every((s) => s.status === "cancelled");
+  const hasUnassigned = !isCancelled && o.sub_orders.some((s) => s.is_unassigned);
+  const hasDelayed    = !isCancelled && o.sub_orders.some((s) => s.is_delayed);
+  const hasAtRisk     = !isCancelled && o.sub_orders.some((s) => s.is_at_risk);
   const urgent        = hasUnassigned || hasDelayed;
 
   const customerName = o.customer
@@ -89,10 +90,15 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         data-alarm={urgent ? "true" : undefined}
         className={cn(
           "cursor-pointer border-b border-[var(--line)] transition-colors last:border-0",
-          urgent ? "" : "hover:bg-[var(--hover)]",
-          expanded && !urgent && "bg-[var(--hover)]",
+          isCancelled && "bg-[var(--rose-bg)]/20",
+          !isCancelled && !urgent && "hover:bg-[var(--hover)]",
+          !isCancelled && expanded && !urgent && "bg-[var(--hover)]",
         )}
-        style={urgent ? { boxShadow: "inset 3px 0 0 var(--rose)" } : undefined}
+        style={
+          isCancelled ? { boxShadow: "inset 3px 0 0 rgba(180,35,24,0.35)" }
+          : urgent     ? { boxShadow: "inset 3px 0 0 var(--rose)" }
+          : undefined
+        }
       >
         {/* ORDER */}
         <td className="whitespace-nowrap px-4 py-3 align-middle">
@@ -104,13 +110,22 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
               )}
               aria-hidden
             />
-            <div className="flex flex-col">
-              <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[12px] font-semibold tabular-nums text-[var(--ink)]">
+            <div className="flex flex-col gap-0.5">
+              <span className={cn(
+                "font-[family-name:var(--font-jetbrains,monospace)] text-[12px] font-semibold tabular-nums",
+                isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]",
+              )}>
                 {o.shopify_order_number}
               </span>
-              <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
-                {shortDate(o.shopify_created_at)}
-              </span>
+              {isCancelled ? (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-px text-[10px] font-semibold border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)] w-fit">
+                  Cancelled
+                </span>
+              ) : (
+                <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
+                  {shortDate(o.shopify_created_at)}
+                </span>
+              )}
             </div>
           </div>
         </td>
@@ -120,12 +135,15 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           <div className="flex items-center gap-2.5">
             <span className={cn(
               "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",
-              avatarCls,
+              isCancelled ? "bg-[var(--muted-2)] grayscale opacity-60" : avatarCls,
             )}>
               {initials}
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-[13px] font-medium text-[var(--ink)]">
+              <span className={cn(
+                "truncate text-[13px] font-medium",
+                isCancelled ? "text-[var(--muted)] line-through decoration-[var(--muted)]/50" : "text-[var(--ink)]",
+              )}>
                 {customerName}
               </span>
               <div className="flex items-center gap-1.5">
@@ -155,12 +173,22 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
 
         {/* STATUS SUMMARY */}
         <td className="px-3 py-3 align-middle">
-          <StatusSummaryBar subOrders={o.sub_orders} />
+          {isCancelled ? (
+            <span className="pill border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
+              <X className="h-3 w-3" aria-hidden />
+              Order cancelled
+            </span>
+          ) : (
+            <StatusSummaryBar subOrders={o.sub_orders} />
+          )}
         </td>
 
         {/* TOTAL — desktop only */}
         <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
-          <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
+          <span className={cn(
+            "font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums",
+            isCancelled ? "text-[var(--muted)] line-through decoration-[var(--muted)]/50" : "text-[var(--ink)]",
+          )}>
             {formatCurrency(o.total ?? 0, o.currency)}
           </span>
         </td>
@@ -175,25 +203,28 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         {/* ALERTS — desktop only */}
         <td className="hidden px-3 py-3 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1">
-            {hasUnassigned && (
-              <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
-                <AlertCircle className="h-3 w-3" aria-hidden />
-                Unassigned
-              </span>
-            )}
-            {hasDelayed && (
-              <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
-                Delayed
-              </span>
-            )}
-            {hasAtRisk && !hasDelayed && (
-              <span className="pill border border-[var(--amber)]/40 bg-[var(--amber-bg)] text-[var(--amber)]">
-                <Clock4 className="h-3 w-3" aria-hidden />
-                SLA risk
-              </span>
-            )}
-            {!hasUnassigned && !hasDelayed && !hasAtRisk && (
+            {isCancelled || (!hasUnassigned && !hasDelayed && !hasAtRisk) ? (
               <span className="text-[12px] text-[var(--muted)]">—</span>
+            ) : (
+              <>
+                {hasUnassigned && (
+                  <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
+                    <AlertCircle className="h-3 w-3" aria-hidden />
+                    Unassigned
+                  </span>
+                )}
+                {hasDelayed && (
+                  <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
+                    Delayed
+                  </span>
+                )}
+                {hasAtRisk && !hasDelayed && (
+                  <span className="pill border border-[var(--amber)]/40 bg-[var(--amber-bg)] text-[var(--amber)]">
+                    <Clock4 className="h-3 w-3" aria-hidden />
+                    SLA risk
+                  </span>
+                )}
+              </>
             )}
           </div>
         </td>
