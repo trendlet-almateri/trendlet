@@ -41,6 +41,28 @@ export default async function ShopifySyncPage() {
 
   const tokenSet = !!process.env.SHOPIFY_ACCESS_TOKEN;
 
+  // TEMP diagnostic — surface first 7 chars + length of every Shopify-related
+  // env var so admins can verify which secret is in which slot without
+  // round-tripping to Vercel logs. Never logs the full value. Remove once
+  // webhook is verified working.
+  const envProbe = [
+    "SHOPIFY_SHOP_DOMAIN",
+    "SHOPIFY_ACCESS_TOKEN",
+    "SHOPIFY_API_KEY",
+    "SHOPIFY_API_SECRET",
+    "SHOPIFY_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_APP_URL",
+  ].map((k) => {
+    const v = process.env[k];
+    if (!v) return { k, status: "MISSING", preview: "—", len: 0 };
+    return {
+      k,
+      status: "set",
+      preview: v.length <= 11 ? v : `${v.slice(0, 7)}…${v.slice(-4)}`,
+      len: v.length,
+    };
+  });
+
   return (
     <div className="flex flex-col gap-5">
       <header className="rise-in flex flex-col gap-1">
@@ -71,6 +93,27 @@ export default async function ShopifySyncPage() {
                 value={latestRow ? fullDateTime(latestRow.shopify_created_at) : "—"}
                 ok={!!latestRow}
               />
+            </dl>
+          </section>
+
+          <section className="rise-in rounded-[var(--radius)] border border-amber-300 bg-amber-50 p-4 shadow-[var(--shadow-sm)]">
+            <h2 className="mb-3 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-900">
+              Env diagnostic (temp)
+            </h2>
+            <p className="mb-3 text-[11px] leading-relaxed text-amber-900/80">
+              First 7 + last 4 chars of each Shopify env var. Use this to
+              verify the right value is in the right slot. Remove this section
+              once webhook is verified working.
+            </p>
+            <dl className="flex flex-col gap-1.5 text-[11px]">
+              {envProbe.map((e) => (
+                <div key={e.k} className="flex items-center justify-between gap-2">
+                  <dt className="mono text-amber-900/90">{e.k}</dt>
+                  <dd className={`mono ${e.status === "MISSING" ? "text-status-danger-fg" : "text-amber-900"}`}>
+                    {e.status === "MISSING" ? "MISSING" : `${e.preview} (len ${e.len})`}
+                  </dd>
+                </div>
+              ))}
             </dl>
           </section>
 
