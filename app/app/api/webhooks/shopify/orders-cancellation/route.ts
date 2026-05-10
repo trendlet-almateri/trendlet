@@ -24,11 +24,19 @@ type CancelledOrder = ShopifyOrder & {
  * Shopify orders/cancelled webhook.
  *
  * 1. Sync order fields + raw_payload (via ingestShopifyOrder update path)
- * 2. Mark all non-terminal sub_orders for this order as "cancelled"
+ * 2. Auto-cancel only sub_orders that haven't been actioned yet
+ *    (pending / assigned / unassigned / in_progress). Once sourcing has
+ *    purchased, the row has financial implications (supplier refund,
+ *    restock, write-off) and admin must resolve it manually — we just
+ *    surface a critical notification with the count of rows that need
+ *    attention.
  *
- * Terminal statuses (delivered, returned) are not overwritten — if goods
- * were already delivered before the cancellation was processed, the
- * sub_order status reflects reality.
+ * Why not cancel everything non-terminal: per sub-order-transitions.ts,
+ * `cancelled` is admin-only territory because it has refund / restock
+ * consequences. Letting Shopify drive a cancellation of a row that's
+ * already been purchased online would skip the supplier-side resolution
+ * step. The early-status rows (no purchase yet) have no such cost so
+ * we cancel those automatically.
  */
 export async function POST(req: Request) {
   const verified = await verifyShopifyWebhook(req);
@@ -58,8 +66,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, action: "skipped", reason: "order not in DB" });
   }
 
-  // Mark all non-terminal sub_orders as cancelled
-  const TERMINAL = ["delivered", "returned", "cancelled"];
+  // Only auto-cancel rows where sourcing hasn't bought anything yet.
+  // Anything past in_progress has financial consequences and must be
+  // resolved by admin (supplier refund, restock, write-off).
+  const SAFE_TO_AUTO_CANCEL = ["pending", "assigned", "unassigned", "in_progress"];
   const sb = createServiceClient();
   const { data: cancelled } = await sb
     .from("sub_orders")
@@ -68,26 +78,63 @@ export async function POST(req: Request) {
       status_changed_at: new Date().toISOString(),
     })
     .eq("order_id", order.id)
-    .not("status", "in", `(${TERMINAL.join(",")})`)
+    .in("status", SAFE_TO_AUTO_CANCEL)
     .select("id");
 
-  const count = cancelled?.length ?? 0;
+  const cancelledCount = cancelled?.length ?? 0;
+
+  // Count rows that need admin attention. Anything past in_progress has
+  // cost (supplier refund / restock / write-off / return-shipment) so admin
+  // must resolve it. `delivered` is included because it means the parcel
+  // has arrived in Saudi Arabia — a late cancellation at that point is a
+  // return/refund flow that admin owns.
+  //
+  // arrived_in_ksa / out_for_delivery exist in the schema but are dormant
+  // — reserved for a future ksa_operator integration. Not part of the live
+  // US/EU flow today (see sub-order-transitions.ts), so they're excluded
+  // here. Add them back when the ksa_operator role goes live.
+  const NEEDS_ADMIN = [
+    "purchased_in_store",
+    "purchased_online",
+    "delivered_to_warehouse",
+    "shipped",
+    "delivered",
+    "under_review",
+    "preparing_for_shipment",
+  ];
+  const { count: needsAdminCount } = await sb
+    .from("sub_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", order.id)
+    .in("status", NEEDS_ADMIN);
+
+  const needsAdmin = needsAdminCount ?? 0;
 
   wlog(ctx.topic, "cancelled", {
     shopifyOrderId,
     orderId: order.id,
-    subOrdersCancelled: count,
+    subOrdersAutoCancelled: cancelledCount,
+    subOrdersNeedingAdmin: needsAdmin,
     cancelReason: payload.cancel_reason,
     cancelledAt: payload.cancelled_at,
   });
+
+  const parts: string[] = [];
+  if (payload.cancel_reason) parts.push(`Reason: ${payload.cancel_reason}`);
+  if (cancelledCount > 0) {
+    parts.push(`${cancelledCount} sub-order${cancelledCount !== 1 ? "s" : ""} auto-cancelled`);
+  }
+  if (needsAdmin > 0) {
+    parts.push(
+      `⚠️ ${needsAdmin} sub-order${needsAdmin !== 1 ? "s" : ""} already actioned — admin review needed`,
+    );
+  }
 
   void writeOrderNotification({
     type: "order_cancelled",
     severity: "critical",
     title: `Order #${payload.order_number} was cancelled`,
-    description: payload.cancel_reason
-      ? `Reason: ${payload.cancel_reason}${count ? ` · ${count} sub-order${count !== 1 ? "s" : ""} cancelled` : ""}`
-      : count ? `${count} sub-order${count !== 1 ? "s" : ""} cancelled` : undefined,
+    description: parts.length ? parts.join(" · ") : undefined,
     href: `/orders/${order.id}`,
   });
 
@@ -95,6 +142,7 @@ export async function POST(req: Request) {
     ok: true,
     action: "cancelled",
     order_id: order.id,
-    sub_orders_cancelled: count,
+    sub_orders_auto_cancelled: cancelledCount,
+    sub_orders_needs_admin: needsAdmin,
   });
 }
