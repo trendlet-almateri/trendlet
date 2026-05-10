@@ -83,7 +83,11 @@ export async function POST(req: Request) {
 
   const cancelledCount = cancelled?.length ?? 0;
 
-  // Count rows that need admin attention (past in_progress, not yet terminal).
+  // Count rows that need admin attention. Anything past in_progress has
+  // cost (supplier refund / restock / write-off / return-shipment) so admin
+  // must resolve it. Includes `delivered` because in Trendlet's domain
+  // language `delivered` = arrived at the Saudi customer, which on a late
+  // cancellation becomes a return/refund flow that admin owns.
   const NEEDS_ADMIN = [
     "purchased_in_store",
     "purchased_online",
@@ -91,6 +95,7 @@ export async function POST(req: Request) {
     "shipped",
     "arrived_in_ksa",
     "out_for_delivery",
+    "delivered",
     "under_review",
     "preparing_for_shipment",
   ];
