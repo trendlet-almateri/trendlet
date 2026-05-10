@@ -6,13 +6,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * Shopify orders/create webhook.
+ * Shopify orders/edited webhook.
  *
- * 1. Verify HMAC
- * 2. Replay protection via webhook_deliveries
- * 3. Delegate to ingestShopifyOrder (idempotent insert)
+ * Fires when an order is edited via the Shopify admin (line items added/removed,
+ * quantities changed, prices adjusted). Re-syncs the full order so our DB stays
+ * current with any line-item or total changes.
  *
- * Always returns 200 on logical errors so Shopify doesn't retry endlessly.
+ * Sub-orders and assignments are NOT modified here — those are managed by the
+ * operations workflow and must be reconciled manually when line items change.
  */
 export async function POST(req: Request) {
   const verified = await verifyShopifyWebhook(req);
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  const result = await ingestShopifyOrder(payload, { updateOnDuplicate: false });
+  // Re-sync all order fields including updated line items and totals
+  const result = await ingestShopifyOrder(payload, { updateOnDuplicate: true });
   wlog(ctx.topic, result.action, { shopifyOrderId: String(payload.id) });
   return NextResponse.json({ ok: true, ...result });
 }
