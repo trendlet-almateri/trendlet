@@ -7,6 +7,7 @@ export type OrderRow = {
   shopify_created_at: string;
   total: number | null;
   currency: string;
+  financial_status: string | null;
   customer: { first_name: string | null; last_name: string | null; default_address: { city?: string; country?: string } | null } | null;
   sub_orders: {
     id: string;
@@ -46,6 +47,7 @@ export async function fetchAdminOrders({
       shopify_created_at,
       total,
       currency,
+      financial_status,
       customer:customers ( first_name, last_name, default_address ),
       sub_orders ( id, sub_order_number, status, is_unassigned, is_at_risk, is_delayed, brand_name_raw, product_title, variant_title, sku, quantity, product_image_url )
     `)

@@ -56,7 +56,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
   const [showDetail,  setShowDetail]  = React.useState(false);
   const isDragging = React.useRef(false);
 
-  const isCancelled   = o.sub_orders.length > 0 && o.sub_orders.every((s) => s.status === "cancelled");
+  const isCancelled        = o.sub_orders.length > 0 && o.sub_orders.every((s) => s.status === "cancelled");
+  const isRefunded         = !isCancelled && o.financial_status === "refunded";
+  const isPartialRefunded  = !isCancelled && o.financial_status === "partially_refunded";
   const hasUnassigned = !isCancelled && o.sub_orders.some((s) => s.is_unassigned);
   const hasDelayed    = !isCancelled && o.sub_orders.some((s) => s.is_delayed);
   const hasAtRisk     = !isCancelled && o.sub_orders.some((s) => s.is_at_risk);
@@ -90,13 +92,17 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         data-alarm={urgent ? "true" : undefined}
         className={cn(
           "cursor-pointer border-b border-[var(--line)] transition-colors last:border-0",
-          isCancelled && "bg-[var(--rose-bg)]/20",
-          !isCancelled && !urgent && "hover:bg-[var(--hover)]",
-          !isCancelled && expanded && !urgent && "bg-[var(--hover)]",
+          isCancelled                         && "bg-[var(--rose-bg)]/20",
+          isRefunded                          && "bg-[var(--amber-bg)]/25",
+          isPartialRefunded                   && "bg-[var(--amber-bg)]/15",
+          !isCancelled && !isRefunded && !isPartialRefunded && !urgent && "hover:bg-[var(--hover)]",
+          !isCancelled && !isRefunded && !isPartialRefunded && expanded && !urgent && "bg-[var(--hover)]",
         )}
         style={
-          isCancelled ? { boxShadow: "inset 3px 0 0 rgba(180,35,24,0.35)" }
-          : urgent     ? { boxShadow: "inset 3px 0 0 var(--rose)" }
+          isCancelled       ? { boxShadow: "inset 3px 0 0 rgba(180,35,24,0.35)" }
+          : isRefunded      ? { boxShadow: "inset 3px 0 0 rgba(180,130,10,0.5)" }
+          : isPartialRefunded ? { boxShadow: "inset 3px 0 0 rgba(180,130,10,0.3)" }
+          : urgent          ? { boxShadow: "inset 3px 0 0 var(--rose)" }
           : undefined
         }
       >
@@ -120,6 +126,14 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
               {isCancelled ? (
                 <span className="inline-flex items-center gap-1 rounded px-1.5 py-px text-[10px] font-semibold border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)] w-fit">
                   Cancelled
+                </span>
+              ) : isRefunded ? (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-px text-[10px] font-semibold border border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)] w-fit">
+                  Refunded
+                </span>
+              ) : isPartialRefunded ? (
+                <span className="inline-flex items-center gap-1 rounded px-1.5 py-px text-[10px] font-semibold border border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)] w-fit">
+                  Partial refund
                 </span>
               ) : (
                 <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
@@ -187,7 +201,11 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
           <span className={cn(
             "font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums",
-            isCancelled ? "text-[var(--muted)] line-through decoration-[var(--muted)]/50" : "text-[var(--ink)]",
+            isCancelled || isRefunded
+              ? "text-[var(--muted)] line-through decoration-[var(--muted)]/50"
+              : isPartialRefunded
+              ? "text-[var(--amber)]"
+              : "text-[var(--ink)]",
           )}>
             {formatCurrency(o.total ?? 0, o.currency)}
           </span>

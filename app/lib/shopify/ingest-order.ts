@@ -130,6 +130,7 @@ export async function ingestShopifyOrder(
         subtotal: payload.subtotal_price ? Number(payload.subtotal_price) : null,
         total: payload.total_price ? Number(payload.total_price) : null,
         currency: payload.currency as Currency,
+        financial_status: payload.financial_status ?? null,
         shipping_address: (payload.shipping_address ?? null) as Json,
         billing_address: (payload.billing_address ?? null) as Json,
         notes: payload.note ?? null,
@@ -208,6 +209,7 @@ export async function ingestShopifyOrder(
     shipping_address: (payload.shipping_address ?? null) as Json,
     billing_address: (payload.billing_address ?? null) as Json,
     notes: payload.note ?? null,
+    financial_status: payload.financial_status ?? null,
     raw_payload: payload as unknown as Json,
     shopify_created_at: payload.created_at,
   };
