@@ -44,6 +44,7 @@ export type ShopifyOrder = {
   currency: string;
   subtotal_price?: string | null;
   total_price?: string | null;
+  financial_status?: string | null;
   customer?: {
     id?: number | string | null;
     email?: string | null;

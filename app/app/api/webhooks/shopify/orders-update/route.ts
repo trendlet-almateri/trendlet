@@ -38,13 +38,27 @@ export async function POST(req: Request) {
 
   if (result.action === "refreshed" && result.order_id) {
     const orderNum = payload.order_number ?? String(payload.id);
-    void writeOrderNotification({
-      type:        "order_updated",
-      severity:    "info",
-      title:       `Order ${orderNum} was updated`,
-      description: "Order details synced from Shopify",
-      href:        `/orders/${result.order_id}`,
-    });
+    const fs = payload.financial_status ?? "";
+    const isRefunded        = fs === "refunded";
+    const isPartialRefunded = fs === "partially_refunded";
+
+    if (isRefunded || isPartialRefunded) {
+      void writeOrderNotification({
+        type:        "payment_failed",
+        severity:    "critical",
+        title:       `Order #${orderNum} ${isRefunded ? "fully refunded" : "partially refunded"}`,
+        description: `Financial status: ${fs}`,
+        href:        `/orders/${result.order_id}`,
+      });
+    } else {
+      void writeOrderNotification({
+        type:        "order_updated",
+        severity:    "info",
+        title:       `Order ${orderNum} was updated`,
+        description: "Order details synced from Shopify",
+        href:        `/orders/${result.order_id}`,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, ...result });
