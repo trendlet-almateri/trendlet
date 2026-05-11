@@ -76,6 +76,9 @@ export async function POST(req: Request) {
     .update({
       status: "cancelled",
       status_changed_at: new Date().toISOString(),
+      // Service role has no auth.uid() — the trigger requires this field to be
+      // set explicitly. We use the ai@trendlet.com system account UUID.
+      status_changed_by: process.env.TRENDLET_SYSTEM_USER_ID ?? "99126bae-c846-400e-9d36-7a0d34b3a1f6",
     })
     .eq("order_id", order.id)
     .in("status", SAFE_TO_AUTO_CANCEL)
