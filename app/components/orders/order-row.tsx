@@ -186,11 +186,11 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* STATUS SUMMARY */}
-        <td className="px-3 py-3 align-middle">
+        <td className="whitespace-nowrap px-3 py-3 align-middle">
           {isCancelled ? (
-            <span className="pill border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
-              <X className="h-3 w-3" aria-hidden />
-              Order cancelled
+            <span className="pill whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
+              <X className="h-3 w-3 shrink-0" aria-hidden />
+              Cancelled
             </span>
           ) : (
             <StatusSummaryBar subOrders={o.sub_orders} />
