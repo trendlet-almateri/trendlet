@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
-import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle, X } from "lucide-react";
+import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle, X, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { relativeTime } from "@/lib/utils/date";
@@ -37,6 +37,7 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
   const router = useRouter();
   const [items, setItems] = React.useState<NotificationRow[]>(initialNotifications);
   const [open, setOpen] = React.useState(false);
+  const [allOpen, setAllOpen] = React.useState(false);
   const [toasts, setToasts] = React.useState<Toast[]>([]);
   const supabaseRef = React.useRef<ReturnType<typeof createClient> | null>(null);
 
@@ -164,23 +165,32 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">
-            <Link
-              href="/activity-log"
-              className="text-[11px] text-[#6e7581] transition-colors hover:text-white"
+          <div className="border-t border-white/[0.06] px-4 py-2.5">
+            <button
+              type="button"
+              onClick={() => { setOpen(false); setAllOpen(true); }}
+              className="flex items-center gap-1 text-[11px] text-[#6e7581] transition-colors hover:text-white"
             >
-              View all activity
-            </Link>
-            <Link
-              href="/preferences#notifications"
-              className="text-[11px] text-[#6e7581] transition-colors hover:text-white"
-            >
-              Notification settings
-            </Link>
+              View all notifications
+              <ArrowUpRight className="h-3 w-3" aria-hidden />
+            </button>
           </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+
+      {/* All notifications modal */}
+      {allOpen && typeof document !== "undefined" &&
+        createPortal(
+          <AllNotificationsModal
+            items={items}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMarkOneRead={markOneRead}
+            onClose={() => setAllOpen(false)}
+          />,
+          document.body,
+        )}
 
       {/* Critical toasts — rendered once (desktop only) */}
       {channelKey === "desktop" && toasts.length > 0 && typeof document !== "undefined" &&
@@ -197,6 +207,107 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
           document.body,
         )}
   </>
+  );
+}
+
+// ── All notifications modal ───────────────────────────────────────────────────
+
+function AllNotificationsModal({
+  items,
+  unreadCount,
+  onMarkAllRead,
+  onMarkOneRead,
+  onClose,
+}: {
+  items: NotificationRow[];
+  unreadCount: number;
+  onMarkAllRead: () => void;
+  onMarkOneRead: (id: string) => void;
+  onClose: () => void;
+}) {
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", h);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        style={{ animation: "backdropIn 0.18s ease forwards" }}
+        onClick={onClose}
+      />
+
+      {/* Card */}
+      <div
+        className="relative flex w-full max-w-[460px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#17191d] shadow-[0_24px_64px_rgba(0,0,0,0.6)]"
+        style={{ animation: "modalIn 0.22s cubic-bezier(0.16,1,0.3,1) forwards", maxHeight: "min(680px,85vh)" }}
+      >
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <Bell className="h-4 w-4 text-[#6e7581]" aria-hidden />
+            <span className="text-[14px] font-semibold text-white">All Notifications</span>
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-[var(--rose)] px-1.5 py-px text-[10px] font-semibold text-white tabular-nums">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onMarkAllRead}
+              disabled={unreadCount === 0}
+              className="text-[11px] text-[#6e7581] transition-colors hover:text-white disabled:opacity-40"
+            >
+              Mark all read
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-7 w-7 place-items-center rounded-lg text-[#6e7581] transition-colors hover:bg-white/[0.06] hover:text-white"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto">
+          {items.length === 0 ? (
+            <div className="px-5 py-16 text-center text-[13px] text-[#6e7581]">
+              You&apos;re all caught up — no notifications yet.
+            </div>
+          ) : (
+            <ul>
+              {items.map((n) => (
+                <NotificationItem
+                  key={n.id}
+                  notification={n}
+                  onActivate={() => {
+                    if (!n.read_at) void onMarkOneRead(n.id);
+                    onClose();
+                  }}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      `}</style>
+    </div>
   );
 }
 
