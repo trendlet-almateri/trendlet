@@ -35,6 +35,9 @@ export type RateCheckResult = {
   /** Number of rate products DHL returned (sanity signal). */
   products: number;
   error: string | null;
+  /** DHL's raw response body on failure — surfaced to the diagnostic ONLY
+   *  (never logged to DB). Lets us read the exact 400 validation message. */
+  dhl_detail: unknown;
 };
 
 /**
@@ -49,12 +52,14 @@ export async function dhlRateCheck(): Promise<RateCheckResult> {
       endpoint: "/rates",
       reason: "DHL_API_USERNAME/PASSWORD/BASE not configured",
     });
-    return { mode: "skipped", ok: false, http_status: 0, products: 0, error: "DHL not configured" };
+    return { mode: "skipped", ok: false, http_status: 0, products: 0, error: "DHL not configured", dhl_detail: null };
   }
 
-  // Minimal, well-formed rate request. Static sample values — no DB data,
-  // no shipment created. Planned date = 2 days out (DHL rejects past dates).
-  const plannedDate = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
+  // MyDHL `/rates` (one-call form). Strict schema. Static sample values —
+  // no DB data, no shipment created. Planned date = 3 days out at midday
+  // (DHL rejects past/weekend-only/odd-format dates).
+  const d = new Date(Date.now() + 3 * 864e5);
+  const plannedDate = d.toISOString().slice(0, 10);
 
   const res = await apiCall<{ products?: unknown[] }>({
     service: "dhl",
@@ -68,12 +73,25 @@ export async function dhlRateCheck(): Promise<RateCheckResult> {
     },
     body: {
       customerDetails: {
-        shipperDetails: { postalCode: "07114", cityName: "Newark", countryCode: "US" },
-        receiverDetails: { postalCode: "11564", cityName: "Riyadh", countryCode: "SA" },
+        shipperDetails: {
+          postalCode: "07114",
+          cityName: "Newark",
+          countryCode: "US",
+          addressLine1: "1 Test St",
+        },
+        receiverDetails: {
+          postalCode: "11564",
+          cityName: "Riyadh",
+          countryCode: "SA",
+          addressLine1: "1 Test St",
+        },
       },
-      plannedShippingDateAndTime: `${plannedDate}T10:00:00GMT+00:00`,
+      accounts: [{ typeCode: "shipper", number: "457343932" }],
+      productCode: "P",
+      plannedShippingDateAndTime: `${plannedDate}T10:00:00 GMT+00:00`,
       unitOfMeasurement: "metric",
       isCustomsDeclarable: true,
+      monetaryAmount: [{ typeCode: "declaredValue", value: 100, currency: "USD" }],
       packages: [{ weight: 1, dimensions: { length: 10, width: 10, height: 10 } }],
     },
   });
@@ -84,6 +102,9 @@ export async function dhlRateCheck(): Promise<RateCheckResult> {
     http_status: res.status,
     products: Array.isArray(res.data?.products) ? res.data!.products!.length : 0,
     error: res.error,
+    // Pass DHL's body through. On 4xx this holds the precise validation
+    // message; the diagnostic returns it to the browser (NOT to api_logs).
+    dhl_detail: res.ok ? null : res.data,
   };
 }
 

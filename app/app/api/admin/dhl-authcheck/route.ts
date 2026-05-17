@@ -21,11 +21,16 @@ export async function GET() {
     http_status: result.http_status,
     rate_products_returned: result.products,
     error: result.error,
+    // DHL's raw error body on failure — shown here so we can read the exact
+    // validation message. Diagnostic only; never written to api_logs.
+    dhl_detail: result.dhl_detail,
     hint:
       result.mode === "skipped"
         ? "DHL_API_USERNAME / DHL_API_PASSWORD / DHL_API_BASE missing in this environment."
         : result.ok
           ? "Credentials valid — DHL accepted the rate request."
-          : `Auth/request failed (HTTP ${result.http_status}). 401/403 = bad credentials.`,
+          : result.http_status === 401 || result.http_status === 403
+            ? `HTTP ${result.http_status} — bad DHL credentials.`
+            : `HTTP ${result.http_status} — auth OK, request rejected. See dhl_detail for the exact reason.`,
   });
 }
