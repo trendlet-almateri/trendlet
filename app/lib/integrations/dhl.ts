@@ -16,13 +16,20 @@
 
 import { apiCall, logSkipped } from "@/lib/api-client";
 
-/** Returns null when DHL is not configured (mock mode). */
+/**
+ * Returns null when DHL is not configured (mock mode).
+ *
+ * Auth = MyDHL API HTTP Basic with the Developer-Portal app's
+ * API Key + Secret: Authorization: Basic base64(DHL_API_Key:DHL_API_Secret).
+ * NOTE: env var names are intentionally mixed-case to match what's set in
+ * Vercel (DHL_API_Key / DHL_API_Secret), not SCREAMING_CASE.
+ */
 function dhlCreds(): { authHeader: string; baseUrl: string } | null {
-  const username = process.env.DHL_API_USERNAME;
-  const password = process.env.DHL_API_PASSWORD;
+  const apiKey = process.env.DHL_API_Key;
+  const apiSecret = process.env.DHL_API_Secret;
   const baseUrl = process.env.DHL_API_BASE;
-  if (!username || !password || !baseUrl) return null;
-  const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+  if (!apiKey || !apiSecret || !baseUrl) return null;
+  const authHeader = `Basic ${Buffer.from(`${apiKey}:${apiSecret}`).toString("base64")}`;
   return { authHeader, baseUrl: baseUrl.replace(/\/$/, "") };
 }
 
