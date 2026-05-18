@@ -12,9 +12,10 @@ type Props = {
   isReadOnly: boolean;
   selfName?: string;
   selfInitials?: string;
+  isAdmin?: boolean;
 };
 
-export function EuGrid({ rows, isReadOnly, selfName, selfInitials }: Props) {
+export function EuGrid({ rows, isReadOnly, selfName, selfInitials, isAdmin }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
@@ -44,6 +45,7 @@ export function EuGrid({ rows, isReadOnly, selfName, selfInitials }: Props) {
             onToast={addToast}
             selfName={selfName}
             selfInitials={selfInitials}
+            isAdmin={isAdmin}
           />
         ))}
       </div>

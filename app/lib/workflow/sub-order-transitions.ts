@@ -61,8 +61,26 @@ const TRANSITIONS: Record<string, StatusCode[]> = {
 };
 
 /**
+ * Statuses from which a cancel makes no sense (already ended). Admin
+ * gets a "Cancel" action from every OTHER status; these are excluded.
+ */
+const TERMINAL_NO_CANCEL = new Set<string>([
+  "cancelled",
+  "delivered",
+  "returned",
+  "failed",
+]);
+
+/**
  * Filter the canonical transition list to those the role is allowed
- * to perform. Admin bypasses the filter (sees every transition).
+ * to perform.
+ *
+ * Admin bypasses the filter (sees every forward transition) AND may
+ * cancel a sub-order from ANY non-terminal status — `cancelled` is not
+ * in any forward path, so it is injected here for admins only. Non-admins
+ * never get `cancelled` (it is not in their whitelist), so cancellation
+ * is admin-only in the UI; the DB enforce_status_whitelist trigger is the
+ * matching security boundary.
  */
 export function getNextStatuses(
   currentStatus: string,
@@ -70,7 +88,10 @@ export function getNextStatuses(
   whitelist: Record<string, string[]>,
 ): StatusCode[] {
   const candidates = TRANSITIONS[currentStatus] ?? [];
-  if (role === "admin") return candidates;
+  if (role === "admin") {
+    if (TERMINAL_NO_CANCEL.has(currentStatus)) return candidates;
+    return [...candidates, "cancelled" as StatusCode];
+  }
   const allowed = new Set(whitelist[role] ?? []);
   return candidates.filter((s) => allowed.has(s));
 }

@@ -52,28 +52,49 @@ const EU_BTN_LABELS: Record<string, string> = {
 // Fulfiller owns sourcing + warehouse end-to-end:
 //   pending → in_progress → purchased_* / out_of_stock
 //          → delivered_to_warehouse → shipped → delivered
-function getEuActions(status: string): StatusCode[] {
+// Statuses a cancel makes no sense from (already ended).
+const EU_TERMINAL_NO_CANCEL = new Set<string>([
+  "cancelled",
+  "delivered",
+  "returned",
+  "failed",
+  "out_of_stock",
+]);
+
+function getEuActions(status: string, isAdmin: boolean): StatusCode[] {
+  let actions: StatusCode[];
   switch (status) {
     case "pending":
     case "assigned":
     case "unassigned":
-      return ["in_progress" as StatusCode];
+      actions = ["in_progress" as StatusCode];
+      break;
     case "in_progress":
-      return [
+      actions = [
         "purchased_online" as StatusCode,
         "purchased_in_store" as StatusCode,
         "out_of_stock" as StatusCode,
       ];
+      break;
     case "purchased_online":
     case "purchased_in_store":
-      return ["delivered_to_warehouse" as StatusCode];
+      actions = ["delivered_to_warehouse" as StatusCode];
+      break;
     case "delivered_to_warehouse":
-      return ["shipped" as StatusCode];
+      actions = ["shipped" as StatusCode];
+      break;
     case "shipped":
-      return ["delivered" as StatusCode];
+      actions = ["delivered" as StatusCode];
+      break;
     default:
-      return [];
+      actions = [];
   }
+  // Admin may cancel from any non-terminal status. Non-admins never see
+  // cancel here (DB enforce_status_whitelist is the matching boundary).
+  if (isAdmin && !EU_TERMINAL_NO_CANCEL.has(status)) {
+    actions = [...actions, "cancelled" as StatusCode];
+  }
+  return actions;
 }
 
 // ─── Status palette ────────────────────────────────────────────────────────────
@@ -103,6 +124,7 @@ type Props = {
   onToast: (t: EuToast) => void;
   selfName?: string;
   selfInitials?: string;
+  isAdmin?: boolean;
 };
 
 export function EuCard({
@@ -114,6 +136,7 @@ export function EuCard({
   onToast,
   selfName,
   selfInitials,
+  isAdmin = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,13 +163,35 @@ export function EuCard({
     ? { name: selfName, initials: selfInitials ?? selfName.slice(0, 2).toUpperCase() }
     : null;
 
-  const forwardTargets = isReadOnly ? [] : getEuActions(optimisticStatus);
+  const euActions = isReadOnly ? [] : getEuActions(optimisticStatus, isAdmin);
+  const cancelTarget = euActions.find((s) => s === "cancelled");
+  const forwardTargets = euActions.filter((s) => s !== "cancelled");
+
+  // Cancelling a sub-order past purchase has financial / return
+  // consequences — admin must explicitly confirm. Mirrors the webhook's
+  // post-purchase threshold for consistency.
+  const RISKY_CANCEL_FROM = new Set<string>([
+    "purchased_in_store",
+    "purchased_online",
+    "delivered_to_warehouse",
+    "shipped",
+    "delivered",
+    "under_review",
+    "preparing_for_shipment",
+    "arrived_in_ksa",
+    "out_for_delivery",
+  ]);
+  const isRiskyCancel = (target: StatusCode) =>
+    target === "cancelled" && RISKY_CANCEL_FROM.has(optimisticStatus);
 
   // If notifications are off OR target doesn't notify the customer, skip
   // the confirm modal — it adds friction without protecting anything
-  // (no real WhatsApp would be sent). When notifications are on, the
-  // modal still gates customer-facing transitions for safety.
+  // (no real WhatsApp would be sent). Risky cancels always confirm.
   const requestStatusChange = (target: StatusCode) => {
+    if (isRiskyCancel(target)) {
+      setPendingTarget(target);
+      return;
+    }
     if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
       advance(target);
       return;
@@ -326,7 +371,7 @@ export function EuCard({
             </div>
 
             {/* Action buttons — always shown when actionable */}
-            {!isReadOnly && forwardTargets.length > 0 && (
+            {!isReadOnly && (forwardTargets.length > 0 || cancelTarget) && (
               <div className="flex flex-wrap items-center gap-1.5">
                 {pending && <Loader2 className="h-3 w-3 animate-spin text-[var(--muted)]" />}
                 {forwardTargets.map((t) => (
@@ -338,6 +383,14 @@ export function EuCard({
                     onClick={() => requestStatusChange(t)}
                   />
                 ))}
+                {cancelTarget && (
+                  <ActionBtn
+                    label="Cancel order"
+                    variant="danger-outline"
+                    disabled={pending}
+                    onClick={() => requestStatusChange(cancelTarget)}
+                  />
+                )}
               </div>
             )}
 
@@ -357,6 +410,7 @@ export function EuCard({
           customerPhone={row.order?.customer_phone ?? null}
           onCancel={() => setPendingTarget(null)}
           onConfirm={() => advance(pendingTarget)}
+          riskyCancel={isRiskyCancel(pendingTarget)}
         />
       )}
     </>
@@ -377,7 +431,7 @@ function InfoRow({ icon, label, value }: { icon?: React.ReactNode; label: string
 
 function ActionBtn({ label, variant, disabled, onClick }: {
   label: string;
-  variant: "primary" | "secondary";
+  variant: "primary" | "secondary" | "danger-outline";
   disabled?: boolean;
   onClick: () => void;
 }) {
@@ -390,6 +444,8 @@ function ActionBtn({ label, variant, disabled, onClick }: {
         "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all disabled:opacity-50",
         variant === "primary" && "bg-[#1e3a5f] text-white hover:bg-[#152d4a]",
         variant === "secondary" && "border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--hover)]",
+        variant === "danger-outline" &&
+          "border border-status-danger-border/60 bg-status-danger-bg text-status-danger-fg hover:bg-status-danger-bg/80",
       )}
     >
       {label}

@@ -133,6 +133,7 @@ export default async function WarehousePipelinePage({
           isReadOnly={tab.readOnly}
           selfName={isAdmin ? undefined : selfName}
           selfInitials={isAdmin ? undefined : selfInitials}
+          isAdmin={isAdmin}
         />
       )}
 

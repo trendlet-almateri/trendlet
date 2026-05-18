@@ -38,14 +38,28 @@ const STATUS_PALETTE: Record<string, string> = {
 //   delivered_to_warehouse → shipped → delivered
 // No intermediate "preparing_for_shipment" — that status is not in the
 // warehouse role's whitelist.
-function getWarehouseActions(status: string): StatusCode[] {
+// Statuses a cancel makes no sense from (already ended).
+const WH_TERMINAL_NO_CANCEL = new Set<string>([
+  "cancelled",
+  "delivered",
+  "returned",
+  "failed",
+  "out_of_stock",
+]);
+
+function getWarehouseActions(status: string, isAdmin: boolean): StatusCode[] {
+  let actions: StatusCode[] = [];
   if (status === "delivered_to_warehouse") {
-    return ["shipped" as StatusCode];
+    actions = ["shipped" as StatusCode];
+  } else if (status === "shipped") {
+    actions = ["delivered" as StatusCode];
   }
-  if (status === "shipped") {
-    return ["delivered" as StatusCode];
+  // Admin may cancel from any non-terminal status. Non-admins never see
+  // cancel here (DB enforce_status_whitelist is the matching boundary).
+  if (isAdmin && !WH_TERMINAL_NO_CANCEL.has(status)) {
+    actions = [...actions, "cancelled" as StatusCode];
   }
-  return [];
+  return actions;
 }
 
 const BTN_LABELS: Partial<Record<string, string>> = {
@@ -70,6 +84,7 @@ type Props = {
   onToast: (t: WarehouseToast) => void;
   selfName?: string;
   selfInitials?: string;
+  isAdmin?: boolean;
 };
 
 export function WarehouseCard({
@@ -81,6 +96,7 @@ export function WarehouseCard({
   onToast,
   selfName,
   selfInitials,
+  isAdmin = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,9 +121,32 @@ export function WarehouseCard({
     ? { name: selfName, initials: selfInitials ?? selfName.slice(0, 2).toUpperCase() }
     : null;
 
-  const forwardTargets = isReadOnly ? [] : getWarehouseActions(optimisticStatus);
+  const whActions = isReadOnly ? [] : getWarehouseActions(optimisticStatus, isAdmin);
+  const cancelTarget = whActions.find((s) => s === "cancelled");
+  const forwardTargets = whActions.filter((s) => s !== "cancelled");
+
+  // Cancelling a sub-order past purchase has financial / return
+  // consequences — admin must explicitly confirm. Mirrors the webhook's
+  // post-purchase threshold for consistency.
+  const RISKY_CANCEL_FROM = new Set<string>([
+    "purchased_in_store",
+    "purchased_online",
+    "delivered_to_warehouse",
+    "shipped",
+    "delivered",
+    "under_review",
+    "preparing_for_shipment",
+    "arrived_in_ksa",
+    "out_for_delivery",
+  ]);
+  const isRiskyCancel = (target: StatusCode) =>
+    target === "cancelled" && RISKY_CANCEL_FROM.has(optimisticStatus);
 
   const requestStatusChange = (target: StatusCode) => {
+    if (isRiskyCancel(target)) {
+      setPendingTarget(target);
+      return;
+    }
     if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
       advance(target);
       return;
@@ -282,7 +321,7 @@ export function WarehouseCard({
             </div>
 
             {/* Action buttons — always shown when actionable */}
-            {!isReadOnly && forwardTargets.length > 0 && (
+            {!isReadOnly && (forwardTargets.length > 0 || cancelTarget) && (
               <div className="flex flex-wrap items-center gap-1.5">
                 {pending && <Loader2 className="h-3 w-3 animate-spin text-[var(--muted)]" />}
                 {forwardTargets.map((t) => (
@@ -294,6 +333,14 @@ export function WarehouseCard({
                     onClick={() => requestStatusChange(t)}
                   />
                 ))}
+                {cancelTarget && (
+                  <ActionBtn
+                    label="Cancel order"
+                    variant="danger-outline"
+                    disabled={pending}
+                    onClick={() => requestStatusChange(cancelTarget)}
+                  />
+                )}
               </div>
             )}
 
@@ -314,6 +361,7 @@ export function WarehouseCard({
           customerPhone={row.order?.customer_phone ?? null}
           onCancel={() => setPendingTarget(null)}
           onConfirm={() => advance(pendingTarget)}
+          riskyCancel={isRiskyCancel(pendingTarget)}
         />
       )}
     </>
@@ -336,7 +384,7 @@ function ActionBtn({
   label, variant, disabled, onClick,
 }: {
   label: string;
-  variant: "primary" | "secondary";
+  variant: "primary" | "secondary" | "danger-outline";
   disabled?: boolean;
   onClick: () => void;
 }) {
@@ -349,6 +397,8 @@ function ActionBtn({
         "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all disabled:opacity-50",
         variant === "primary" && "bg-[#1e3a5f] text-white hover:bg-[#152d4a]",
         variant === "secondary" && "border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--hover)]",
+        variant === "danger-outline" &&
+          "border border-status-danger-border/60 bg-status-danger-bg text-status-danger-fg hover:bg-status-danger-bg/80",
       )}
     >
       {label}

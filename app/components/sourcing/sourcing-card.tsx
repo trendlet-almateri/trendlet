@@ -109,21 +109,42 @@ export function SourcingCard({
     ? { name: selfName, initials: selfInitials ?? selfName.slice(0, 2).toUpperCase() }
     : null;
 
-  // Determine action buttons
-  const nextStatuses: StatusCode[] = isReadOnly ? [] : (() => {
-    if (optimisticStatus === "pending" || optimisticStatus === "assigned") {
-      const actions: StatusCode[] = ["in_progress"];
-      if (isAdmin) actions.unshift("cancelled" as StatusCode);
-      return actions;
-    }
-    return getNextStatuses(optimisticStatus, role, ROLE_STATUS_WHITELIST);
-  })();
+  // Determine action buttons. getNextStatuses now injects `cancelled`
+  // for admins on every non-terminal status, so cancel is handled in one
+  // place (no per-status special-casing here).
+  const nextStatuses: StatusCode[] = isReadOnly
+    ? []
+    : getNextStatuses(optimisticStatus, role, ROLE_STATUS_WHITELIST);
 
   const cancelTarget = nextStatuses.find((s) => s === "cancelled");
   const oosTarget = nextStatuses.find((s) => s === "out_of_stock");
   const forwardTargets = nextStatuses.filter((s) => s !== "cancelled" && s !== "out_of_stock");
 
+  // Cancelling a sub-order that's already past purchase has financial /
+  // return consequences (supplier refund, restock, return shipping), so
+  // an admin must explicitly confirm it. Mirrors the webhook's
+  // post-purchase threshold for consistency.
+  const RISKY_CANCEL_FROM = new Set<string>([
+    "purchased_in_store",
+    "purchased_online",
+    "delivered_to_warehouse",
+    "shipped",
+    "delivered",
+    "under_review",
+    "preparing_for_shipment",
+    "arrived_in_ksa",
+    "out_for_delivery",
+  ]);
+  const isRiskyCancel = (target: StatusCode) =>
+    target === "cancelled" && RISKY_CANCEL_FROM.has(optimisticStatus);
+
   const requestStatusChange = (target: StatusCode) => {
+    // Risky cancels always confirm (even though `cancelled` sends no
+    // customer message); other internal statuses skip the modal as before.
+    if (isRiskyCancel(target)) {
+      setPendingTarget(target);
+      return;
+    }
     if (!NOTIFICATIONS_ENABLED || !isCustomerNotifyStatus(target)) {
       advance(target);
       return;
@@ -355,6 +376,7 @@ export function SourcingCard({
           customerPhone={row.order?.customer_phone ?? null}
           onCancel={() => setPendingTarget(null)}
           onConfirm={() => advance(pendingTarget)}
+          riskyCancel={isRiskyCancel(pendingTarget)}
         />
       )}
     </>

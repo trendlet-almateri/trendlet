@@ -12,9 +12,10 @@ type Props = {
   isReadOnly: boolean;
   selfName?: string;
   selfInitials?: string;
+  isAdmin?: boolean;
 };
 
-export function WarehouseGrid({ rows, isReadOnly, selfName, selfInitials }: Props) {
+export function WarehouseGrid({ rows, isReadOnly, selfName, selfInitials, isAdmin }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
@@ -44,6 +45,7 @@ export function WarehouseGrid({ rows, isReadOnly, selfName, selfInitials }: Prop
             onToast={addToast}
             selfName={selfName}
             selfInitials={selfInitials}
+            isAdmin={isAdmin}
           />
         ))}
       </div>
