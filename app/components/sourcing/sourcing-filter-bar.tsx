@@ -6,7 +6,7 @@ import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type TabKey = "todo" | "in_progress" | "completed";
+type TabKey = "todo" | "in_progress" | "completed" | "cancelled";
 
 type Props = {
   brands: { id: string; name: string }[];
