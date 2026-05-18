@@ -137,6 +137,7 @@ export default async function EuFulfillmentPage({
           isReadOnly={tab.readOnly}
           selfName={isAdmin ? undefined : selfName}
           selfInitials={isAdmin ? undefined : selfInitials}
+          isAdmin={isAdmin}
         />
       )}
 
