@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Warehouse · Trendslet Operations" };
 
-type TabKey = "todo" | "in_progress" | "completed";
+type TabKey = "todo" | "in_progress" | "completed" | "cancelled";
 
 // Warehouse owns delivered_to_warehouse → shipped → delivered.
 // Tab routing uses marked_done_at (set when the user clicks the final
@@ -24,15 +24,21 @@ const WAREHOUSE_STATUSES = new Set(["delivered_to_warehouse", "shipped", "delive
 
 type Row = { status: string; marked_done_at: string | null };
 
-const matchTodo       = (r: Row) => !r.marked_done_at && TODO_STATUSES.has(r.status);
-const matchCompleted  = (r: Row) => r.marked_done_at !== null;
+// `cancelled` is terminal and not in WAREHOUSE_STATUSES, and an admin
+// cancel does not set marked_done_at — so a cancelled row matches none of
+// the other tabs. matchCancelled checks status first so it lands in its
+// own tab rather than vanishing.
+const matchCancelled  = (r: Row) => r.status === "cancelled";
+const matchTodo       = (r: Row) => !matchCancelled(r) && !r.marked_done_at && TODO_STATUSES.has(r.status);
+const matchCompleted  = (r: Row) => !matchCancelled(r) && r.marked_done_at !== null;
 const matchInProgress = (r: Row) =>
-  !r.marked_done_at && WAREHOUSE_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
+  !matchCancelled(r) && !r.marked_done_at && WAREHOUSE_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
 
 const TAB_CONFIG = [
   { key: "todo"        as TabKey, label: "To do",       match: matchTodo,       readOnly: false },
   { key: "in_progress" as TabKey, label: "In progress", match: matchInProgress, readOnly: false },
   { key: "completed"   as TabKey, label: "Completed",   match: matchCompleted,  readOnly: true  },
+  { key: "cancelled"   as TabKey, label: "Cancelled",   match: matchCancelled,  readOnly: true  },
 ];
 
 export default async function WarehousePipelinePage({
@@ -63,6 +69,7 @@ export default async function WarehousePipelinePage({
     todo:        rows.filter(matchTodo).length,
     in_progress: rows.filter(matchInProgress).length,
     completed:   rows.filter(matchCompleted).length,
+    cancelled:   rows.filter(matchCancelled).length,
   };
 
   const tasksRemaining = counts.todo + counts.in_progress;
@@ -155,7 +162,7 @@ export default async function WarehousePipelinePage({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isTab(v: string | undefined): v is TabKey {
-  return v === "todo" || v === "in_progress" || v === "completed";
+  return v === "todo" || v === "in_progress" || v === "completed" || v === "cancelled";
 }
 
 function sortRows(rows: FulfillmentRow[], sortKey: "urgent" | "newest" | "oldest"): FulfillmentRow[] {
@@ -188,6 +195,7 @@ const DOT: Record<TabKey, string> = {
   todo:        "bg-amber-400",
   in_progress: "bg-sky-500",
   completed:   "bg-emerald-500",
+  cancelled:   "bg-rose-500",
 };
 
 function TabPills({

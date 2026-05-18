@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "EU Fulfillment · Trendslet Operations" };
 
-type TabKey = "todo" | "in_progress" | "completed";
+type TabKey = "todo" | "in_progress" | "completed" | "cancelled";
 
 // Fulfiller = sourcing + warehouse, end-to-end.
 // Tab routing now uses marked_done_at (set explicitly on the final
@@ -29,15 +29,20 @@ const FULFILLER_STATUSES = new Set([
 
 type Row = { status: string; marked_done_at: string | null };
 
-const matchTodo       = (r: Row) => !r.marked_done_at && TODO_STATUSES.has(r.status);
-const matchCompleted  = (r: Row) => r.marked_done_at !== null;
+// `cancelled` is terminal, not in FULFILLER_STATUSES, and an admin cancel
+// doesn't set marked_done_at — so it matches no other tab. Check it first
+// so a cancelled row lands in its own tab instead of vanishing.
+const matchCancelled  = (r: Row) => r.status === "cancelled";
+const matchTodo       = (r: Row) => !matchCancelled(r) && !r.marked_done_at && TODO_STATUSES.has(r.status);
+const matchCompleted  = (r: Row) => !matchCancelled(r) && r.marked_done_at !== null;
 const matchInProgress = (r: Row) =>
-  !r.marked_done_at && FULFILLER_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
+  !matchCancelled(r) && !r.marked_done_at && FULFILLER_STATUSES.has(r.status) && !TODO_STATUSES.has(r.status);
 
 const TAB_CONFIG = [
   { key: "todo"        as TabKey, label: "To do",       match: matchTodo,       readOnly: false },
   { key: "in_progress" as TabKey, label: "In progress", match: matchInProgress, readOnly: false },
   { key: "completed"   as TabKey, label: "Completed",   match: matchCompleted,  readOnly: true  },
+  { key: "cancelled"   as TabKey, label: "Cancelled",   match: matchCancelled,  readOnly: true  },
 ];
 
 export default async function EuFulfillmentPage({
@@ -63,6 +68,7 @@ export default async function EuFulfillmentPage({
     todo:        rows.filter(matchTodo).length,
     in_progress: rows.filter(matchInProgress).length,
     completed:   rows.filter(matchCompleted).length,
+    cancelled:   rows.filter(matchCancelled).length,
   };
 
   const today = new Date().toISOString().slice(0, 10);
@@ -159,7 +165,7 @@ export default async function EuFulfillmentPage({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isTab(v: string | undefined): v is TabKey {
-  return v === "todo" || v === "in_progress" || v === "completed";
+  return v === "todo" || v === "in_progress" || v === "completed" || v === "cancelled";
 }
 
 function sortRows(rows: FulfillmentRow[], sortKey: "urgent" | "newest" | "oldest"): FulfillmentRow[] {
@@ -192,6 +198,7 @@ const DOT: Record<TabKey, string> = {
   todo:        "bg-amber-400",
   in_progress: "bg-sky-500",
   completed:   "bg-emerald-500",
+  cancelled:   "bg-rose-500",
 };
 
 function TabPills({

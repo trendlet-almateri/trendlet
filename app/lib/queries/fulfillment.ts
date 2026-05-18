@@ -43,10 +43,12 @@ export type FulfillmentRow = {
 type Region = "EU" | "US";
 
 // Statuses returned to the role queue pages. Includes terminal statuses
-// (delivered, out_of_stock) so each role's Completed tab can show finished
-// rows. Each page filters by tab on the client, so a role won't see a
-// terminal status that doesn't belong to its lifecycle.
-// Truly excluded: returned, cancelled, failed.
+// (delivered, out_of_stock, cancelled) so each role's Completed / Cancelled
+// tab can show finished rows. Each page filters by tab on the client, so a
+// role won't see a terminal status that doesn't belong to its lifecycle.
+// `cancelled` is included so a cancelled sub-order surfaces in the role's
+// Cancelled tab instead of silently vanishing.
+// Truly excluded: returned, failed.
 const ACTIVE_STATUSES = [
   "pending",
   "assigned",
@@ -60,6 +62,7 @@ const ACTIVE_STATUSES = [
   "out_for_delivery",
   "delivered",
   "out_of_stock",
+  "cancelled",
 ];
 
 /**
