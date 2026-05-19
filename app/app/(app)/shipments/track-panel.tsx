@@ -62,24 +62,24 @@ export function TrackPanel() {
   }
 
   return (
-    <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
+    <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 shadow-[var(--shadow-sm)]">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--muted)]" />
           <input
             value={tn}
             onChange={(e) => setTn(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && lookup()}
-            placeholder="Enter a DHL tracking number…"
-            className="w-full rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] py-2 pl-9 pr-3 text-[13px] text-ink-primary outline-none transition-colors focus:border-[var(--accent)]"
+            placeholder="DHL tracking number…"
+            className="w-full rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] py-1.5 pl-8 pr-3 text-[12px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)]"
           />
         </div>
         <button
           onClick={lookup}
           disabled={busy || !tn.trim()}
-          className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-[13px] font-medium text-ink-secondary transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
         >
-          {busy ? <RefreshCw className="size-4 animate-spin" /> : <Search className="size-4" />}
+          {busy ? <RefreshCw className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
           Look up
         </button>
       </div>
