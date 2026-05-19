@@ -150,9 +150,10 @@ export async function trackDhlShipment(trackingNumber: string): Promise<TrackRes
     error: null,
   };
 
-  const apiKey = process.env.DHL_API_KEY;
+  // Vercel env var is named DHL_API_Key (mixed case) — must match exactly.
+  const apiKey = process.env.DHL_API_Key;
   if (!apiKey) {
-    return { ...empty, error: "DHL_API_KEY not configured" };
+    return { ...empty, error: "DHL_API_Key not configured" };
   }
 
   const base = process.env.DHL_TRACKING_BASE ?? "https://api-eu.dhl.com/track/shipments";

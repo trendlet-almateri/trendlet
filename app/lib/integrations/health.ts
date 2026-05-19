@@ -191,9 +191,10 @@ export async function checkDhl(): Promise<IntegrationHealth> {
   // key only (secret unused for this API). Probe with a known-invalid
   // tracking number: 404 = key authenticated (DHL processed it),
   // 401/403 = bad key. Read-only, costs nothing.
-  const key = process.env.DHL_API_KEY;
+  // Vercel env var is named DHL_API_Key (mixed case) — must match exactly.
+  const key = process.env.DHL_API_Key;
   if (!key) {
-    return { service: "dhl", status: "missing", detail: "DHL_API_KEY not set", latency_ms: null };
+    return { service: "dhl", status: "missing", detail: "DHL_API_Key not set", latency_ms: null };
   }
 
   const base = process.env.DHL_TRACKING_BASE ?? "https://api-eu.dhl.com/track/shipments";
