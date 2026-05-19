@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { StatusPill } from "@/components/status/status-pill";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime, shortDate } from "@/lib/utils/date";
+import { deriveOrderCancelState, orderCancelLabel } from "@/lib/workflow/order-cancel-state";
 
 export const dynamic = "force-dynamic";
 
@@ -120,7 +121,17 @@ export default async function OrderDetailPage({ params }: { params: { id: string
       {/* Header */}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-h1 text-ink-primary">{order.shopify_order_number}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-h1 text-ink-primary">{order.shopify_order_number}</h1>
+            {(() => {
+              const label = orderCancelLabel(deriveOrderCancelState(order.sub_orders));
+              return label ? (
+                <span className="pill w-fit whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
+                  {label}
+                </span>
+              ) : null;
+            })()}
+          </div>
           <span className="text-[12px] text-ink-tertiary">
             Placed {fullDateTime(order.shopify_created_at)}
           </span>

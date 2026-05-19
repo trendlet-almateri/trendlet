@@ -26,6 +26,7 @@ export function ConfirmStatusModal({
   customerPhone,
   onCancel,
   onConfirm,
+  riskyCancel = false,
 }: {
   target: StatusCode;
   subOrderNumber: string;
@@ -34,6 +35,9 @@ export function ConfirmStatusModal({
   customerPhone: string | null;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Cancelling an already-purchased/shipped/delivered sub-order —
+   *  show an emphatic financial/return-consequences warning. */
+  riskyCancel?: boolean;
 }) {
   const targetLabel = STATUS_BY_CODE[target]?.label ?? target;
   const willNotify = isCustomerNotifyStatus(target);
@@ -79,6 +83,18 @@ export function ConfirmStatusModal({
             <span><span className="text-ink-tertiary">Sub-order:</span> {subOrderNumber}</span>
             <span className="truncate"><span className="text-ink-tertiary">Product:</span> {productTitle}</span>
           </div>
+
+          {riskyCancel && (
+            <div className="flex items-start gap-2 rounded-md border border-status-danger-border/50 bg-status-danger-bg px-3 py-2 text-[12px] text-status-danger-fg">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>
+                This sub-order is already past purchase. Cancelling it has
+                financial / return consequences (supplier refund, restock,
+                or return shipping) that must be resolved manually. This
+                cannot be undone from here.
+              </span>
+            </div>
+          )}
 
           {willNotify && tpl ? (
             <div className="flex flex-col gap-2">
@@ -130,9 +146,13 @@ export function ConfirmStatusModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition-colors hover:bg-navy-deep"
+            className={
+              riskyCancel
+                ? "inline-flex items-center gap-1.5 rounded-md bg-status-danger-fg px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition-colors hover:opacity-90"
+                : "inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition-colors hover:bg-navy-deep"
+            }
           >
-            Confirm change
+            {riskyCancel ? "Cancel this sub-order" : "Confirm change"}
           </button>
         </footer>
       </div>

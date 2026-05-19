@@ -6,6 +6,7 @@ import { ChevronRight, AlertCircle, Clock4, Eye, Bookmark, MoreHorizontal, X } f
 import type { OrderRow as OrderRowData } from "@/lib/queries/orders";
 import { StatusSummaryBar } from "@/components/status/status-summary-bar";
 import { StatusPill } from "@/components/status/status-pill";
+import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
   const [showDetail,  setShowDetail]  = React.useState(false);
   const isDragging = React.useRef(false);
 
-  const isCancelled        = o.sub_orders.length > 0 && o.sub_orders.every((s) => s.status === "cancelled");
+  const cancelState        = deriveOrderCancelState(o.sub_orders);
+  const isCancelled        = cancelState === "all";
+  const isPartialCancelled = cancelState === "partial";
   const isRefunded         = !isCancelled && o.financial_status === "refunded";
   const isPartialRefunded  = !isCancelled && o.financial_status === "partially_refunded";
   const hasUnassigned = !isCancelled && o.sub_orders.some((s) => s.is_unassigned);
@@ -192,6 +195,14 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
               <X className="h-3 w-3 shrink-0" aria-hidden />
               Cancelled
             </span>
+          ) : isPartialCancelled ? (
+            <div className="flex flex-col gap-1">
+              <span className="pill w-fit whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
+                <X className="h-3 w-3 shrink-0" aria-hidden />
+                Partially cancelled
+              </span>
+              <StatusSummaryBar subOrders={o.sub_orders} />
+            </div>
           ) : (
             <StatusSummaryBar subOrders={o.sub_orders} />
           )}

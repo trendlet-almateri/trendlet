@@ -3,24 +3,16 @@ import { requireAdmin } from "@/lib/auth/require-role";
 import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
-import { ShipmentsTable } from "./shipments-table";
+import { cn } from "@/lib/utils";
+import { TrackPanel } from "./track-panel";
+import { ShipmentsTable, type ShipmentRow } from "./shipments-table";
+import { dhlRequestsToday } from "./actions";
+
+const DHL_DAILY_LIMIT = 250;
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Shipments · Trendslet Operations" };
-
-export type ShipmentRow = {
-  id: string;
-  shipment_type: string;
-  origin: string | null;
-  destination: string | null;
-  tracking_number: string | null;
-  status: string;
-  shipped_at: string | null;
-  delivered_at: string | null;
-  created_at: string;
-  carrier: { display_name: string } | null;
-};
 
 export default async function ShipmentsPage() {
   await requireAdmin();
@@ -39,9 +31,27 @@ export default async function ShipmentsPage() {
   if (error) console.error("[ShipmentsPage]", error);
   const rows = (data ?? []) as unknown as ShipmentRow[];
 
+  const dhlUsed = await dhlRequestsToday();
+  const nearLimit = dhlUsed >= DHL_DAILY_LIMIT * 0.8;
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
+        <span
+          title="DHL tracking API requests used today (resets 00:00 UTC). Each search or refresh = 1 request."
+          className={cn(
+            "mt-1 shrink-0 rounded-[calc(var(--radius)-4px)] border px-2.5 py-1 text-[12px] font-medium tabular-nums",
+            nearLimit
+              ? "border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)]"
+              : "border-[var(--line)] bg-[var(--hover)] text-[var(--muted)]",
+          )}
+        >
+          DHL: {dhlUsed} / {DHL_DAILY_LIMIT} today
+        </span>
+      </div>
+
+      <TrackPanel />
 
       {rows.length === 0 ? (
         <EmptyState

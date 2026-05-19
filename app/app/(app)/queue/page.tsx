@@ -11,7 +11,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sourcing · Trendslet Operations" };
 
-type TabKey = "todo" | "in_progress" | "completed";
+type TabKey = "todo" | "in_progress" | "completed" | "cancelled";
 
 // Sourcing tab routing is STATUS-ONLY (no marked_done_at). Sourcing's
 // lifecycle ends at delivered_to_warehouse — that status itself IS the
@@ -25,8 +25,9 @@ type TabKey = "todo" | "in_progress" | "completed";
 const TODO_STAGE      = new Set(["pending"]);
 const IN_PROG_STAGE   = new Set(["in_progress", "purchased_online", "purchased_in_store"]);
 const COMPLETED_STAGE = new Set(["delivered_to_warehouse", "out_of_stock"]);
+const CANCELLED_STAGE = new Set(["cancelled"]);
 const SOURCING_LIFECYCLE = new Set([
-  ...TODO_STAGE, ...IN_PROG_STAGE, ...COMPLETED_STAGE,
+  ...TODO_STAGE, ...IN_PROG_STAGE, ...COMPLETED_STAGE, ...CANCELLED_STAGE,
 ]);
 
 type Row = { status: string };
@@ -34,11 +35,13 @@ type Row = { status: string };
 const matchTodo       = (r: Row) => TODO_STAGE.has(r.status);
 const matchInProgress = (r: Row) => IN_PROG_STAGE.has(r.status);
 const matchCompleted  = (r: Row) => COMPLETED_STAGE.has(r.status);
+const matchCancelled  = (r: Row) => CANCELLED_STAGE.has(r.status);
 
 const TAB_CONFIG = [
   { key: "todo" as TabKey,        label: "To do",       match: matchTodo,       readOnly: false },
   { key: "in_progress" as TabKey, label: "In progress", match: matchInProgress, readOnly: false },
   { key: "completed" as TabKey,   label: "Completed",   match: matchCompleted,  readOnly: true  },
+  { key: "cancelled" as TabKey,   label: "Cancelled",   match: matchCancelled,  readOnly: true  },
 ];
 
 export default async function SourcingQueuePage({
@@ -77,6 +80,7 @@ export default async function SourcingQueuePage({
     todo:        rows.filter(matchTodo).length,
     in_progress: rows.filter(matchInProgress).length,
     completed:   rows.filter(matchCompleted).length,
+    cancelled:   rows.filter(matchCancelled).length,
   };
 
   const tasksRemaining = counts.todo + counts.in_progress;
@@ -171,7 +175,7 @@ export default async function SourcingQueuePage({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isTab(v: string | undefined): v is TabKey {
-  return v === "todo" || v === "in_progress" || v === "completed";
+  return v === "todo" || v === "in_progress" || v === "completed" || v === "cancelled";
 }
 
 function sortRows(rows: FulfillmentRow[], sortKey: "urgent" | "newest" | "oldest"): FulfillmentRow[] {
@@ -204,6 +208,7 @@ const DOT: Record<TabKey, string> = {
   todo:        "bg-amber-400",
   in_progress: "bg-sky-500",
   completed:   "bg-emerald-500",
+  cancelled:   "bg-rose-500",
 };
 
 function TabPills({

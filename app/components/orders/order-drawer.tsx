@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate, fullDateTime } from "@/lib/utils/date";
 import { StatusPill } from "@/components/status/status-pill";
+import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import type { OrderRow } from "@/lib/queries/orders";
 
 // ── Full detail types ─────────────────────────────────────────────────────────
@@ -143,8 +144,12 @@ export function OrderDrawer({ order, onClose }: Props) {
   const customerName = o.customer
     ? [o.customer.first_name, o.customer.last_name].filter(Boolean).join(" ") || "—"
     : "—";
-  const hasDelayed    = order.sub_orders.some((s) => s.is_delayed);
-  const hasUnassigned = order.sub_orders.some((s) => s.is_unassigned);
+  const cancelState   = deriveOrderCancelState(order.sub_orders);
+  const isCancelled   = cancelState === "all";
+  const isPartialCancelled = cancelState === "partial";
+  // A cancelled order's Delayed/On-track state is meaningless — suppress it.
+  const hasDelayed    = !isCancelled && order.sub_orders.some((s) => s.is_delayed);
+  const hasUnassigned = !isCancelled && order.sub_orders.some((s) => s.is_unassigned);
 
   return (
     <>
@@ -181,13 +186,19 @@ export function OrderDrawer({ order, onClose }: Props) {
               <span className="text-[14px] font-medium text-[var(--ink-2)]">{customerName}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
+              {isCancelled && (
+                <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Cancelled</span>
+              )}
+              {isPartialCancelled && (
+                <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Partially cancelled</span>
+              )}
               {hasDelayed && (
                 <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Delayed</span>
               )}
               {hasUnassigned && (
                 <span className="rounded-full bg-[var(--amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--amber)]">Unassigned</span>
               )}
-              {!hasDelayed && !hasUnassigned && (
+              {!isCancelled && !isPartialCancelled && !hasDelayed && !hasUnassigned && (
                 <span className="rounded-full bg-[var(--green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--green)]">On track</span>
               )}
               <span className="rounded-full bg-[var(--slate-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--slate)]">
