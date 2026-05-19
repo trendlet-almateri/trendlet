@@ -98,7 +98,6 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           isRefunded                          && "bg-[var(--amber-bg)]/25",
           isPartialRefunded                   && "bg-[var(--amber-bg)]/15",
           !isCancelled && !isRefunded && !isPartialRefunded && !urgent && "hover:bg-[var(--hover)]",
-          !isCancelled && !isRefunded && !isPartialRefunded && expanded && !urgent && "bg-[var(--hover)]",
         )}
         style={
           isCancelled       ? { boxShadow: "inset 3px 0 0 rgba(180,35,24,0.35)" }
