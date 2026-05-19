@@ -3,31 +3,12 @@ import { requireAdmin } from "@/lib/auth/require-role";
 import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
-import { fullDateTime } from "@/lib/utils/date";
-import { cn } from "@/lib/utils";
+import { TrackPanel } from "./track-panel";
+import { ShipmentsTable, type ShipmentRow } from "./shipments-table";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Shipments · Trendslet Operations" };
-
-type ShipmentRow = {
-  id: string;
-  shipment_type: string;
-  origin: string | null;
-  destination: string | null;
-  tracking_number: string | null;
-  status: string;
-  shipped_at: string | null;
-  delivered_at: string | null;
-  created_at: string;
-  carrier: { display_name: string } | null;
-};
-
-const STATUS_PILL: Record<string, string> = {
-  preparing: "bg-status-pending-bg text-status-pending-fg border-status-pending-border/40",
-  in_transit: "bg-status-transit-bg text-status-transit-fg border-status-transit-border/40",
-  delivered: "bg-status-delivered-bg text-status-delivered-fg border-status-delivered-border/40",
-};
 
 export default async function ShipmentsPage() {
   await requireAdmin();
@@ -50,6 +31,8 @@ export default async function ShipmentsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
 
+      <TrackPanel />
+
       {rows.length === 0 ? (
         <EmptyState
           icon={Truck}
@@ -57,42 +40,7 @@ export default async function ShipmentsPage() {
           description="Shipments are created when warehouse marks sub-orders as shipped. Bulk outbound to KSA and last-mile within KSA both land here."
         />
       ) : (
-        <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Tracking</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Carrier</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Route</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Status</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Shipped</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => (
-                <tr key={s.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
-                  <td className="px-4 py-3 font-medium tabular-nums text-ink-primary">
-                    {s.tracking_number ?? "—"}
-                  </td>
-                  <td className="px-3 py-3 capitalize text-ink-secondary">{s.shipment_type}</td>
-                  <td className="px-3 py-3 text-ink-secondary">{s.carrier?.display_name ?? "—"}</td>
-                  <td className="px-3 py-3 text-ink-secondary">
-                    {s.origin ?? "?"} → {s.destination ?? "?"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <span className={cn("pill border", STATUS_PILL[s.status] ?? STATUS_PILL.preparing)}>
-                      {s.status.replace("_", " ")}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 text-[12px] text-ink-tertiary">
-                    {s.shipped_at ? fullDateTime(s.shipped_at) : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ShipmentsTable rows={rows} />
       )}
       <RealtimeRefresh />
     </div>
