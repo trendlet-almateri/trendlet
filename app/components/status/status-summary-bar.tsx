@@ -43,7 +43,7 @@ export function StatusSummaryBar({ subOrders }: { subOrders: SubOrderLite[] }) {
   const segments = Array.from(buckets.values()).sort((a, b) => b.count - a.count);
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <div
         role="img"
         aria-label={segments.map((s) => `${s.count} ${s.label}`).join(", ")}
@@ -57,7 +57,7 @@ export function StatusSummaryBar({ subOrders }: { subOrders: SubOrderLite[] }) {
           />
         ))}
       </div>
-      <span className="text-[11px] text-ink-tertiary">
+      <span className="whitespace-nowrap text-[11px] text-[var(--muted)]">
         {segments.map((s, i) => (
           <span key={i}>
             {i > 0 && " · "}
