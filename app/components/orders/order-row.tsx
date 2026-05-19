@@ -148,7 +148,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* CUSTOMER */}
-        <td className="px-3 py-3 align-middle">
+        <td className="max-w-[1px] overflow-hidden px-3 py-3 align-middle">
           <div className="flex items-center gap-2.5">
             <span className={cn(
               "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",
@@ -189,7 +189,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* STATUS SUMMARY */}
-        <td className="whitespace-nowrap px-3 py-3 align-middle">
+        <td className="min-w-[110px] whitespace-nowrap px-3 py-3 align-middle">
           {isCancelled ? (
             <span className="pill whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
               <X className="h-3 w-3 shrink-0" aria-hidden />
