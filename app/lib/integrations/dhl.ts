@@ -101,6 +101,7 @@ function randomHex(bytes: number): string {
 export type TrackEvent = {
   timestamp: string;
   description: string;
+  status_code: string | null;
   location: string | null;
 };
 
@@ -121,7 +122,12 @@ export type TrackResult = {
 };
 
 type DhlAddress = { addressLocality?: string };
-type DhlEvent = { timestamp?: string; description?: string; location?: { address?: DhlAddress } };
+type DhlEvent = {
+  timestamp?: string;
+  description?: string;
+  statusCode?: string;
+  location?: { address?: DhlAddress };
+};
 type DhlShipment = {
   id?: string;
   service?: string;
@@ -179,21 +185,27 @@ export async function trackDhlShipment(trackingNumber: string): Promise<TrackRes
     return { ...empty, error: "No shipment found for that tracking number" };
   }
 
+  // DHL's top-level status.statusCode can be stale (e.g. "transit" while
+  // the newest event already says "delivered"). Events come newest-first,
+  // so the first event is the true current state. Prefer it.
+  const newest = s.events?.[0];
+
   return {
     found: true,
     tracking_number: s.id ?? trackingNumber,
     service: s.service ?? null,
     origin: s.origin?.address?.addressLocality ?? null,
     destination: s.destination?.address?.addressLocality ?? null,
-    status_code: s.status?.statusCode ?? null,
+    status_code: newest?.statusCode ?? s.status?.statusCode ?? null,
     status: s.status?.status ?? null,
-    description: s.status?.description ?? null,
-    last_update: s.status?.timestamp ?? null,
+    description: newest?.description ?? s.status?.description ?? null,
+    last_update: newest?.timestamp ?? s.status?.timestamp ?? null,
     estimated_delivery: s.estimatedTimeOfDelivery ?? null,
     pieces: s.details?.totalNumberOfPieces ?? null,
     events: (s.events ?? []).map((e) => ({
       timestamp: e.timestamp ?? "",
       description: e.description ?? "",
+      status_code: e.statusCode ?? null,
       location: e.location?.address?.addressLocality ?? null,
     })),
     error: null,
