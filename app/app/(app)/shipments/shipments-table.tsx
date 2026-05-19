@@ -77,14 +77,14 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
     <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
       <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-            <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Tracking</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Type</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Carrier</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Route</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Status</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Shipped</th>
-            <th className="whitespace-nowrap px-3 py-2 font-medium">Actions</th>
+          <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Tracking</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Type</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Carrier</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Route</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Status</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Shipped</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -100,7 +100,7 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                     s.tracking_number && "cursor-pointer",
                   )}
                 >
-                  <td className="px-4 py-3 font-medium tabular-nums text-ink-primary">
+                  <td className="px-4 py-4 font-medium tabular-nums text-ink-primary">
                     <span className="inline-flex items-center gap-1.5">
                       {s.tracking_number && (
                         <ChevronDown
@@ -110,20 +110,20 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                       {s.tracking_number ?? "—"}
                     </span>
                   </td>
-                  <td className="px-3 py-3 capitalize text-ink-secondary">{s.shipment_type}</td>
-                  <td className="px-3 py-3 text-ink-secondary">{s.carrier?.display_name ?? "—"}</td>
-                  <td className="px-3 py-3 text-ink-secondary">
+                  <td className="px-4 py-4 capitalize text-ink-secondary">{s.shipment_type}</td>
+                  <td className="px-4 py-4 text-ink-secondary">{s.carrier?.display_name ?? "—"}</td>
+                  <td className="px-4 py-4 text-ink-secondary">
                     {s.origin ?? "?"} → {s.destination ?? "?"}
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-4 py-4">
                     <span className={cn("pill border", STATUS_PILL[s.status] ?? STATUS_PILL.unknown)}>
                       {s.status.replace("_", " ")}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-[12px] text-ink-tertiary">
+                  <td className="px-4 py-4 text-[12px] text-ink-tertiary">
                     {s.shipped_at ? fmt(s.shipped_at) : "—"}
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-4 py-4">
                     {s.tracking_number && (
                       <button
                         onClick={(e) => refresh(s, e)}
