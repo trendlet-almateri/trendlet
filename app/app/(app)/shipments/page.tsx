@@ -3,8 +3,12 @@ import { requireAdmin } from "@/lib/auth/require-role";
 import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
+import { cn } from "@/lib/utils";
 import { TrackPanel } from "./track-panel";
 import { ShipmentsTable, type ShipmentRow } from "./shipments-table";
+import { dhlRequestsToday } from "./actions";
+
+const DHL_DAILY_LIMIT = 250;
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +31,25 @@ export default async function ShipmentsPage() {
   if (error) console.error("[ShipmentsPage]", error);
   const rows = (data ?? []) as unknown as ShipmentRow[];
 
+  const dhlUsed = await dhlRequestsToday();
+  const nearLimit = dhlUsed >= DHL_DAILY_LIMIT * 0.8;
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
+        <span
+          title="DHL tracking API requests used today (resets 00:00 UTC). Each search or refresh = 1 request."
+          className={cn(
+            "mt-1 shrink-0 rounded-[calc(var(--radius)-4px)] border px-2.5 py-1 text-[12px] font-medium tabular-nums",
+            nearLimit
+              ? "border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)]"
+              : "border-[var(--line)] bg-[var(--hover)] text-[var(--muted)]",
+          )}
+        >
+          DHL: {dhlUsed} / {DHL_DAILY_LIMIT} today
+        </span>
+      </div>
 
       <TrackPanel />
 

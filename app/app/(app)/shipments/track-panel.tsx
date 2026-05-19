@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, X } from "lucide-react";
+import { Check, RefreshCw, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { addTrackingNumberAction } from "./actions";
+import { saveTrackingResultAction } from "./actions";
 import type { TrackResult } from "@/lib/integrations/dhl";
 
 const STATUS_PILL: Record<string, string> = {
@@ -20,12 +20,13 @@ function fmt(ts: string | null): string {
   return isNaN(d.getTime()) ? ts : d.toLocaleString();
 }
 
-/** Add-a-tracking-number form + live DHL detail preview. */
+/** Add-a-tracking-number form + live DHL detail preview. Auto-saves on found. */
 export function TrackPanel() {
   const [tn, setTn] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [preview, setPreview] = React.useState<TrackResult | null>(null);
+  const [saved, setSaved] = React.useState(false);
 
   async function lookup() {
     const value = tn.trim();
@@ -33,35 +34,31 @@ export function TrackPanel() {
     setBusy(true);
     setError(null);
     setPreview(null);
+    setSaved(false);
     try {
+      // One DHL request: the API route. The result is reused for the
+      // auto-save below, so a new lookup costs exactly 1 DHL call.
       const res = await fetch(`/api/shipments/track?trackingNumber=${encodeURIComponent(value)}`);
       const data = (await res.json()) as TrackResult;
       if (!data.found) {
         setError(data.error ?? "No shipment found");
+        return;
+      }
+      setPreview(data);
+      // Auto-save — no button, no second DHL call.
+      const save = await saveTrackingResultAction(data);
+      if (!save.ok) {
+        setError(save.error ?? "Found, but could not save");
       } else {
-        setPreview(data);
+        setSaved(true);
+        // Refresh so the new/updated row + request count show.
+        setTimeout(() => window.location.reload(), 900);
       }
     } catch {
       setError("Lookup failed — check connection");
     } finally {
       setBusy(false);
     }
-  }
-
-  async function save() {
-    if (!preview) return;
-    setBusy(true);
-    setError(null);
-    const res = await addTrackingNumberAction(preview.tracking_number);
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error ?? "Could not save");
-      return;
-    }
-    setPreview(null);
-    setTn("");
-    // server action revalidates /shipments — refresh to show the new row
-    window.location.reload();
   }
 
   return (
@@ -112,14 +109,12 @@ export function TrackPanel() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={save}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] bg-[var(--accent)] px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                <Plus className="size-3.5" />
-                Save to shipments
-              </button>
+              {saved && (
+                <span className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--green)]/30 bg-[var(--green-bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--green)]">
+                  <Check className="size-3.5" />
+                  Saved
+                </span>
+              )}
               <button
                 onClick={() => setPreview(null)}
                 className="rounded-[calc(var(--radius)-4px)] p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
