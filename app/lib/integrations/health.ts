@@ -187,17 +187,32 @@ export async function checkOpenRouter(): Promise<IntegrationHealth> {
 }
 
 export async function checkDhl(): Promise<IntegrationHealth> {
+  // DHL Shipment Tracking — Unified API. Auth = DHL-API-Key header,
+  // key only (secret unused for this API). Probe with a known-invalid
+  // tracking number: 404 = key authenticated (DHL processed it),
+  // 401/403 = bad key. Read-only, costs nothing.
   const key = process.env.DHL_API_KEY;
   if (!key) {
     return { service: "dhl", status: "missing", detail: "DHL_API_KEY not set", latency_ms: null };
   }
-  // DHL Express has no free no-op endpoint; live POST /shipments creates real labels.
-  return {
+
+  const base = process.env.DHL_TRACKING_BASE ?? "https://api-eu.dhl.com/track/shipments";
+  const res = await apiCall<unknown>({
     service: "dhl",
-    status: "skipped",
-    detail: "credentials present; no safe ping endpoint",
-    latency_ms: null,
-  };
+    endpoint: "/track/shipments",
+    method: "GET",
+    url: `${base}?trackingNumber=000000000000`,
+    headers: { "DHL-API-Key": key, Accept: "application/json" },
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    return { service: "dhl", status: "auth_failed", detail: `HTTP ${res.status}`, latency_ms: null };
+  }
+  // 404 = "no shipment with that number" → key is valid, API reachable.
+  if (res.status === 404 || res.ok) {
+    return { service: "dhl", status: "ok", detail: "Tracking-Unified API reachable, key valid", latency_ms: null };
+  }
+  return { service: "dhl", status: "error", detail: res.error ?? `HTTP ${res.status}`, latency_ms: null };
 }
 
 export async function checkHubstaff(): Promise<IntegrationHealth> {
