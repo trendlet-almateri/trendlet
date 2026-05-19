@@ -93,13 +93,20 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
         <button
           type="button"
           className={cn(
-            "relative flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-            "text-[#6e7581] hover:bg-white/[0.06] hover:text-[#e2e4e8]",
-            open && "bg-white/[0.06] text-[#e2e4e8]",
+            "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+            channelKey === "mobile"
+              ? cn(
+                  "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
+                  open && "bg-[var(--hover)] text-[var(--ink)]",
+                )
+              : cn(
+                  "text-[#6e7581] hover:bg-white/[0.06] hover:text-[#e2e4e8]",
+                  open && "bg-white/[0.06] text-[#e2e4e8]",
+                ),
           )}
           aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
         >
-          <Bell className="h-4 w-4" aria-hidden />
+          <Bell className="h-[18px] w-[18px]" aria-hidden />
           {unreadCount > 0 && (
             <span
               aria-hidden
