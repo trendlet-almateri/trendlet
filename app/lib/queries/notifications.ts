@@ -12,15 +12,23 @@ export type NotificationRow = {
 };
 
 /**
- * Initial bell drawer payload. RLS scopes to user_id = auth.uid(), so the
+ * Initial bell/modal payload. RLS scopes to user_id = auth.uid(), so the
  * regular SSR client is safe — no service-role escalation needed.
  * Realtime INSERTs prepend new rows on the client.
+ *
+ * Fetches up to `limit` rows created within the last `days` days.
+ * Bell popover slices to its own cap client-side; modal shows all.
  */
-export async function fetchRecentNotifications(limit = 30): Promise<NotificationRow[]> {
+export async function fetchRecentNotifications(
+  limit = 100,
+  days = 30,
+): Promise<NotificationRow[]> {
   const supabase = createClient();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase
     .from("notifications")
     .select("id, type, severity, title, description, href, read_at, created_at")
+    .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as NotificationRow[];

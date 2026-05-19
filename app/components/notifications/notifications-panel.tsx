@@ -70,6 +70,8 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
   }, [supabase, userId, channelKey, dismissToast]);
 
   const unreadCount = items.filter((n) => !n.read_at).length;
+  // Bell popover shows the 30 most-recent; modal shows the full 30-day window.
+  const bellItems = items.slice(0, 30);
 
   async function markAllRead() {
     if (unreadCount === 0) return;
@@ -151,13 +153,13 @@ export function NotificationsPanel({ initialNotifications, userId, channelKey }:
 
           {/* List */}
           <div className="max-h-[420px] overflow-y-auto">
-            {items.length === 0 ? (
+            {bellItems.length === 0 ? (
               <div className="px-4 py-10 text-center text-[12px] text-[#6e7581]">
                 You&apos;re all caught up.
               </div>
             ) : (
               <ul>
-                {items.map((n) => (
+                {bellItems.map((n) => (
                   <NotificationItem
                     key={n.id}
                     notification={n}
