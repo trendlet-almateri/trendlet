@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { TrackResult } from "@/lib/integrations/dhl";
 import { refreshTrackingAction } from "./actions";
@@ -37,6 +38,7 @@ function fmt(ts: string | null): string {
 
 export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
   const [openId,     setOpenId]     = React.useState<string | null>(null);
+  const [mobileRow,  setMobileRow]  = React.useState<ShipmentRow | null>(null);
   const [detail,     setDetail]     = React.useState<Record<string, TrackResult | "loading" | "error">>({});
   const [refreshing, setRefreshing] = React.useState<string | null>(null);
 
@@ -51,6 +53,11 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
       setDetail((d) => ({ ...d, [id]: "error" }));
     }
   }, []);
+
+  function openMobile(row: ShipmentRow) {
+    setMobileRow(row);
+    if (row.tracking_number && !detail[row.id]) loadDetail(row.id, row.tracking_number);
+  }
 
   // Desktop: toggle expand row
   function toggle(row: ShipmentRow) {
@@ -93,7 +100,7 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
             return (
               <React.Fragment key={s.id}>
                 <tr
-                  onClick={() => toggle(s)}
+                  onClick={() => { if (window.innerWidth < 768) openMobile(s); else toggle(s); }}
                   className={cn(
                     "border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]",
                     s.tracking_number && "cursor-pointer",
@@ -194,6 +201,159 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
       </table>
     </div>
 
+    {mobileRow && typeof document !== "undefined" &&
+      createPortal(
+        <MobileSheet
+          shipment={mobileRow}
+          detail={detail[mobileRow.id]}
+          refreshing={refreshing === mobileRow.id}
+          onRefresh={(e) => refresh(mobileRow, e)}
+          onClose={() => setMobileRow(null)}
+        />,
+        document.body,
+      )}
     </>
+  );
+}
+
+// ── Mobile bottom sheet ───────────────────────────────────────────────────────
+
+function MobileSheet({
+  shipment: s,
+  detail: d,
+  refreshing,
+  onRefresh,
+  onClose,
+}: {
+  shipment: ShipmentRow;
+  detail: TrackResult | "loading" | "error" | undefined;
+  refreshing: boolean;
+  onRefresh: (e: React.MouseEvent) => void;
+  onClose: () => void;
+}) {
+  React.useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", h);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center md:hidden">
+      <div
+        className="absolute inset-0 bg-[rgba(15,20,25,0.5)]"
+        style={{ animation: "backdropIn 0.2s ease forwards" }}
+        onClick={onClose}
+      />
+      <div
+        className="relative w-full overflow-y-auto rounded-t-2xl border-t border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-md)]"
+        style={{ animation: "slideUp 0.25s cubic-bezier(0.32,0.72,0.32,1) forwards", maxHeight: "80vh" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-mono text-[14px] font-bold text-[var(--ink)]">
+              {s.tracking_number ?? "No tracking number"}
+            </span>
+            <span className="text-[11px] text-[var(--muted)] capitalize">{s.shipment_type} · {s.carrier?.display_name ?? "—"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {s.tracking_number && (
+              <button
+                onClick={onRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
+              >
+                <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+                Refresh
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-7 w-7 place-items-center rounded-lg text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Key details */}
+        <div className="flex flex-col divide-y divide-[var(--line)]">
+          <Row label="Status">
+            <span className={cn("pill border", STATUS_PILL[s.status] ?? STATUS_PILL.unknown)}>
+              {s.status.replace("_", " ")}
+            </span>
+          </Row>
+          <Row label="Route">
+            <span className="text-[13px] text-[var(--ink)]">{s.origin ?? "?"} → {s.destination ?? "?"}</span>
+          </Row>
+          <Row label="Shipped">
+            <span className="text-[13px] text-[var(--ink)]">{s.shipped_at ? fmt(s.shipped_at) : "—"}</span>
+          </Row>
+          {s.delivered_at && (
+            <Row label="Delivered">
+              <span className="text-[13px] text-[var(--ink)]">{fmt(s.delivered_at)}</span>
+            </Row>
+          )}
+        </div>
+
+        {/* DHL tracking events */}
+        {s.tracking_number && (
+          <div className="px-4 py-4">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
+              Tracking Events
+            </p>
+            {d === "loading" && <p className="text-[12px] text-[var(--muted)]">Loading from DHL…</p>}
+            {d === "error"   && <p className="text-[12px] text-[var(--rose)]">Could not load from DHL.</p>}
+            {d && d !== "loading" && d !== "error" && (
+              <>
+                {d.description && (
+                  <p className="mb-3 text-[12px] text-[var(--muted)]">
+                    {d.description}{d.estimated_delivery ? ` · ETA ${fmt(d.estimated_delivery)}` : ""}
+                  </p>
+                )}
+                <ol>
+                  {d.events.map((e, i) => (
+                    <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                      <div className="flex flex-col items-center">
+                        <span className={cn("mt-1 size-2 rounded-full", i === 0 ? "bg-[var(--accent)]" : "bg-[var(--muted-2)]")} />
+                        {i < d.events.length - 1 && <span className="w-px flex-1 bg-[var(--line)]" />}
+                      </div>
+                      <div className="flex-1 pb-1">
+                        <p className="text-[13px] text-[var(--ink)]">{e.description}</p>
+                        <p className="text-[11px] text-[var(--muted)]">
+                          {fmt(e.timestamp)}{e.location ? ` · ${e.location}` : ""}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                  {d.events.length === 0 && (
+                    <li className="text-[12px] text-[var(--muted)]">No tracking events yet.</li>
+                  )}
+                </ol>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      `}</style>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-[12px] font-medium text-[var(--muted)]">{label}</span>
+      {children}
+    </div>
   );
 }
