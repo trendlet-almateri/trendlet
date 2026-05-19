@@ -51,7 +51,9 @@ export default async function ShipmentsPage() {
         </span>
       </div>
 
-      <TrackPanel />
+      <div className="md:max-w-sm">
+        <TrackPanel />
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState

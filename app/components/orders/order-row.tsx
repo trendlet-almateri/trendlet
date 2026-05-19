@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, AlertCircle, Clock4, Eye, Bookmark, MoreHorizontal, X } from "lucide-react";
+import { AlertCircle, Clock4, Bookmark, MoreHorizontal, X } from "lucide-react";
 import type { OrderRow as OrderRowData } from "@/lib/queries/orders";
 import { StatusSummaryBar } from "@/components/status/status-summary-bar";
 import { StatusPill } from "@/components/status/status-pill";
@@ -53,8 +53,7 @@ type OrderRowProps = {
 };
 
 export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
-  const [expanded,    setExpanded]    = React.useState(false);
-  const [showDetail,  setShowDetail]  = React.useState(false);
+  const [showDetail, setShowDetail] = React.useState(false);
   const isDragging = React.useRef(false);
 
   const cancelState        = deriveOrderCancelState(o.sub_orders);
@@ -83,7 +82,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
     if (window.innerWidth < 768) {
       setShowDetail(true);
     } else {
-      setExpanded((v) => !v);
+      onOpenDrawer?.(o);
     }
   }
 
@@ -111,15 +110,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
       >
         {/* ORDER */}
         <td className="whitespace-nowrap px-4 py-3 align-middle">
-          <div className="flex items-center gap-2">
-            <ChevronRight
-              className={cn(
-                "hidden h-3.5 w-3.5 shrink-0 text-[var(--muted-2)] transition-transform duration-150 md:block",
-                expanded && "rotate-90",
-              )}
-              aria-hidden
-            />
-            <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5">
               <span className={cn(
                 "font-[family-name:var(--font-jetbrains,monospace)] text-[12px] font-semibold tabular-nums",
                 isCancelled ? "text-[var(--muted)]" : "text-[var(--ink)]",
@@ -143,7 +134,6 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                   {shortDate(o.shopify_created_at)}
                 </span>
               )}
-            </div>
           </div>
         </td>
 
@@ -261,16 +251,6 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         {/* ACTIONS — desktop only */}
         <td className="hidden px-3 py-3 text-center align-middle md:table-cell" data-no-row-click>
           <div className="flex items-center justify-center gap-0.5">
-            {onOpenDrawer && (
-              <button
-                type="button"
-                onClick={() => onOpenDrawer(o)}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-                aria-label={`Open details for ${o.shopify_order_number}`}
-              >
-                <Eye className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            )}
             <button
               type="button"
               className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
@@ -287,135 +267,8 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
             </button>
           </div>
         </td>
-
-        {/* EYE ICON — mobile only */}
-        <td className="px-3 py-3 text-center align-middle md:hidden" data-no-row-click>
-          <button
-            type="button"
-            onClick={() => setShowDetail(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-            aria-label={`View details for ${o.shopify_order_number}`}
-          >
-            <Eye className="h-4 w-4" aria-hidden />
-          </button>
-        </td>
       </tr>
 
-      {/* ── Expandable sub-orders panel (desktop) ─────────────────────────── */}
-      <tr className="border-b border-[var(--line)] last:border-0">
-        <td colSpan={8} className="p-0">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateRows: expanded ? "1fr" : "0fr",
-              transition: "grid-template-rows 0.22s cubic-bezier(.3,.7,.4,1)",
-            }}
-          >
-            <div className="overflow-hidden">
-              <div className="border-t border-[var(--line)] bg-[#f9f8f5] px-4 py-3">
-
-                {/* Sub-header */}
-                <div className="mb-2 grid grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 px-3 text-[10px] font-semibold uppercase tracking-[0.4px] text-[var(--muted)]">
-                  <span>Product</span>
-                  <span>Status</span>
-                  <span>Issues</span>
-                  <span className="text-center">Sub-order</span>
-                  <span className="w-20 text-center">Actions</span>
-                </div>
-
-                {/* Sub-order rows */}
-                <div className="flex flex-col gap-1.5">
-                  {o.sub_orders.map((so) => {
-                    const brandLetter = (so.brand_name_raw ?? "?").slice(0, 1).toUpperCase();
-                    const subNum = so.sub_order_number.split("-").slice(-2).join("-");
-                    return (
-                      <div
-                        key={so.id}
-                        className={cn(
-                          "grid grid-cols-[2.5fr_1.4fr_1.2fr_1fr_auto] items-center gap-3 rounded-lg border bg-[var(--panel)] px-3 py-2.5",
-                          so.is_unassigned
-                            ? "border-[var(--rose)]/30 bg-[var(--rose-bg)]/20"
-                            : "border-[var(--line)]",
-                        )}
-                      >
-                        {/* Product */}
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          {so.product_image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={so.product_image_url} alt="" className="h-9 w-9 shrink-0 rounded-md border border-[var(--line)] bg-[var(--hover)] object-cover" />
-                          ) : (
-                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--line)] bg-[var(--hover)]">
-                              <svg viewBox="0 0 20 20" className="h-4 w-4 text-[var(--muted-2)]" fill="none" stroke="currentColor" strokeWidth="1.2">
-                                <rect x="3" y="3" width="14" height="14" rx="2" />
-                                <line x1="3" y1="3" x2="17" y2="17" />
-                                <line x1="17" y1="3" x2="3" y2="17" />
-                              </svg>
-                            </span>
-                          )}
-                          <div className="flex min-w-0 flex-col gap-0.5">
-                            <span className="truncate text-[13px] font-medium text-[var(--ink)]">
-                              {so.product_title}
-                              {so.quantity > 1 && <span className="ml-1.5 text-[var(--muted)]">× {so.quantity}</span>}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-navy text-[9px] font-bold text-white">{brandLetter}</span>
-                              <span className="truncate text-[11px] text-[var(--muted)]">{so.brand_name_raw ?? "—"}</span>
-                              <span className="text-[var(--muted)]">·</span>
-                              <span className="font-[family-name:var(--font-jetbrains,monospace)] truncate text-[11px] tabular-nums text-[var(--muted)]">{subNum}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Status */}
-                        <div>
-                          {so.is_unassigned ? (
-                            <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">Unassigned · reassign</span>
-                          ) : (
-                            <StatusPill status={so.status} />
-                          )}
-                        </div>
-
-                        {/* Issues */}
-                        <div className="text-[12px]">
-                          {so.is_delayed ? (
-                            <span className="font-semibold text-[var(--rose)]">Delayed</span>
-                          ) : so.is_at_risk ? (
-                            <span className="font-semibold text-[var(--amber)]">SLA at risk</span>
-                          ) : (
-                            <span className="text-[var(--muted)]">No issues</span>
-                          )}
-                        </div>
-
-                        {/* Sub-order number */}
-                        <div className="text-center">
-                          <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">{so.sub_order_number}</span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex w-20 items-center justify-center gap-0.5" data-no-row-click>
-                          <button type="button" className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="Reassign">
-                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M13 3H7a4 4 0 000 8h5m0 0l-2-2m2 2l-2 2" />
-                            </svg>
-                          </button>
-                          <button type="button" className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="Flag issue">
-                            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M3 2v12M3 2h8l-2 3.5L11 9H3" />
-                            </svg>
-                          </button>
-                          <button type="button" className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]" aria-label="More">
-                            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
 
       {/* ── Mobile detail card (portal) ───────────────────────────────────── */}
       {showDetail && typeof document !== "undefined" && createPortal(
