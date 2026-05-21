@@ -303,7 +303,7 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
                 <div className="border-t border-[var(--line)] pt-2">
                   <Row label="Total" value={formatCurrency(o.total ?? 0, o.currency)} mono bold />
                 </div>
-                {order.financial_status && order.financial_status !== "paid" && (
+                {order.financial_status && (
                   <div className="border-t border-[var(--line)] pt-2">
                     <div className="flex items-center justify-between text-[13px]">
                       <span className="text-[var(--muted)]">Payment</span>
