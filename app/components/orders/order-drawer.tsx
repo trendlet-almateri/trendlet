@@ -92,11 +92,12 @@ const SEVERITY_COLOR: Record<string, string> = {
 type Props = {
   order: OrderRow | null;
   onClose: () => void;
+  compact?: boolean;
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function OrderDrawer({ order, onClose }: Props) {
+export function OrderDrawer({ order, onClose, compact = false }: Props) {
   const [tab, setTab] = React.useState<"overview" | "items" | "timeline">("overview");
   const [visible, setVisible] = React.useState(false);
   const [full, setFull] = React.useState<FullOrder | null>(null);
@@ -169,7 +170,10 @@ export function OrderDrawer({ order, onClose }: Props) {
         role="dialog"
         aria-modal
         aria-label={`Order ${order.shopify_order_number} details`}
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-[var(--panel)] shadow-[var(--shadow-md)] md:w-[560px]"
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-[var(--panel)] shadow-[var(--shadow-md)]",
+          compact ? "md:w-[480px]" : "md:w-[560px]",
+        )}
         style={{
           transform: visible ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.28s cubic-bezier(.32,.72,.32,1)",
@@ -232,24 +236,26 @@ export function OrderDrawer({ order, onClose }: Props) {
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-0 border-b border-[var(--line)] px-5">
-          {(["overview", "items", "timeline"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={cn(
-                "border-b-2 px-3 py-2.5 text-[12px] font-medium capitalize transition-colors",
-                tab === t
-                  ? "border-[var(--accent)] text-[var(--accent)]"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]",
-              )}
-            >
-              {t === "items" ? "Items" : t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
+        {/* Tabs — hidden in compact mode */}
+        {!compact && (
+          <div className="flex gap-0 border-b border-[var(--line)] px-5">
+            {(["overview", "items", "timeline"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={cn(
+                  "border-b-2 px-3 py-2.5 text-[12px] font-medium capitalize transition-colors",
+                  tab === t
+                    ? "border-[var(--accent)] text-[var(--accent)]"
+                    : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]",
+                )}
+              >
+                {t === "items" ? "Items" : t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5">
@@ -259,7 +265,7 @@ export function OrderDrawer({ order, onClose }: Props) {
             </div>
           )}
 
-          {!loading && tab === "overview" && (
+          {!loading && (compact || tab === "overview") && (
             <div className="flex flex-col gap-4">
 
               {/* Customer */}
@@ -314,7 +320,7 @@ export function OrderDrawer({ order, onClose }: Props) {
             </div>
           )}
 
-          {!loading && tab === "items" && (
+          {!loading && !compact && tab === "items" && (
             <div className="flex flex-col gap-2">
               {(full?.sub_orders ?? []).map((so) => {
                 const lineTotal = so.unit_price != null ? so.unit_price * so.quantity : null;
@@ -382,7 +388,7 @@ export function OrderDrawer({ order, onClose }: Props) {
             </div>
           )}
 
-          {!loading && tab === "timeline" && (() => {
+          {!loading && !compact && tab === "timeline" && (() => {
             // Merge Shopify events + sub-order status changes into one feed
             const entries: TimelineEntry[] = [
               ...events.map((e): TimelineEntry => ({ kind: "event", data: e })),
@@ -459,6 +465,19 @@ export function OrderDrawer({ order, onClose }: Props) {
             );
           })()}
         </div>
+
+        {/* Compact footer — "Open full order" CTA */}
+        {compact && order && (
+          <div className="shrink-0 border-t border-[var(--line)] bg-[var(--hover)] px-5 py-3">
+            <a
+              href={`/orders/${order.id}`}
+              className="flex items-center justify-between rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 text-[12px] font-medium text-[var(--accent)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--hover)]"
+            >
+              <span>Open full order</span>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </div>
+        )}
       </div>
     </>
   );

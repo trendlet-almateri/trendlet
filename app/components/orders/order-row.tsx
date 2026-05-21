@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, Clock4, Bookmark, MoreHorizontal, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock4, Bookmark, MoreHorizontal, X } from "lucide-react";
 import type { OrderRow as OrderRowData } from "@/lib/queries/orders";
 import { StatusSummaryBar } from "@/components/status/status-summary-bar";
 import { StatusPill } from "@/components/status/status-pill";
@@ -64,7 +64,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
   const hasUnassigned = !isCancelled && o.sub_orders.some((s) => s.is_unassigned);
   const hasDelayed    = !isCancelled && o.sub_orders.some((s) => s.is_delayed);
   const hasAtRisk     = !isCancelled && o.sub_orders.some((s) => s.is_at_risk);
-  const urgent        = hasUnassigned || hasDelayed;
+  const doneCount = o.sub_orders.filter((s) => s.status === "delivered" || s.status === "cancelled").length;
 
   const customerName = o.customer
     ? [o.customer.first_name, o.customer.last_name].filter(Boolean).join(" ") || "—"
@@ -91,19 +91,15 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
       {/* ── Main row ──────────────────────────────────────────────────────── */}
       <tr
         onClick={handleRowClick}
-        data-alarm={urgent ? "true" : undefined}
+        data-alarm={(hasUnassigned || hasDelayed) ? "true" : undefined}
         className={cn(
           "cursor-pointer border-b border-[var(--line)] transition-colors last:border-0",
-          isCancelled                         && "bg-[var(--rose-bg)]/20",
-          isRefunded                          && "bg-[var(--amber-bg)]/25",
-          isPartialRefunded                   && "bg-[var(--amber-bg)]/15",
-          !isCancelled && !isRefunded && !isPartialRefunded && !urgent && "hover:bg-[var(--hover)]",
+          "hover:bg-[var(--hover)]",
+          isCancelled && "bg-[var(--rose-bg)]/10",
         )}
         style={
-          isCancelled       ? { boxShadow: "inset 3px 0 0 rgba(180,35,24,0.35)" }
-          : isRefunded      ? { boxShadow: "inset 3px 0 0 rgba(180,130,10,0.5)" }
-          : isPartialRefunded ? { boxShadow: "inset 3px 0 0 rgba(180,130,10,0.3)" }
-          : urgent          ? { boxShadow: "inset 3px 0 0 var(--rose)" }
+          (hasUnassigned || hasDelayed) ? { boxShadow: "inset 3px 0 0 var(--rose)" }
+          : hasAtRisk                   ? { boxShadow: "inset 3px 0 0 var(--amber)" }
           : undefined
         }
       >
@@ -171,7 +167,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         <td className="hidden px-3 py-3 text-center align-middle md:table-cell">
           <div className="flex flex-col items-center gap-0.5">
             <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
-              {o.sub_orders.length} / {o.sub_orders.length}
+              {doneCount} / {o.sub_orders.length}
             </span>
             <span className="text-[10px] text-[var(--muted)]">vendors</span>
           </div>
@@ -220,7 +216,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
 
         {/* ALERTS — desktop only */}
         <td className="hidden px-3 py-3 align-middle md:table-cell">
-          <div className="flex flex-wrap items-center justify-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
             {isCancelled || (!hasUnassigned && !hasDelayed && !hasAtRisk) ? (
               <span className="text-[12px] text-[var(--muted)]">—</span>
             ) : (
@@ -232,14 +228,13 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                   </span>
                 )}
                 {hasDelayed && (
-                  <span className="pill border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]">
-                    Delayed
+                  <span title="Delayed" aria-label="Delayed">
+                    <Clock4 className="h-3.5 w-3.5 text-[var(--rose)]" aria-hidden />
                   </span>
                 )}
                 {hasAtRisk && !hasDelayed && (
-                  <span className="pill border border-[var(--amber)]/40 bg-[var(--amber-bg)] text-[var(--amber)]">
-                    <Clock4 className="h-3 w-3" aria-hidden />
-                    SLA risk
+                  <span title="SLA at risk" aria-label="SLA at risk">
+                    <AlertTriangle className="h-3.5 w-3.5 text-[var(--amber)]" aria-hidden />
                   </span>
                 )}
               </>

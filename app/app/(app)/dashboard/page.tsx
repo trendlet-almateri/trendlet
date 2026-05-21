@@ -7,7 +7,7 @@ import {
 } from "@/lib/queries/orders";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { TeamLoadCard } from "@/components/dashboard/team-load-card";
-import { OrdersTable } from "@/components/orders/orders-table";
+import { RecentOrdersSection } from "./recent-orders";
 import { OrdersPipeline } from "@/components/orders/orders-pipeline";
 import { formatCurrency } from "@/lib/utils/currency";
 import { PageHeader, RealtimeRefresh } from "@/components/system";
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
             <ChevronRight className="h-3 w-3" aria-hidden />
           </a>
         </div>
-        <OrdersTable orders={orders} />
+        <RecentOrdersSection orders={orders} />
       </section>
 
       {/* Pipeline — same 5 orders, drag-to-pan */}
