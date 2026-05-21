@@ -28,7 +28,7 @@ const config: Config = {
           tertiary:  "rgb(var(--color-ink-tertiary)  / <alpha-value>)",
         },
         // Optify semantic tokens
-        line:          "#e7e5df",
+        line:          "#e3e0d9",
         hover:         "#f9f8f4",
         "accent-soft": "#ddeaf5",   // updated to blue-tinted soft (was purple-tinted)
         // Status palette — no changes
@@ -52,10 +52,10 @@ const config: Config = {
         "role-fulfiller-bg": "#ece2fa",
         "role-fulfiller-fg": "#3C3489",
         // Semantic color pairs
-        amber:  { DEFAULT: "#b4700a", bg: "#fdf3dd", fg: "#633806" },
+        amber:  { DEFAULT: "#a16207", bg: "#fdf3dd", fg: "#633806" },
         blue:   { DEFAULT: "#1d4ed8", bg: "#E6F1FB", fg: "#0C447C" },
         green:  { DEFAULT: "#0e7c4a", bg: "#dcf1e3" },
-        rose:   { DEFAULT: "#b42318", bg: "#fde3de" },
+        rose:   { DEFAULT: "#b91c1c", bg: "#fde3de" },
         slate:  { DEFAULT: "#475569", bg: "#e9ecf1" },
         violet: { DEFAULT: "#6d28d9", bg: "#ece2fa" },
       },
@@ -70,8 +70,8 @@ const config: Config = {
         bold: "700",
       },
       fontSize: {
-        h1:    ["20px", { lineHeight: "28px", fontWeight: "500" }],
-        h2:    ["16px", { lineHeight: "24px", fontWeight: "500" }],
+        h1:    ["20px", { lineHeight: "28px", fontWeight: "600", letterSpacing: "-0.015em" }],
+        h2:    ["16px", { lineHeight: "24px", fontWeight: "600", letterSpacing: "-0.01em"  }],
         card:  ["13px", { lineHeight: "18px", fontWeight: "500" }],
         body:  ["13px", { lineHeight: "1.45", fontWeight: "400" }],
         label: ["11px", { lineHeight: "14px", fontWeight: "500" }],

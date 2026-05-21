@@ -21,7 +21,7 @@
     --ink-2:        #2a3038;
     --muted:        #6b7280;
     --muted-2:      #9aa1aa;
-    --line:         #e7e5df;
+    --line:         #e3e0d9;   /* slightly crisper warm border */
     --line-2:       #efede7;
     --hover:        #f9f8f4;
     --accent:       #0C447C;           /* upgraded from #2b3aa0 */
@@ -39,10 +39,10 @@
     --role-fulfiller-bg:  #ece2fa;
     --role-fulfiller-fg:  #3C3489;
 
-    --amber:        #b4700a; --amber-bg:  #fdf3dd;
+    --amber:        #a16207; --amber-bg:  #fdf3dd;   /* deeper, less orange-warm */
     --blue:         #1d4ed8; --blue-bg:   #E6F1FB;
     --green:        #0e7c4a; --green-bg:  #dcf1e3;
-    --rose:         #b42318; --rose-bg:   #fde3de;
+    --rose:         #b91c1c; --rose-bg:   #fde3de;   /* cooler pure red, less orange cast */
     --slate:        #475569; --slate-bg:  #e9ecf1;
     --violet:       #6d28d9; --violet-bg: #ece2fa;
 
@@ -60,6 +60,7 @@
     font-size: 13px;
     line-height: 1.45;
     font-weight: 400;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -72,7 +73,7 @@
   }
 
   h1, h2, h3, h4, h5, h6, b, strong {
-    font-weight: 500;
+    font-weight: 600;
   }
 
   button:focus-visible,
@@ -138,7 +139,7 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    border-radius: 9999px;
+    border-radius: 5px;
     font-size: 11px;
     font-weight: 600;
     line-height: 16px;
@@ -151,6 +152,7 @@
     font-family: var(--font-jetbrains, "JetBrains Mono", monospace);
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+    letter-spacing: normal;  /* override body -0.01em — tabular nums need natural spacing */
   }
 }
 
@@ -268,11 +270,6 @@
 /* Live dot */
 .live-dot {
   animation: pulse 1.8s infinite;
-}
-
-/* Alarm row glow */
-[data-alarm="true"] {
-  animation: alarmPulse 2.4s ease-in-out infinite;
 }
 
 /* Sparkline kinetic wave (stagger via CSS custom prop) */

@@ -191,21 +191,21 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {isCancelled && (
-                <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Cancelled</span>
+                <span className="rounded-[5px] bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Cancelled</span>
               )}
               {isPartialCancelled && (
-                <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Partially cancelled</span>
+                <span className="rounded-[5px] bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Partially cancelled</span>
               )}
               {hasDelayed && (
-                <span className="rounded-full bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Delayed</span>
+                <span className="rounded-[5px] bg-[var(--rose-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--rose)]">Delayed</span>
               )}
               {hasUnassigned && (
-                <span className="rounded-full bg-[var(--amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--amber)]">Unassigned</span>
+                <span className="rounded-[5px] bg-[var(--amber-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--amber)]">Unassigned</span>
               )}
               {!isCancelled && !isPartialCancelled && !hasDelayed && !hasUnassigned && (
-                <span className="rounded-full bg-[var(--green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--green)]">On track</span>
+                <span className="rounded-[5px] bg-[var(--green-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--green)]">On track</span>
               )}
-              <span className="rounded-full bg-[var(--slate-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--slate)]">
+              <span className="rounded-[5px] bg-[var(--slate-bg)] px-2 py-0.5 text-[11px] font-semibold text-[var(--slate)]">
                 {order.sub_orders.length} sub-orders
               </span>
             </div>
@@ -303,6 +303,14 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
                 <div className="border-t border-[var(--line)] pt-2">
                   <Row label="Total" value={formatCurrency(o.total ?? 0, o.currency)} mono bold />
                 </div>
+                {order.financial_status && order.financial_status !== "paid" && (
+                  <div className="border-t border-[var(--line)] pt-2">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[var(--muted)]">Payment</span>
+                      <FinancialStatusBadge status={order.financial_status} />
+                    </div>
+                  </div>
+                )}
               </Section>
 
               {/* Notes */}
@@ -527,4 +535,24 @@ function Row({
       </span>
     </div>
   );
+}
+
+// ── Financial status badge ────────────────────────────────────────────────────
+
+const FINANCIAL_STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  pending:            { label: "Pending",        cls: "bg-[var(--slate-bg)] text-[var(--slate)]  border-[var(--slate)]/30"  },
+  authorized:         { label: "Authorized",     cls: "bg-[var(--blue-bg)]  text-[var(--blue)]   border-[var(--blue)]/30"   },
+  partially_paid:     { label: "Partial pay",    cls: "bg-[var(--amber-bg)] text-[var(--amber)]  border-[var(--amber)]/30"  },
+  paid:               { label: "Paid",            cls: "bg-[var(--green-bg)] text-[var(--green)]  border-[var(--green)]/30"  },
+  partially_refunded: { label: "Partial refund", cls: "bg-[var(--amber-bg)] text-[var(--amber)]  border-[var(--amber)]/30"  },
+  refunded:           { label: "Refunded",        cls: "bg-[var(--amber-bg)] text-[var(--amber)]  border-[var(--amber)]/30"  },
+  voided:             { label: "Voided",          cls: "bg-[var(--rose-bg)]  text-[var(--rose)]   border-[var(--rose)]/30"   },
+};
+
+function FinancialStatusBadge({ status }: { status: string }) {
+  const m = FINANCIAL_STATUS_MAP[status] ?? {
+    label: status,
+    cls: "bg-[var(--hover)] text-[var(--muted)] border-[var(--line)]",
+  };
+  return <span className={cn("pill border text-[11px]", m.cls)}>{m.label}</span>;
 }
