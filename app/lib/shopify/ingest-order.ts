@@ -8,6 +8,7 @@
  * with the same payload either inserts once or refreshes raw_payload.
  */
 import { createServiceClient } from "@/lib/supabase/server";
+import { fetchProductType } from "@/lib/shopify/fetch-product-type";
 import type { Json } from "@/lib/types/database";
 
 type Currency = "SAR" | "USD" | "EUR" | "GBP" | "AED";
@@ -146,6 +147,9 @@ export async function ingestShopifyOrder(
     // shopify_line_item_id. Operational fields (status, assignments) are
     // intentionally left untouched — those are owned by the ops workflow.
     for (const li of payload.line_items) {
+      // Only overwrite product_type when we actually got a value, so a
+      // transient Shopify failure doesn't wipe an already-stored type.
+      const productType = await fetchProductType(li.product_id);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (sb.from("sub_orders") as any)
         .update({
@@ -155,6 +159,7 @@ export async function ingestShopifyOrder(
           variant_title: li.variant_title ?? null,
           sku: li.sku ?? null,
           ...(li.image_url ? { product_image_url: li.image_url } : {}),
+          ...(productType ? { product_type: productType } : {}),
         })
         .eq("order_id", existing.id)
         .eq("shopify_line_item_id", String(li.id));
@@ -235,6 +240,10 @@ export async function ingestShopifyOrder(
       brandId = (brand as string | null) ?? null;
     }
 
+    // product_type is not on the order payload — pull it from the Product
+    // resource. Fail-safe: null if the call fails, never blocks the order.
+    const productType = await fetchProductType(li.product_id);
+
     const subRow = {
       order_id: order.id,
       sub_order_number: subOrderNumber,
@@ -250,6 +259,7 @@ export async function ingestShopifyOrder(
       brand_name_raw: li.vendor ?? null,
       is_unassigned: !brandId,
       status: "pending",
+      product_type: productType,
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: subRaw, error: subErr } = await (sb.from("sub_orders") as any)
