@@ -5,9 +5,12 @@
  * line-item title/vendor/sku), so order ingestion calls this per line item to
  * populate sub_orders.product_type.
  *
- * Fail-safe by design: returns null on any error (missing creds, network,
+ * Uses getValidToken() so the (expiring) access token is auto-refreshed.
+ * Fail-safe by design: returns null on any error (no token row, network,
  * non-2xx, missing product) so it never blocks order ingestion.
  */
+import { getValidToken, getDefaultShopDomain } from "@/lib/shopify/token-manager";
+
 const SHOPIFY_API_VERSION = "2024-10";
 
 export async function fetchProductType(
@@ -15,11 +18,10 @@ export async function fetchProductType(
 ): Promise<string | null> {
   if (!productId) return null;
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  if (!shopDomain || !accessToken) return null;
-
   try {
+    const shopDomain = getDefaultShopDomain();
+    const accessToken = await getValidToken(shopDomain);
+
     const res = await fetch(
       `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json?fields=product_type`,
       {
