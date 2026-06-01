@@ -9,7 +9,6 @@
  */
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/require-role";
-import { getValidToken, getDefaultShopDomain } from "@/lib/shopify/token-manager";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,14 +23,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "id query param required" }, { status: 400 });
   }
 
-  let shopDomain: string;
-  let accessToken: string;
-  try {
-    shopDomain = getDefaultShopDomain();
-    accessToken = await getValidToken(shopDomain);
-  } catch (e) {
+  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
+  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+  if (!shopDomain || !accessToken) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Shopify token unavailable" },
+      { error: "SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN must be set" },
       { status: 500 },
     );
   }

@@ -19,13 +19,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 /** How close to expiry we consider a token "expired" and refresh proactively. */
 const REFRESH_BUFFER_MS = 10 * 60 * 1000; // 10 minutes
 
-// Vercel stores these as SHOPIFY_API_KEY / SHOPIFY_API_SECRET (the Custom App
-// "API key" and "API secret key"). Fall back to the CLIENT_* names for any
-// environment that uses those instead.
-const SHOPIFY_CLIENT_ID =
-  process.env.SHOPIFY_API_KEY ?? process.env.SHOPIFY_CLIENT_ID ?? "";
-const SHOPIFY_CLIENT_SECRET =
-  process.env.SHOPIFY_API_SECRET ?? process.env.SHOPIFY_CLIENT_SECRET ?? "";
+const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID ?? "";
+const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET ?? "";
 
 export type ShopifyTokenRow = {
   id: string;
