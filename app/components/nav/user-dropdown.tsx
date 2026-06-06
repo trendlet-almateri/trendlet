@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Store,
   Tag,
+  Coins,
   Users,
   Truck,
   Plug,
@@ -150,6 +151,9 @@ export function UserDropdown({
               <ItemButton icon={Tag} right="Brands" onSelect={() => setActiveModal("brands")}>
                 Brands &amp; assignments
               </ItemButton>
+              <Item icon={Coins} href="/admin/brand-pricing" right="Tax">
+                Brand pricing
+              </Item>
               <ItemButton icon={Users} right="Team" onSelect={() => setActiveModal("team")}>
                 Team &amp; roles
               </ItemButton>

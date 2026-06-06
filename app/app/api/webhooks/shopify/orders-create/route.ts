@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
 import { verifyShopifyWebhook, isReplay, wlog } from "@/lib/shopify/webhook-utils";
 import { writeOrderNotification } from "@/lib/notifications/write-notification";
+import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,6 +43,13 @@ export async function POST(req: Request) {
       title: `New order #${payload.order_number} received`,
       description: `${result.sub_orders_created} item${result.sub_orders_created !== 1 ? "s" : ""} · ${payload.total_price ? `${payload.currency} ${payload.total_price}` : ""}`,
       href: `/orders/${result.order_id}`,
+    });
+
+    // Auto-generate the tax invoice. Fire-and-forget so a pricing/PDF hiccup
+    // never blocks the webhook 200. Issues when pricing resolves cleanly;
+    // otherwise leaves a 'needs_pricing' draft for manual completion.
+    void generateTaxInvoiceForOrder(result.order_id).then((r) => {
+      wlog(ctx.topic, "tax_invoice", { orderId: result.order_id, ...r });
     });
   }
 
