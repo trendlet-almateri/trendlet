@@ -40,15 +40,17 @@ export function getShopDomain(): string {
  * Always call this right before a Shopify Admin API request.
  */
 export async function getShopifyAccessToken(): Promise<string> {
-  const clientId = process.env.SHOPIFY_CLIENT_ID;
-  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+  // Shopify labels these "API key" / "API secret key"; the OAuth grant calls
+  // them client_id / client_secret — same values. Read whichever name is set.
+  const clientId = process.env.SHOPIFY_API_KEY ?? process.env.SHOPIFY_CLIENT_ID;
+  const clientSecret = process.env.SHOPIFY_API_SECRET ?? process.env.SHOPIFY_CLIENT_SECRET;
 
   // Legacy fallback: static token (Custom App) when client creds not configured.
   if (!clientId || !clientSecret) {
     const staticToken = process.env.SHOPIFY_ACCESS_TOKEN;
     if (staticToken) return staticToken;
     throw new Error(
-      "Shopify auth not configured: set SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET (client credentials grant), or a legacy SHOPIFY_ACCESS_TOKEN",
+      "Shopify auth not configured: set SHOPIFY_API_KEY + SHOPIFY_API_SECRET (client credentials grant), or a legacy SHOPIFY_ACCESS_TOKEN",
     );
   }
 
