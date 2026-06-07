@@ -45,7 +45,7 @@ export async function searchOrdersForTax(query: string): Promise<OrderHit[]> {
       sub_orders ( product_type, brand:brands ( name ) )
     `)
     .ilike("shopify_order_number", `%${q}%`)
-    .order("created_at", { ascending: false })
+    .order("shopify_created_at", { ascending: false, nullsFirst: false })
     .limit(10);
 
   if (error) {
