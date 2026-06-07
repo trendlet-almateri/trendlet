@@ -41,12 +41,15 @@ export async function GET(req: Request) {
     }
   }
 
+  const t0 = Date.now();
   let shopDomain: string;
   let accessToken: string;
   try {
     shopDomain = getShopDomain();
     accessToken = await getShopifyAccessToken();
+    console.log(`[shopify-poll] token minted in ${Date.now() - t0}ms`);
   } catch (e) {
+    console.error("[shopify-poll] auth failed", e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Shopify auth failed" },
       { status: 500 },
@@ -62,6 +65,7 @@ export async function GET(req: Request) {
     .eq("shop", shopDomain)
     .maybeSingle();
   const lastPolled = stateRow?.last_polled_at ?? "2026-01-01T00:00:00Z";
+  console.log(`[shopify-poll] shop=${shopDomain} lastPolled=${lastPolled} (state row ${stateRow ? "found" : "MISSING→default"})`);
 
   // Compute query window with overlap
   const since = new Date(new Date(lastPolled).getTime() - OVERLAP_MS).toISOString();
@@ -121,6 +125,7 @@ export async function GET(req: Request) {
     const data = (await res.json()) as { orders: (ShopifyOrder & { updated_at?: string })[] };
     const orders = Array.isArray(data.orders) ? data.orders : [];
     summary.fetched += orders.length;
+    console.log(`[shopify-poll] page fetched ${orders.length} orders (total ${summary.fetched}) at ${Date.now() - t0}ms`);
 
     for (const o of orders) {
       try {
