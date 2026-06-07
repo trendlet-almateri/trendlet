@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/require-role";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
+import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,11 +48,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  if (!shopDomain || !accessToken) {
+  let shopDomain: string;
+  let accessToken: string;
+  try {
+    shopDomain = getShopDomain();
+    accessToken = await getShopifyAccessToken();
+  } catch (e) {
     return NextResponse.json(
-      { error: "SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN must be set" },
+      { error: e instanceof Error ? e.message : "Shopify auth failed" },
       { status: 500 },
     );
   }
