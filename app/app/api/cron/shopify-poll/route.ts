@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     .eq("shop", shopDomain)
     .maybeSingle();
   const lastPolled = stateRow?.last_polled_at ?? "2026-01-01T00:00:00Z";
-  console.log(`[shopify-poll] shop=${shopDomain} lastPolled=${lastPolled} (state row ${stateRow ? "found" : "MISSING→default"})`);
+  console.log(`[shopify-poll] supabaseHost=${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace("https://", "").split(".")[0]} rawStateRow=${JSON.stringify(stateRow)} lastPolled=${lastPolled}`);
 
   // Compute query window with overlap
   const since = new Date(new Date(lastPolled).getTime() - OVERLAP_MS).toISOString();
