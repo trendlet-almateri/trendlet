@@ -234,7 +234,7 @@ export async function GET(req: Request) {
       .order("shopify_created_at", { ascending: false })
       .limit(200);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: invoiced } = await (sb.from("tax_invoices") as any).select("order_id");
+    const { data: invoiced } = await (sb as any).from("tax_invoices").select("order_id");
     const invoicedSet = new Set(
       ((invoiced ?? []) as { order_id: string }[]).map((r) => r.order_id),
     );
