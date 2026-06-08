@@ -218,6 +218,40 @@ export async function GET(req: Request) {
     { onConflict: "shop" },
   );
 
+  // ── Tax-invoice backfill ──────────────────────────────────────────────────
+  // Webhook-time invoice generation can miss due to this instance's read-after-
+  // write lag (the order row isn't visible to the read that runs ms after insert).
+  // Here the orders are already committed and visible, so generation succeeds.
+  // Idempotent: generateTaxInvoiceForOrder checks for an existing invoice and
+  // UNIQUE(order_id) blocks duplicates. Time-budgeted + capped.
+  let invoiceBackfill = 0;
+  if (Date.now() - t0 < BUDGET_MS) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: recent } = await (sb.from("orders") as any)
+      .select("id")
+      .gte("shopify_created_at", sevenDaysAgo)
+      .order("shopify_created_at", { ascending: false })
+      .limit(200);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: invoiced } = await (sb.from("tax_invoices") as any).select("order_id");
+    const invoicedSet = new Set(
+      ((invoiced ?? []) as { order_id: string }[]).map((r) => r.order_id),
+    );
+    const missing = ((recent ?? []) as { id: string }[]).filter((o) => !invoicedSet.has(o.id));
+    for (const o of missing) {
+      if (Date.now() - t0 > BUDGET_MS) break;
+      try {
+        const inv = await generateTaxInvoiceForOrder(o.id);
+        if (inv.action === "issued" || inv.action === "needs_pricing") invoiceBackfill++;
+      } catch (e) {
+        console.error("[shopify-poll] invoice backfill failed", o.id, e);
+      }
+    }
+  }
+
+  console.log(`[shopify-poll] invoice backfill generated=${invoiceBackfill}`);
+
   return NextResponse.json({
     ok: true,
     since,
@@ -225,6 +259,7 @@ export async function GET(req: Request) {
     new_watermark: newPolled,
     last_polled_at: newPolled,
     hasMore: budgetHit,
+    invoice_backfill: invoiceBackfill,
     ...summary,
   });
 }
