@@ -29,31 +29,20 @@ const SELECT =
   "id, brand_name, category_ar, gender, service_fee_net, service_fee_vat, service_fee_with_vat, shipping_customs_fee, total_fee, shopify_product_type_alias";
 
 /**
- * Resolve an app brand name (brands.name) to the brand name(s) used in
- * pricing_rules, via brand_pricing_aliases. The pricing table splits some
- * brands into Boutique vs Outlet, and uses different spellings (MK Boutique
- * for "Micheal Kors"), so an app brand can resolve to MULTIPLE pricing brands.
+ * Strict 1:1 brand resolution.
  *
- * Falls back to the brand name itself when no alias row exists (covers brands
- * whose name already matches, e.g. DKNY).
+ * The Shopify vendor (carried through as brands.name) IS the pricing-table key.
+ * Brand variants like "Tory Burch" and "Tory Burch Outlet" are DISTINCT and
+ * never interchangeable — each vendor string is a hard identifier. There is NO
+ * alias expansion, NO Boutique/Outlet grouping, and NO fuzzy fallback. The
+ * pricing lookup matches pricing_rules.brand_name exactly (case-insensitive).
+ *
+ * (Kept returning string[] for the manual picker callers, but it now always
+ * yields exactly the vendor string — never multiple.)
  */
 export async function resolvePricingBrands(appBrand: string | null): Promise<string[]> {
-  if (!appBrand?.trim()) return [];
-  const brand = appBrand.trim();
-  const sb = createServiceClient() as AnyClient;
-  const { data, error } = await sb
-    .from("brand_pricing_aliases")
-    .select("pricing_brand_name")
-    .ilike("app_brand_name", brand);
-  if (error) {
-    console.error("[resolvePricingBrands]", error);
-    return [brand];
-  }
-  const names = ((data ?? []) as { pricing_brand_name: string }[]).map(
-    (r) => r.pricing_brand_name,
-  );
-  // No alias configured → assume the app name matches a pricing brand directly.
-  return names.length ? names : [brand];
+  const brand = appBrand?.trim();
+  return brand ? [brand] : [];
 }
 
 function toRule(r: Record<string, unknown>): PricingRule {
@@ -72,35 +61,31 @@ function toRule(r: Record<string, unknown>): PricingRule {
 }
 
 /**
- * Auto-match a pricing rule for a sub-order by brand + category.
+ * Auto-match a pricing rule for a sub-order by brand + category — DETERMINISTIC.
  *
- * Gender is ignored per product decision. Category matches either category_ar
- * or the shopify_product_type_alias bridge column. Case-insensitive, trimmed.
+ * Strict 1:1: pricing_rules.brand_name must EXACTLY equal the vendor brand
+ * (ILIKE without wildcards = case-insensitive exact match). Brand variants are
+ * distinct — "Tory Burch" matches only the "Tory Burch" row, never
+ * "Tory Burch Outlet". No alias expansion, no ambiguity blocking, no fuzzy
+ * matching. If the exact brand+category exists → return it; otherwise → null
+ * (the order lands as needs_pricing for manual entry).
  *
- * The app brand is resolved to its pricing brand(s) via brand_pricing_aliases
- * first. When the brand resolves to a single pricing variant AND the category
- * matches, we return that rule. If it resolves to multiple variants
- * (Boutique/Outlet) we return null so the UI prompts the admin to choose —
- * the price list varies per order and can't be auto-decided.
- *
- * Returns null when nothing matches. The UI falls back to a manual picker.
+ * Category matches either category_ar or the shopify_product_type_alias bridge
+ * column. Gender is ignored. Both comparisons are case-insensitive, trimmed.
  */
 export async function findPricingRule(
   brandName: string | null,
   productType: string | null,
 ): Promise<PricingRule | null> {
   if (!brandName || !productType) return null;
+  const brand = brandName.trim();
   const cat = productType.trim();
-
-  const pricingBrands = await resolvePricingBrands(brandName);
-  // Ambiguous (Boutique vs Outlet) — let the admin pick rather than guess.
-  if (pricingBrands.length !== 1) return null;
 
   const sb = createServiceClient() as AnyClient;
   const { data, error } = await sb
     .from("pricing_rules")
     .select(SELECT)
-    .ilike("brand_name", pricingBrands[0])
+    .ilike("brand_name", brand) // exact (no % wildcards) → 1:1 vendor match
     .or(`category_ar.ilike.${cat},shopify_product_type_alias.ilike.${cat}`)
     .limit(1);
 
