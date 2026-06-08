@@ -32,15 +32,33 @@ export async function generateTaxInvoiceForOrder(orderId: string): Promise<GenRe
   if (existing) return { action: "skipped", reason: "already has a tax invoice" };
 
   // Order + its first sub-order line (brand + product_type) drive the match.
-  const { data: order } = await sb
-    .from("orders")
-    .select(`
-      id, shopify_order_number,
-      sub_orders ( product_type, brand:brands ( name ) )
-    `)
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!order) return { action: "skipped", reason: "order not found" };
+  // This runs immediately after the order/sub_orders were inserted in the same
+  // webhook request. This Supabase instance has a read-after-write lag, so the
+  // freshly-inserted rows may not be visible on the first read — retry a few
+  // times with a short backoff until the order AND at least one sub_order show
+  // up, rather than silently skipping.
+  let order: {
+    id: string;
+    shopify_order_number: string;
+    sub_orders: { product_type: string | null; brand: { name: string } | null }[];
+  } | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data } = await sb
+      .from("orders")
+      .select(`
+        id, shopify_order_number,
+        sub_orders ( product_type, brand:brands ( name ) )
+      `)
+      .eq("id", orderId)
+      .maybeSingle();
+    order = data ?? null;
+    if (order && (order.sub_orders?.length ?? 0) > 0) break;
+    await new Promise((r) => setTimeout(r, 400)); // ~0.4s backoff, max ~2s total
+  }
+  if (!order) return { action: "skipped", reason: "order not found (after retries)" };
+  if ((order.sub_orders?.length ?? 0) === 0) {
+    return { action: "skipped", reason: "no sub_orders visible (after retries)" };
+  }
 
   const firstSub = (order.sub_orders ?? [])[0] ?? null;
   const brandName: string | null = firstSub?.brand?.name ?? null;
