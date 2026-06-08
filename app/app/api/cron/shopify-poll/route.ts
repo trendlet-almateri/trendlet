@@ -18,6 +18,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
 import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
+import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -74,6 +76,8 @@ export async function GET(req: Request) {
     inserted: 0,
     refreshed: 0,
     skipped: 0,
+    notified: 0, // order_created notifications sent for poll-inserted orders
+    invoiced: 0, // tax invoices created (issued or needs_pricing) for poll-inserted orders
     errors: [] as { order_number: string; reason: string }[],
   };
 
@@ -134,9 +138,42 @@ export async function GET(req: Request) {
     for (const o of orders) {
       try {
         const result = await ingestShopifyOrder(o, { updateOnDuplicate: true });
-        if (result.action === "inserted") summary.inserted++;
-        else if (result.action === "refreshed") summary.refreshed++;
-        else summary.skipped++;
+
+        if (result.action === "inserted") {
+          summary.inserted++;
+          // Q5 parity with the orders/create webhook: a brand-new order the
+          // webhook missed must still get its notification + tax invoice.
+          // Gated strictly on "inserted" — "refreshed"/"skipped" never run these,
+          // so re-processing an existing order cannot duplicate side effects.
+          // Awaited (not fire-and-forget) so they finish before the function can
+          // freeze at the budget exit; failures are isolated per side effect.
+          try {
+            await writeOrderNotification({
+              type: "order_created",
+              severity: "info",
+              title: `New order #${o.order_number} received`,
+              description: `${result.sub_orders_created} item${result.sub_orders_created !== 1 ? "s" : ""} · ${o.total_price ? `${o.currency} ${o.total_price}` : ""}`,
+              href: `/orders/${result.order_id}`,
+            });
+            summary.notified++;
+          } catch (e) {
+            console.error("[shopify-poll] notification failed", e);
+          }
+          try {
+            const inv = await generateTaxInvoiceForOrder(result.order_id);
+            // generateTaxInvoiceForOrder is itself idempotent (checks an existing
+            // tax_invoices row + a UNIQUE(order_id) index) → returns "skipped"
+            // rather than creating a duplicate.
+            if (inv.action === "issued" || inv.action === "needs_pricing") summary.invoiced++;
+          } catch (e) {
+            console.error("[shopify-poll] tax invoice failed", e);
+          }
+        } else if (result.action === "refreshed") {
+          summary.refreshed++;
+        } else {
+          summary.skipped++;
+        }
+
         // Track the high-water mark so next poll resumes here
         const u = (o.updated_at ?? o.created_at);
         if (u && u > maxOrderUpdatedAt) maxOrderUpdatedAt = u;
@@ -157,7 +194,7 @@ export async function GET(req: Request) {
     url = match ? match[1] : null;
   }
 
-  console.log(`[shopify-poll] done in ${Date.now() - t0}ms fetched=${summary.fetched} ingested=${summary.inserted + summary.refreshed} budgetHit=${budgetHit} newWatermark=${maxOrderUpdatedAt}`);
+  console.log(`[shopify-poll] done in ${Date.now() - t0}ms fetched=${summary.fetched} inserted=${summary.inserted} refreshed=${summary.refreshed} notified=${summary.notified} invoiced=${summary.invoiced} hasMore=${budgetHit} oldWatermark=${lastPolled} newWatermark=${maxOrderUpdatedAt}`);
 
   // Advance the high-water mark.
   // - Partial run (budget hit): resume exactly from the last order we processed,
@@ -181,5 +218,13 @@ export async function GET(req: Request) {
     { onConflict: "shop" },
   );
 
-  return NextResponse.json({ ok: true, since, last_polled_at: newPolled, ...summary });
+  return NextResponse.json({
+    ok: true,
+    since,
+    old_watermark: lastPolled,
+    new_watermark: newPolled,
+    last_polled_at: newPolled,
+    hasMore: budgetHit,
+    ...summary,
+  });
 }
