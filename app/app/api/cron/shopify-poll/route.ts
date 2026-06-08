@@ -47,7 +47,6 @@ export async function GET(req: Request) {
   try {
     shopDomain = getShopDomain();
     accessToken = await getShopifyAccessToken();
-    console.log(`[shopify-poll] token minted in ${Date.now() - t0}ms`);
   } catch (e) {
     console.error("[shopify-poll] auth failed", e);
     return NextResponse.json(
@@ -65,7 +64,6 @@ export async function GET(req: Request) {
     .eq("shop", shopDomain)
     .maybeSingle();
   const lastPolled = stateRow?.last_polled_at ?? "2026-01-01T00:00:00Z";
-  console.log(`[shopify-poll] supabaseHost=${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace("https://", "").split(".")[0]} rawStateRow=${JSON.stringify(stateRow)} lastPolled=${lastPolled}`);
 
   // Compute query window with overlap
   const since = new Date(new Date(lastPolled).getTime() - OVERLAP_MS).toISOString();
@@ -86,10 +84,17 @@ export async function GET(req: Request) {
     new URLSearchParams({
       status: "any",
       updated_at_min: since,
-      limit: "250",
+      limit: "50",
+      order: "updated_at asc", // oldest-first so the watermark advances monotonically
     }).toString();
 
   let maxOrderUpdatedAt = lastPolled;
+
+  // Stay well under Vercel's 60s function limit. On a large backlog we process
+  // what we can within budget, advance the watermark to the last order handled,
+  // and let the next run continue — self-draining, never times out.
+  const BUDGET_MS = 40_000;
+  let budgetHit = false;
 
   while (url) {
     const res: Response = await fetch(url, {
@@ -125,7 +130,6 @@ export async function GET(req: Request) {
     const data = (await res.json()) as { orders: (ShopifyOrder & { updated_at?: string })[] };
     const orders = Array.isArray(data.orders) ? data.orders : [];
     summary.fetched += orders.length;
-    console.log(`[shopify-poll] page fetched ${orders.length} orders (total ${summary.fetched}) at ${Date.now() - t0}ms`);
 
     for (const o of orders) {
       try {
@@ -142,18 +146,29 @@ export async function GET(req: Request) {
           reason: e instanceof Error ? e.message : "unknown",
         });
       }
+      // Time budget: stop cleanly and let the next run resume from here.
+      if (Date.now() - t0 > BUDGET_MS) { budgetHit = true; break; }
     }
+
+    if (budgetHit) break;
 
     const link = res.headers.get("link") ?? "";
     const match = link.match(/<([^>]+)>;\s*rel="next"/);
     url = match ? match[1] : null;
   }
 
-  // Advance the high-water mark. If we didn't see any orders, we still bump
-  // last_polled_at to runStartedAt so we don't refetch the same window
-  // forever. Use the later of (max order updated_at, runStartedAt).
-  const newPolled =
-    maxOrderUpdatedAt > runStartedAt ? maxOrderUpdatedAt : runStartedAt;
+  console.log(`[shopify-poll] done in ${Date.now() - t0}ms fetched=${summary.fetched} ingested=${summary.inserted + summary.refreshed} budgetHit=${budgetHit} newWatermark=${maxOrderUpdatedAt}`);
+
+  // Advance the high-water mark.
+  // - Partial run (budget hit): resume exactly from the last order we processed,
+  //   so the unprocessed remainder isn't skipped.
+  // - Full drain: bump to the later of (max order updated_at, runStartedAt) so
+  //   an empty window still advances and we don't refetch forever.
+  const newPolled = budgetHit
+    ? maxOrderUpdatedAt
+    : maxOrderUpdatedAt > runStartedAt
+    ? maxOrderUpdatedAt
+    : runStartedAt;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (sb.from("shopify_sync_state") as any).upsert(
