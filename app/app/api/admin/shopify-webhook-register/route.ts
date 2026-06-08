@@ -9,6 +9,7 @@
  */
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/require-role";
+import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,12 +32,9 @@ function appUrl(): string {
   );
 }
 
-function getCreds() {
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  if (!shopDomain || !accessToken) {
-    throw new Error("SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN must be set");
-  }
+async function getCreds() {
+  const shopDomain = getShopDomain();
+  const accessToken = await getShopifyAccessToken();
   return { shopDomain, accessToken };
 }
 
@@ -44,7 +42,7 @@ export async function GET() {
   await requireRole(["admin"]);
   let creds;
   try {
-    creds = getCreds();
+    creds = await getCreds();
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "creds missing" },
@@ -74,7 +72,7 @@ export async function POST() {
   await requireRole(["admin"]);
   let creds;
   try {
-    creds = getCreds();
+    creds = await getCreds();
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "creds missing" },

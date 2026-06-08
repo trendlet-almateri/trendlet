@@ -17,6 +17,9 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
+import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
+import { writeOrderNotification } from "@/lib/notifications/write-notification";
+import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,11 +43,16 @@ export async function GET(req: Request) {
     }
   }
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  if (!shopDomain || !accessToken) {
+  const t0 = Date.now();
+  let shopDomain: string;
+  let accessToken: string;
+  try {
+    shopDomain = getShopDomain();
+    accessToken = await getShopifyAccessToken();
+  } catch (e) {
+    console.error("[shopify-poll] auth failed", e);
     return NextResponse.json(
-      { error: "SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN required" },
+      { error: e instanceof Error ? e.message : "Shopify auth failed" },
       { status: 500 },
     );
   }
@@ -68,6 +76,8 @@ export async function GET(req: Request) {
     inserted: 0,
     refreshed: 0,
     skipped: 0,
+    notified: 0, // order_created notifications sent for poll-inserted orders
+    invoiced: 0, // tax invoices created (issued or needs_pricing) for poll-inserted orders
     errors: [] as { order_number: string; reason: string }[],
   };
 
@@ -78,10 +88,17 @@ export async function GET(req: Request) {
     new URLSearchParams({
       status: "any",
       updated_at_min: since,
-      limit: "250",
+      limit: "50",
+      order: "updated_at asc", // oldest-first so the watermark advances monotonically
     }).toString();
 
   let maxOrderUpdatedAt = lastPolled;
+
+  // Stay well under Vercel's 60s function limit. On a large backlog we process
+  // what we can within budget, advance the watermark to the last order handled,
+  // and let the next run continue — self-draining, never times out.
+  const BUDGET_MS = 40_000;
+  let budgetHit = false;
 
   while (url) {
     const res: Response = await fetch(url, {
@@ -121,9 +138,42 @@ export async function GET(req: Request) {
     for (const o of orders) {
       try {
         const result = await ingestShopifyOrder(o, { updateOnDuplicate: true });
-        if (result.action === "inserted") summary.inserted++;
-        else if (result.action === "refreshed") summary.refreshed++;
-        else summary.skipped++;
+
+        if (result.action === "inserted") {
+          summary.inserted++;
+          // Q5 parity with the orders/create webhook: a brand-new order the
+          // webhook missed must still get its notification + tax invoice.
+          // Gated strictly on "inserted" — "refreshed"/"skipped" never run these,
+          // so re-processing an existing order cannot duplicate side effects.
+          // Awaited (not fire-and-forget) so they finish before the function can
+          // freeze at the budget exit; failures are isolated per side effect.
+          try {
+            await writeOrderNotification({
+              type: "order_created",
+              severity: "info",
+              title: `New order #${o.order_number} received`,
+              description: `${result.sub_orders_created} item${result.sub_orders_created !== 1 ? "s" : ""} · ${o.total_price ? `${o.currency} ${o.total_price}` : ""}`,
+              href: `/orders/${result.order_id}`,
+            });
+            summary.notified++;
+          } catch (e) {
+            console.error("[shopify-poll] notification failed", e);
+          }
+          try {
+            const inv = await generateTaxInvoiceForOrder(result.order_id);
+            // generateTaxInvoiceForOrder is itself idempotent (checks an existing
+            // tax_invoices row + a UNIQUE(order_id) index) → returns "skipped"
+            // rather than creating a duplicate.
+            if (inv.action === "issued" || inv.action === "needs_pricing") summary.invoiced++;
+          } catch (e) {
+            console.error("[shopify-poll] tax invoice failed", e);
+          }
+        } else if (result.action === "refreshed") {
+          summary.refreshed++;
+        } else {
+          summary.skipped++;
+        }
+
         // Track the high-water mark so next poll resumes here
         const u = (o.updated_at ?? o.created_at);
         if (u && u > maxOrderUpdatedAt) maxOrderUpdatedAt = u;
@@ -133,18 +183,29 @@ export async function GET(req: Request) {
           reason: e instanceof Error ? e.message : "unknown",
         });
       }
+      // Time budget: stop cleanly and let the next run resume from here.
+      if (Date.now() - t0 > BUDGET_MS) { budgetHit = true; break; }
     }
+
+    if (budgetHit) break;
 
     const link = res.headers.get("link") ?? "";
     const match = link.match(/<([^>]+)>;\s*rel="next"/);
     url = match ? match[1] : null;
   }
 
-  // Advance the high-water mark. If we didn't see any orders, we still bump
-  // last_polled_at to runStartedAt so we don't refetch the same window
-  // forever. Use the later of (max order updated_at, runStartedAt).
-  const newPolled =
-    maxOrderUpdatedAt > runStartedAt ? maxOrderUpdatedAt : runStartedAt;
+  console.log(`[shopify-poll] done in ${Date.now() - t0}ms fetched=${summary.fetched} inserted=${summary.inserted} refreshed=${summary.refreshed} notified=${summary.notified} invoiced=${summary.invoiced} hasMore=${budgetHit} oldWatermark=${lastPolled} newWatermark=${maxOrderUpdatedAt}`);
+
+  // Advance the high-water mark.
+  // - Partial run (budget hit): resume exactly from the last order we processed,
+  //   so the unprocessed remainder isn't skipped.
+  // - Full drain: bump to the later of (max order updated_at, runStartedAt) so
+  //   an empty window still advances and we don't refetch forever.
+  const newPolled = budgetHit
+    ? maxOrderUpdatedAt
+    : maxOrderUpdatedAt > runStartedAt
+    ? maxOrderUpdatedAt
+    : runStartedAt;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (sb.from("shopify_sync_state") as any).upsert(
@@ -157,5 +218,13 @@ export async function GET(req: Request) {
     { onConflict: "shop" },
   );
 
-  return NextResponse.json({ ok: true, since, last_polled_at: newPolled, ...summary });
+  return NextResponse.json({
+    ok: true,
+    since,
+    old_watermark: lastPolled,
+    new_watermark: newPolled,
+    last_polled_at: newPolled,
+    hasMore: budgetHit,
+    ...summary,
+  });
 }

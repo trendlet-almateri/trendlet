@@ -10,6 +10,8 @@
  * tokens — Shopify returns invalid_subject_token — so we use the env token
  * directly. Fail-safe: returns null on any error so it never blocks ingestion.
  */
+import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
+
 const SHOPIFY_API_VERSION = "2024-10";
 
 export async function fetchProductType(
@@ -17,11 +19,9 @@ export async function fetchProductType(
 ): Promise<string | null> {
   if (!productId) return null;
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-  if (!shopDomain || !accessToken) return null;
-
   try {
+    const shopDomain = getShopDomain();
+    const accessToken = await getShopifyAccessToken();
     const res = await fetch(
       `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}.json?fields=product_type`,
       {

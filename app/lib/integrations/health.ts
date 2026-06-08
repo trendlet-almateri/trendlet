@@ -60,24 +60,19 @@ export async function checkShopify(): Promise<IntegrationHealth> {
     return { service: "shopify", status: "missing", detail: "missing SHOPIFY_SHOP_DOMAIN", latency_ms: null };
   }
 
-  // Pull the auto-refreshed token from shopify_tokens. Falls back to the
-  // env-var SHOPIFY_ACCESS_TOKEN for back-compat with deployments that
-  // haven't run /admin/shopify-bootstrap yet.
+  // Mint (or reuse cached) Admin API token via the client credentials grant.
+  // Falls back to a static SHOPIFY_ACCESS_TOKEN when client creds aren't set.
   let token: string;
   try {
-    const { getValidToken } = await import("@/lib/shopify/token-manager");
-    token = await getValidToken(domain);
+    const { getShopifyAccessToken } = await import("@/lib/shopify/get-access-token");
+    token = await getShopifyAccessToken();
   } catch (e) {
-    const envToken = process.env.SHOPIFY_ACCESS_TOKEN;
-    if (!envToken) {
-      return {
-        service: "shopify",
-        status: "missing",
-        detail: e instanceof Error ? e.message : "no token available",
-        latency_ms: null,
-      };
-    }
-    token = envToken;
+    return {
+      service: "shopify",
+      status: "missing",
+      detail: e instanceof Error ? e.message : "no token available",
+      latency_ms: null,
+    };
   }
 
   const res = await apiCall<{ shop?: { name?: string; myshopify_domain?: string } }>({
