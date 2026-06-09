@@ -1,14 +1,22 @@
 "use client";
 
 /**
- * Client-side filter/search shell for the Tax Invoices list.
- * Server fetches + sorts (newest first); this component handles UI affordances:
- * status quick filters, free-text search, hover/elevation, status colors.
+ * Tax Invoices — responsive grid of premium cards with toolbar (search + filters)
+ * and a 4-up stats strip. Newest-first ordering happens server-side.
  */
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronRight, Receipt, Search } from "lucide-react";
+import {
+  ChevronRight,
+  Hash,
+  Receipt,
+  Search,
+  Store,
+  Tag,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { formatCurrency } from "@/lib/utils/currency";
 import { relativeTime } from "@/lib/utils/date";
@@ -29,37 +37,78 @@ export type TaxInvoiceRow = {
   order: { shopify_order_number: string | null } | null;
 };
 
-// ── Status visuals ──────────────────────────────────────────────────────────
-// Stripe/Linear-style: soft tinted bg, subtle border, semantic ink, leading dot.
+// ── Status visuals — semantic, restrained ─────────────────────────────────
 const STATUS_STYLE: Record<TaxInvoiceStatus, { cls: string; dot: string; label: string }> = {
   issued: {
-    cls: "bg-status-delivered-bg text-status-delivered-fg border-status-delivered-border/40",
-    dot: "bg-status-delivered-border",
+    cls: "bg-[var(--green-bg)] text-[var(--green)] border-[var(--green)]/25",
+    dot: "bg-[var(--green)]",
     label: "Issued",
   },
   needs_pricing: {
-    cls: "bg-status-sourcing-bg text-status-sourcing-fg border-status-sourcing-border/40",
-    dot: "bg-status-sourcing-border",
+    cls: "bg-[var(--amber-bg)] text-[var(--amber)] border-[var(--amber)]/25",
+    dot: "bg-[var(--amber)]",
     label: "Pending Pricing",
   },
   draft: {
-    cls: "bg-status-pending-bg text-status-pending-fg border-status-pending-border/40",
-    dot: "bg-status-pending-border",
+    cls: "bg-[var(--slate-bg)] text-[var(--slate)] border-[var(--slate)]/25",
+    dot: "bg-[var(--slate)]",
     label: "Draft",
   },
 };
 
-// Failed isn't a current DB status, but the spec asks for it in the filter row
-// so it's visible/forward-compatible without a schema change.
 type FilterKey = "all" | "issued" | "needs_pricing" | "failed";
 
 const FILTERS: { key: FilterKey; label: string; match: (r: TaxInvoiceRow) => boolean }[] = [
-  { key: "all",           label: "All",             match: () => true },
-  { key: "issued",        label: "Issued",          match: (r) => r.status === "issued" },
+  { key: "all", label: "All", match: () => true },
+  { key: "issued", label: "Issued", match: (r) => r.status === "issued" },
   { key: "needs_pricing", label: "Pending Pricing", match: (r) => r.status === "needs_pricing" },
-  { key: "failed",        label: "Failed",          match: () => false },
+  { key: "failed", label: "Failed", match: () => false }, // forward-compat; not in DB today
 ];
 
+// ── Stats strip ───────────────────────────────────────────────────────────
+export function TaxInvoicesStats({ invoices }: { invoices: TaxInvoiceRow[] }) {
+  const total = invoices.length;
+  let issued = 0;
+  let pending = 0;
+  for (const i of invoices) {
+    if (i.status === "issued") issued++;
+    else if (i.status === "needs_pricing") pending++;
+  }
+  const failed = 0;
+  const items = [
+    { label: "Total invoices", value: total, tone: "ink" as const },
+    { label: "Pending Pricing", value: pending, tone: "amber" as const },
+    { label: "Issued", value: issued, tone: "green" as const },
+    { label: "Failed", value: failed, tone: "rose" as const },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {items.map((s) => (
+        <div
+          key={s.label}
+          className="rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-4 py-3.5 shadow-[0_1px_2px_rgba(15,20,25,0.03)]"
+        >
+          <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">
+            {s.label}
+          </div>
+          <div
+            className={cn(
+              "mono mt-1.5 text-[22px] font-semibold leading-none tabular-nums tracking-tight",
+              s.tone === "ink" && "text-[var(--ink)]",
+              s.tone === "amber" && (s.value > 0 ? "text-[var(--amber)]" : "text-[var(--ink)]"),
+              s.tone === "green" && (s.value > 0 ? "text-[var(--green)]" : "text-[var(--ink)]"),
+              s.tone === "rose" && (s.value > 0 ? "text-[var(--rose)]" : "text-[var(--ink)]"),
+            )}
+          >
+            {s.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Toolbar + grid ────────────────────────────────────────────────────────
 export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
   const [filter, setFilter] = React.useState<FilterKey>("all");
   const [query, setQuery] = React.useState("");
@@ -92,10 +141,20 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
   }, [invoices, filter, query]);
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* ── Filter row + search ────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-col gap-5">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--panel)] p-2 pl-3 shadow-[0_1px_2px_rgba(15,20,25,0.03)]">
+        <div className="relative flex flex-1 items-center">
+          <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-[var(--muted-2)]" aria-hidden />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search invoice, order, or brand…"
+            aria-label="Search tax invoices"
+            className="h-9 w-full min-w-[200px] rounded-md bg-transparent pl-7 pr-3 text-[13px] text-[var(--ink)] placeholder:text-[var(--muted-2)] focus:outline-none"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
           {FILTERS.map((f) => {
             const active = filter === f.key;
             const n = counts[f.key];
@@ -105,19 +164,17 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
                 type="button"
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors",
+                  "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium transition-colors",
                   active
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] hover:bg-[var(--hover)]",
+                    ? "bg-[var(--accent)] text-white shadow-[0_1px_0_rgba(15,20,25,0.04)]"
+                    : "text-[var(--ink-2)] hover:bg-[var(--hover)]",
                 )}
               >
                 {f.label}
                 <span
                   className={cn(
                     "mono inline-flex h-[18px] min-w-[18px] items-center justify-center rounded px-1 text-[10px] tabular-nums",
-                    active
-                      ? "bg-[var(--accent)]/15 text-[var(--accent)]"
-                      : "bg-[var(--hover)] text-[var(--muted)]",
+                    active ? "bg-white/15 text-white" : "bg-[var(--hover)] text-[var(--muted)]",
                   )}
                 >
                   {n}
@@ -126,20 +183,9 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
             );
           })}
         </div>
-
-        <div className="relative flex items-center">
-          <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[var(--muted-2)]" aria-hidden />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search invoice, order, brand…"
-            aria-label="Search tax invoices"
-            className="h-8 w-[260px] rounded-md border border-[var(--line)] bg-[var(--panel)] pl-8 pr-3 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted-2)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/15"
-          />
-        </div>
       </div>
 
-      {/* ── Cards ──────────────────────────────────────────────────────── */}
+      {/* Cards */}
       {filtered.length === 0 ? (
         <EmptyState
           icon={Receipt}
@@ -151,90 +197,133 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
           }
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {filtered.map((inv, i) => {
-            const s = STATUS_STYLE[inv.status];
-            const ts = inv.generated_at ?? inv.created_at;
-            return (
-              <li key={inv.id}>
-                <Link
-                  href={`/tax-invoices/${inv.id}`}
-                  className={cn(
-                    "rise-in group grid grid-cols-[1fr_auto] items-center gap-5 rounded-[10px]",
-                    "border border-[var(--line)] bg-[var(--panel)] px-5 py-4",
-                    "shadow-[0_1px_2px_rgba(15,20,25,0.04)] transition-all duration-150",
-                    "hover:-translate-y-[1px] hover:border-[var(--line-2)] hover:bg-[var(--hover)]",
-                    "hover:shadow-[0_4px_14px_-6px_rgba(15,20,25,0.12)]",
-                    "active:translate-y-0 active:shadow-[0_1px_2px_rgba(15,20,25,0.04)]",
-                  )}
-                  style={{ ["--stagger-index" as string]: String(Math.min(i, 12)) }}
-                >
-                  {/* ── Left: hierarchy ───────────────────────────────── */}
-                  <div className="flex min-w-0 flex-col gap-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="mono text-[14px] font-semibold leading-none tracking-tight text-[var(--ink)]">
-                        {inv.invoice_number}
-                      </span>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-[3px] text-[11px] font-medium leading-none",
-                          s.cls,
-                        )}
-                      >
-                        <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} aria-hidden />
-                        {s.label}
-                      </span>
-                    </div>
-
-                    {/* Secondary: order · brand · category — softer ink */}
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
-                      {inv.order?.shopify_order_number ? (
-                        <span className="text-[var(--muted)]">
-                          Order <span className="mono text-[var(--ink-2)]">{inv.order.shopify_order_number}</span>
-                        </span>
-                      ) : null}
-                      {inv.brand_name ? (
-                        <>
-                          <Dot />
-                          <span className="truncate font-medium text-[var(--ink-2)]">{inv.brand_name}</span>
-                        </>
-                      ) : null}
-                      {inv.category_ar ? (
-                        <>
-                          <Dot />
-                          <span dir="rtl" className="truncate text-[var(--muted)]">
-                            {inv.category_ar}
-                          </span>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* ── Right: amount + time + chevron ────────────────── */}
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="mono text-[15px] font-semibold leading-none tabular-nums tracking-tight text-[var(--ink)]">
-                        {formatCurrency(inv.total_fee, inv.currency)}
-                      </span>
-                      <span className="text-[11px] leading-none text-[var(--muted)]">
-                        {relativeTime(ts)}
-                      </span>
-                    </div>
-                    <ChevronRight
-                      className="h-4 w-4 text-[var(--muted-2)] transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-[var(--ink-2)]"
-                      aria-hidden
-                    />
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((inv, i) => (
+            <InvoiceCard key={inv.id} inv={inv} index={i} />
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function Dot() {
-  return <span aria-hidden className="text-[var(--muted-2)]">·</span>;
+// ── Card ──────────────────────────────────────────────────────────────────
+function InvoiceCard({ inv, index }: { inv: TaxInvoiceRow; index: number }) {
+  const s = STATUS_STYLE[inv.status];
+  const ts = inv.generated_at ?? inv.created_at;
+  return (
+    <Link
+      href={`/tax-invoices/${inv.id}`}
+      className={cn(
+        "rise-in group flex flex-col gap-4 rounded-[16px] border border-[var(--line)] bg-[var(--panel)] p-5",
+        "shadow-[0_1px_2px_rgba(15,20,25,0.04)] transition-all duration-200",
+        "hover:-translate-y-[2px] hover:border-[var(--line-2)] hover:bg-[var(--panel)]",
+        "hover:shadow-[0_8px_22px_-10px_rgba(15,20,25,0.18)]",
+        "active:translate-y-0 active:shadow-[0_1px_2px_rgba(15,20,25,0.04)]",
+      )}
+      style={{ ["--stagger-index" as string]: String(Math.min(index, 12)) }}
+    >
+      {/* Top: invoice number + status */}
+      <div className="flex items-start justify-between gap-3">
+        <span className="mono text-[15px] font-semibold leading-none tracking-tight text-[var(--ink)]">
+          {inv.invoice_number}
+        </span>
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-[3px] text-[11px] font-medium leading-none",
+            s.cls,
+          )}
+        >
+          <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} aria-hidden />
+          {s.label}
+        </span>
+      </div>
+
+      {/* Middle: meta with icons */}
+      <div className="flex flex-col gap-2 text-[12.5px]">
+        {inv.order?.shopify_order_number ? (
+          <MetaRow icon={Hash} muted="Order">
+            <span className="mono tabular-nums text-[var(--ink-2)]">
+              {inv.order.shopify_order_number}
+            </span>
+          </MetaRow>
+        ) : null}
+        {inv.brand_name ? (
+          <MetaRow icon={Store} muted="Brand">
+            <span className="truncate font-medium text-[var(--ink-2)]">{inv.brand_name}</span>
+          </MetaRow>
+        ) : null}
+        {inv.category_ar ? (
+          <MetaRow icon={Tag} muted="Category">
+            <span dir="rtl" className="truncate text-[var(--ink-2)]">
+              {inv.category_ar}
+            </span>
+          </MetaRow>
+        ) : null}
+        <MetaRow icon={Clock} muted="Updated">
+          <span className="text-[var(--muted)]">{relativeTime(ts)}</span>
+        </MetaRow>
+      </div>
+
+      {/* Divider — extremely subtle */}
+      <div className="-mx-5 border-t border-[var(--line)]" aria-hidden />
+
+      {/* Bottom: amount + action */}
+      <div className="flex items-end justify-between gap-3">
+        <span
+          className={cn(
+            "mono text-[22px] font-semibold leading-none tabular-nums tracking-tight",
+            inv.total_fee > 0 ? "text-[var(--ink)]" : "text-[var(--muted)]",
+          )}
+        >
+          {formatCurrency(inv.total_fee, inv.currency)}
+        </span>
+        <span className="inline-flex items-center gap-0.5 text-[11.5px] font-medium text-[var(--accent)] transition-transform duration-200 group-hover:translate-x-[2px]">
+          View details
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+        </span>
+      </div>
+    </Link>
+  );
 }
+
+function MetaRow({
+  icon: Icon,
+  muted,
+  children,
+}: {
+  icon: LucideIcon;
+  muted: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--muted-2)]" aria-hidden />
+      <span className="w-[64px] shrink-0 text-[11.5px] text-[var(--muted)]">{muted}</span>
+      <div className="min-w-0 flex-1 truncate">{children}</div>
+    </div>
+  );
+}
+
+// ── Skeleton (for Suspense fallback while server fetches) ─────────────────
+export function TaxInvoicesSkeleton() {
+  return (
+    <div className="flex animate-pulse flex-col gap-5">
+      {/* stats */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-[72px] rounded-[14px] border border-[var(--line)] bg-[var(--panel)]" />
+        ))}
+      </div>
+      {/* toolbar */}
+      <div className="h-[52px] rounded-[14px] border border-[var(--line)] bg-[var(--panel)]" />
+      {/* card grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-[210px] rounded-[16px] border border-[var(--line)] bg-[var(--panel)]" />
+        ))}
+      </div>
+    </div>
+  );
+}
+

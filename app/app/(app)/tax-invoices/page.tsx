@@ -1,9 +1,15 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/system";
-import { TaxInvoicesList, type TaxInvoiceRow } from "./tax-invoices-list";
+import {
+  TaxInvoicesList,
+  TaxInvoicesStats,
+  TaxInvoicesSkeleton,
+  type TaxInvoiceRow,
+} from "./tax-invoices-list";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +17,29 @@ export const metadata = { title: "Tax invoices · Trendslet Operations" };
 
 export default async function TaxInvoicesPage() {
   await requireRole(["admin"]);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-3">
+        <PageHeader title="Tax Invoices" />
+        <Link
+          href="/tax-invoices/new"
+          className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-[var(--accent)] px-4 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,20,25,0.10),0_4px_12px_-4px_rgba(12,68,124,0.35)] transition-all duration-200 hover:-translate-y-px hover:bg-[#0a3a6a] hover:shadow-[0_2px_4px_rgba(15,20,25,0.10),0_8px_18px_-6px_rgba(12,68,124,0.40)] active:translate-y-0"
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          New Tax Invoice
+        </Link>
+      </div>
+
+      <Suspense fallback={<TaxInvoicesSkeleton />}>
+        <TaxInvoicesData />
+      </Suspense>
+    </div>
+  );
+}
+
+// Server component that fetches and feeds both the stats strip and the list.
+async function TaxInvoicesData() {
   // tax_invoices is newer than the generated Database types; cast to bypass the
   // table-name union. Row shape is asserted via TaxInvoiceRow below.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,22 +58,9 @@ export default async function TaxInvoicesPage() {
   const invoices = (data ?? []) as unknown as TaxInvoiceRow[];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-end justify-between gap-3">
-        <PageHeader
-          title="Tax invoices"
-          subtitle="Brand & category fee invoices · newest first"
-        />
-        <Link
-          href="/tax-invoices/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-navy-deep px-4 text-[13px] font-medium text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#063367] hover:shadow-[0_4px_12px_rgba(12,68,124,0.18)]"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          New tax invoice
-        </Link>
-      </div>
-
+    <>
+      <TaxInvoicesStats invoices={invoices} />
       <TaxInvoicesList invoices={invoices} />
-    </div>
+    </>
   );
 }
