@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, AlertTriangle, Clock4, Bookmark, MoreHorizontal, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock4, MoreHorizontal, X } from "lucide-react";
 import type { OrderRow as OrderRowData } from "@/lib/queries/orders";
 import { StatusSummaryBar } from "@/components/status/status-summary-bar";
 import { StatusPill } from "@/components/status/status-pill";
@@ -218,7 +218,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         <td className="hidden px-3 py-3 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             {isCancelled || (!hasUnassigned && !hasDelayed && !hasAtRisk) ? (
-              <span className="text-[12px] text-[var(--muted)]">—</span>
+              <span className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--hover)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--muted)]">
+                No alerts
+              </span>
             ) : (
               <>
                 {hasUnassigned && (
@@ -244,14 +246,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
 
         {/* ACTIONS — desktop only */}
         <td className="hidden px-3 py-3 text-center align-middle md:table-cell" data-no-row-click>
-          <div className="flex items-center justify-center gap-0.5">
-            <button
-              type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-              aria-label="Bookmark"
-            >
-              <Bookmark className="h-3.5 w-3.5" aria-hidden />
-            </button>
+          <div className="flex items-center justify-center">
             <button
               type="button"
               className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"

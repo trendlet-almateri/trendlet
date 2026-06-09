@@ -3,6 +3,8 @@ import { fetchAdminOrders } from "@/lib/queries/orders";
 import { OrdersView } from "@/components/orders/orders-view";
 import { OrdersRealtime } from "@/components/orders/orders-realtime";
 import { PageHeader, TabPills } from "@/components/system";
+import { formatCurrency } from "@/lib/utils/currency";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,15 @@ export default async function OrdersPage({
     unassigned: all.filter((o) => o.sub_orders.some((s) => s.is_unassigned)).length,
   };
 
+  // Revenue today: sum SAR orders created today. Mixing currencies is wrong,
+  // so we headline SAR and let the rest fall outside the card.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const revenueTodaySAR = all.reduce((sum, o) => {
+    if ((o.shopify_created_at ?? "").slice(0, 10) !== todayKey) return sum;
+    if ((o.currency ?? "SAR") !== "SAR") return sum;
+    return sum + (o.total ?? 0);
+  }, 0);
+
   const filtered =
     filter === "all"
       ? all
@@ -56,6 +67,15 @@ export default async function OrdersPage({
     <div className="flex flex-col gap-6">
       <PageHeader title="Orders" />
 
+      {/* Summary stats — same card language as Tax Invoices / Invoices */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <StatsCard label="Active Orders"     value={counts.active.toLocaleString("en-US")}     tone={counts.active > 0     ? "blue"  : "ink"} />
+        <StatsCard label="Unassigned Orders" value={counts.unassigned.toLocaleString("en-US")} tone={counts.unassigned > 0 ? "rose"  : "ink"} />
+        <StatsCard label="Completed Orders"  value={counts.done.toLocaleString("en-US")}       tone={counts.done > 0       ? "green" : "ink"} />
+        <StatsCard label="Delayed Orders"    value={counts.delayed.toLocaleString("en-US")}    tone={counts.delayed > 0    ? "amber" : "ink"} />
+        <StatsCard label="Revenue Today"     value={formatCurrency(revenueTodaySAR, "SAR", { compact: true })} tone="ink" />
+      </div>
+
       <TabPills
         activeKey={filter}
         tabs={[
@@ -70,6 +90,37 @@ export default async function OrdersPage({
 
       <OrdersView orders={filtered} totalCount={counts.all} />
       <OrdersRealtime />
+    </div>
+  );
+}
+
+// ── Stats card (matches Tax Invoices / Invoices visual language) ─────────────
+function StatsCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "ink" | "blue" | "rose" | "green" | "amber";
+}) {
+  return (
+    <div className="rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-4 py-3.5 shadow-[0_1px_2px_rgba(15,20,25,0.03)]">
+      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1.5 text-[22px] font-semibold leading-none tracking-tight font-[family-name:var(--font-jetbrains,_monospace)] tabular-nums",
+          tone === "ink"   && "text-[var(--ink)]",
+          tone === "blue"  && "text-[var(--blue)]",
+          tone === "rose"  && "text-[var(--rose)]",
+          tone === "green" && "text-[var(--green)]",
+          tone === "amber" && "text-[var(--amber)]",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }

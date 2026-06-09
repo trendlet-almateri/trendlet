@@ -8,7 +8,8 @@ import { OrdersPipeline } from "./orders-pipeline";
 import { OrderDrawer } from "./order-drawer";
 import type { OrderRow } from "@/lib/queries/orders";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 type Props = {
   orders: OrderRow[];
@@ -32,11 +33,12 @@ const INITIAL_CHIPS: FilterChip[] = [
 ];
 
 export function OrdersView({ orders, totalCount }: Props) {
-  const [view,    setView]    = React.useState<"table" | "pipeline">("table");
-  const [page,    setPage]    = React.useState(1);
-  const [search,  setSearch]  = React.useState("");
-  const [chips,   setChips]   = React.useState(INITIAL_CHIPS);
-  const [drawer,  setDrawer]  = React.useState<OrderRow | null>(null);
+  const [view,     setView]     = React.useState<"table" | "pipeline">("table");
+  const [page,     setPage]     = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>(25);
+  const [search,   setSearch]   = React.useState("");
+  const [chips,    setChips]    = React.useState(INITIAL_CHIPS);
+  const [drawer,   setDrawer]   = React.useState<OrderRow | null>(null);
 
   // Filter by search
   const filtered = React.useMemo(() => {
@@ -64,14 +66,14 @@ export function OrdersView({ orders, totalCount }: Props) {
   }, [filtered, issueChip?.active]);
 
   // Pagination
-  const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(displayed.length / pageSize));
   const safePagecurrent = Math.min(page, totalPages);
-  const sliceStart = (safePagecurrent - 1) * PAGE_SIZE;
-  const sliceEnd   = sliceStart + PAGE_SIZE;
+  const sliceStart = (safePagecurrent - 1) * pageSize;
+  const sliceEnd   = sliceStart + pageSize;
   const pageItems  = displayed.slice(sliceStart, sliceEnd);
 
-  // Reset page when filter/search changes
-  React.useEffect(() => { setPage(1); }, [search, chips]);
+  // Reset page when filter/search/page-size changes
+  React.useEffect(() => { setPage(1); }, [search, chips, pageSize]);
 
   function toggleChip(id: string) {
     setChips((prev) =>
@@ -200,12 +202,27 @@ export function OrdersView({ orders, totalCount }: Props) {
           <OrdersTable orders={pageItems} onOpenDrawer={setDrawer} />
 
           {/* Pagination footer */}
-          <div className="flex items-center justify-between border-t border-[var(--line)] pt-3">
-            <span className="font-[family-name:var(--font-jetbrains,_monospace)] text-[11px] tabular-nums text-[var(--muted)]">
-              {displayed.length === 0
-                ? "No orders"
-                : `Showing ${sliceStart + 1}–${Math.min(sliceEnd, displayed.length)} of ${displayed.length} orders`}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-3">
+            <div className="flex items-center gap-3">
+              <span className="font-[family-name:var(--font-jetbrains,_monospace)] text-[11px] tabular-nums text-[var(--muted)]">
+                {displayed.length === 0
+                  ? "No orders"
+                  : `Showing ${sliceStart + 1}–${Math.min(sliceEnd, displayed.length)} of ${displayed.length} orders`}
+              </span>
+              <label className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                Rows
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
+                  className="h-7 rounded-md border border-[var(--line)] bg-[var(--panel)] px-1.5 text-[11px] tabular-nums text-[var(--ink)] focus:border-[var(--accent)] focus:outline-none"
+                  aria-label="Rows per page"
+                >
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
