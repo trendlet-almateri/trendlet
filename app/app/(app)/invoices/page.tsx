@@ -1,71 +1,50 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import {
-  Receipt,
-  Clock,
-  FileCheck,
-  Send,
-  DollarSign,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
-import { fetchInvoices, fetchInvoiceCounts, type InvoiceStatus } from "@/lib/queries/invoices";
-import { PageHeader, TabPills } from "@/components/system";
-import { EmptyState } from "@/components/common/empty-state";
-import { formatCurrency } from "@/lib/utils/currency";
-import { relativeTime } from "@/lib/utils/date";
-import { cn } from "@/lib/utils";
+import { fetchInvoices, fetchInvoiceCounts } from "@/lib/queries/invoices";
+import { PageHeader } from "@/components/system";
+import { InvoicesList, InvoicesStats, InvoicesSkeleton } from "./invoices-list";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Invoices · Trendslet Operations" };
 
-const VALID = ["all", "pending_review", "approved", "sent", "rejected"] as const;
-type FilterKey = (typeof VALID)[number];
-
-const CONFIDENCE_BORDER: Record<string, string> = {
-  high: "border-l-status-success-border",
-  medium: "border-l-status-sourcing-border",
-  low: "border-l-status-danger-border",
-  failed: "border-l-status-danger-border",
-};
-
-const STATUS_PILL: Record<InvoiceStatus, string> = {
-  draft: "bg-status-pending-bg text-status-pending-fg border-status-pending-border/40",
-  pending_review: "bg-status-sourcing-bg text-status-sourcing-fg border-status-sourcing-border/40",
-  approved: "bg-status-warehouse-bg text-status-warehouse-fg border-status-warehouse-border/40",
-  sent: "bg-status-delivered-bg text-status-delivered-fg border-status-delivered-border/40",
-  rejected: "bg-status-danger-bg text-status-danger-fg border-status-danger-border/40",
-};
-
-export default async function InvoicesPage({
-  searchParams,
-}: {
-  searchParams: { filter?: string };
-}) {
-  // Sourcing + EU fulfiller can also access this page — they see only
-  // invoices they created (filtered by generated_by). Warehouse stays
-  // out per spec.
+export default async function InvoicesPage() {
+  // Sourcing + EU fulfiller can also access this page — they see only invoices
+  // they created (filtered by generated_by). Warehouse stays out per spec.
   const user = await requireRole(["admin", "sourcing", "fulfiller"]);
   const isAdmin = user.roles.includes("admin");
-
-  const requested = searchParams.filter as FilterKey | undefined;
-  const filter: FilterKey = requested && VALID.includes(requested) ? requested : "all";
-
   const scope = isAdmin ? {} : { generatedBy: user.id };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-3">
+        <PageHeader title="Invoices" />
+        <Link
+          href="/invoices/new"
+          className="inline-flex h-10 items-center gap-1.5 rounded-[10px] bg-[var(--accent)] px-4 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,20,25,0.10),0_4px_12px_-4px_rgba(12,68,124,0.35)] transition-all duration-200 hover:-translate-y-px hover:bg-[#0a3a6a] hover:shadow-[0_2px_4px_rgba(15,20,25,0.10),0_8px_18px_-6px_rgba(12,68,124,0.40)] active:translate-y-0"
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          New Invoice
+        </Link>
+      </div>
+
+      <Suspense fallback={<InvoicesSkeleton />}>
+        <InvoicesData scope={scope} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function InvoicesData({ scope }: { scope: { generatedBy?: string } }) {
   const [counts, invoices] = await Promise.all([
     fetchInvoiceCounts(scope),
-    fetchInvoices(
-      filter === "all"
-        ? scope
-        : { ...scope, status: filter as InvoiceStatus },
-    ),
+    fetchInvoices(scope),
   ]);
 
-  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
-
-  // Sum pending invoice totals per currency (mixing currencies is wrong).
-  // Show the largest bucket as the headline, hint at the rest.
+  // Pending value: largest currency bucket (mixing currencies is wrong);
+  // hint at any other currencies.
   const pendingByCurrency = invoices
     .filter((i) => i.status === "pending_review")
     .reduce<Record<string, number>>((acc, i) => {
@@ -74,218 +53,18 @@ export default async function InvoicesPage({
       return acc;
     }, {});
   const pendingBuckets = Object.entries(pendingByCurrency).sort((a, b) => b[1] - a[1]);
-  const pendingHeadline = pendingBuckets[0];
+  const pendingHeadline = pendingBuckets[0] ?? null;
   const otherCurrencyCount = Math.max(0, pendingBuckets.length - 1);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <PageHeader title="Invoices" />
-        <Link
-          href="/invoices/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-navy-deep px-4 text-[13px] font-medium text-white transition-all duration-200 hover:-translate-y-px hover:bg-[#063367] hover:shadow-[0_4px_12px_rgba(12,68,124,0.18)]"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          New invoice
-        </Link>
-      </div>
-
-      {/* KPI Bento — asymmetric (2fr 2fr 2fr 3fr) so hero leads */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-[2fr_2fr_2fr_3fr] lg:gap-4">
-        <KpiTile
-          index={0}
-          icon={Clock}
-          label="Awaiting review"
-          value={counts.pending_review.toLocaleString("en-US")}
-          tone={counts.pending_review > 0 ? "warn" : "default"}
-        />
-        <KpiTile
-          index={1}
-          icon={FileCheck}
-          label="Approved"
-          value={counts.approved.toLocaleString("en-US")}
-        />
-        <KpiTile
-          index={2}
-          icon={Send}
-          label="Sent"
-          value={counts.sent.toLocaleString("en-US")}
-        />
-        <KpiTile
-          index={3}
-          hero
-          icon={DollarSign}
-          label="Pending value"
-          value={
-            pendingHeadline
-              ? formatCurrency(pendingHeadline[1], pendingHeadline[0], { compact: true })
-              : "—"
-          }
-          hint={
-            counts.pending_review === 0
-              ? "no drafts to review"
-              : `across ${counts.pending_review} ${counts.pending_review === 1 ? "draft" : "drafts"}${
-                  otherCurrencyCount > 0
-                    ? ` · + ${otherCurrencyCount} more ${otherCurrencyCount === 1 ? "currency" : "currencies"}`
-                    : ""
-                }`
-          }
-        />
-      </div>
-
-      <TabPills
-        activeKey={filter}
-        tabs={[
-          { key: "all", label: "All", count: totalCount },
-          { key: "pending_review", label: "Pending review", count: counts.pending_review },
-          { key: "approved", label: "Approved", count: counts.approved },
-          { key: "sent", label: "Sent", count: counts.sent },
-          { key: "rejected", label: "Rejected", count: counts.rejected },
-        ]}
-        hrefFor={(key) => (key === "all" ? "/invoices" : `/invoices?filter=${key}`)}
+    <>
+      <InvoicesStats
+        invoices={invoices}
+        counts={counts}
+        pendingHeadline={pendingHeadline}
+        otherCurrencyCount={otherCurrencyCount}
       />
-
-      {invoices.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title="No invoices yet"
-          description="Customer invoices are generated after a supplier invoice is uploaded and items are mapped."
-        />
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {invoices.map((inv, i) => {
-            const customerName = inv.order?.customer
-              ? [inv.order.customer.first_name, inv.order.customer.last_name].filter(Boolean).join(" ")
-              : "—";
-            const confidence = inv.ai_confidence ?? "high";
-            return (
-              <Link
-                key={inv.id}
-                href={`/invoices/${inv.id}`}
-                className={cn(
-                  "rise-in group flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--line)] border-l-2 bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--hover)] active:scale-[0.998]",
-                  CONFIDENCE_BORDER[confidence] ?? "border-l-status-pending-border",
-                )}
-                style={{ ["--stagger-index" as string]: String(Math.min(i, 12)) }}
-              >
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="mono text-[13px] font-semibold text-[var(--ink)]">{inv.invoice_number}</span>
-                    <span className={cn("pill border", STATUS_PILL[inv.status])}>
-                      {inv.status.replace("_", " ")}
-                    </span>
-                    {inv.ai_confidence && (
-                      <span
-                        className={cn(
-                          "pill border",
-                          inv.ai_confidence === "high" &&
-                            "border-status-success-border/40 bg-status-success-bg text-status-success-fg",
-                          inv.ai_confidence === "medium" &&
-                            "border-status-sourcing-border/40 bg-status-sourcing-bg text-status-sourcing-fg",
-                          (inv.ai_confidence === "low" || inv.ai_confidence === "failed") &&
-                            "border-status-danger-border/40 bg-status-danger-bg text-status-danger-fg",
-                        )}
-                      >
-                        AI {inv.ai_confidence}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 text-[12px] text-[var(--ink-2)]">
-                    {inv.order ? <>From order {inv.order.shopify_order_number} · </> : null}
-                    {customerName}
-                    {inv.generated_at ? <> · {relativeTime(inv.generated_at)}</> : null}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end gap-0.5 text-right">
-                    <span className="mono font-medium text-[var(--ink)]">
-                      {formatCurrency(inv.total, inv.total_currency)}
-                    </span>
-                    {inv.profit_amount != null && (
-                      <span className="mono text-[11px] text-[var(--muted)]">
-                        Profit {formatCurrency(inv.profit_amount, inv.total_currency)}
-                        {inv.profit_percent != null && (
-                          <> · {Number(inv.profit_percent).toFixed(0)}%</>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronRight
-                    className="h-4 w-4 text-[var(--muted-2)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--ink-2)]"
-                    aria-hidden
-                  />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Local KPI tile (matches dashboard <KpiCard> visually but inlined to
-    avoid a cross-page coupling that would require touching the existing
-    dashboard component) ────────────────────────────────────────────────── */
-
-function KpiTile({
-  index,
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone = "default",
-  hero = false,
-}: {
-  index: number;
-  icon: typeof Clock;
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "default" | "warn";
-  hero?: boolean;
-}) {
-  const isHero = hero;
-  const isWarn = !isHero && tone === "warn";
-
-  return (
-    <div
-      className={cn(
-        "rise-in relative flex flex-col gap-2 overflow-hidden rounded-[var(--radius)] p-4",
-        isHero && "bg-[#0f1419] text-white",
-        isWarn &&
-          "border border-[var(--amber)] [background:linear-gradient(180deg,#fff7ec_0%,#fff_60%)]",
-        !isHero && !isWarn && "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]",
-      )}
-      style={{ ["--stagger-index" as string]: String(index) }}
-    >
-      <div
-        className={cn(
-          "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.6px]",
-          isHero ? "text-white/50" : isWarn ? "text-[var(--amber)]" : "text-[var(--muted)]",
-        )}
-      >
-        <Icon className="h-3 w-3" aria-hidden />
-        <span>{label}</span>
-      </div>
-      <span
-        className={cn(
-          "value-tick mono mt-1 text-[28px] font-semibold leading-none",
-          isHero ? "text-white" : isWarn ? "text-[var(--amber)]" : "text-[var(--ink)]",
-        )}
-      >
-        {value}
-      </span>
-      {hint && (
-        <div
-          className={cn(
-            "text-[11px]",
-            isHero ? "text-white/60" : isWarn ? "text-[var(--amber)]/80" : "text-[var(--muted)]",
-          )}
-        >
-          {hint}
-        </div>
-      )}
-    </div>
+      <InvoicesList invoices={invoices} counts={counts} />
+    </>
   );
 }
