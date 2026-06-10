@@ -48,11 +48,16 @@ export function NewTaxInvoiceForm() {
   const [brandName, setBrandName] = useState<string>("");
   const [categoryAr, setCategoryAr] = useState<string>("");
   const [fees, setFees] = useState<FeeShape>(ZERO_FEES);
+  // Explicit manual-entry mode. Lets the admin type fees by hand even when the
+  // brand has NO pricing rows (so the category dropdown is empty and the
+  // in-dropdown "Enter fees manually" option is never reachable).
+  const [manualMode, setManualMode] = useState(false);
 
   const [state, dispatch] = useFormState(createTaxInvoiceAction, initialState);
 
   function pickOrder(hit: OrderHit) {
     setOrder(hit);
+    setManualMode(false);
     if (hit.matched) {
       setRuleId(hit.matched.id);
       setBrandName(hit.matched.brand_name);
@@ -67,6 +72,10 @@ export function NewTaxInvoiceForm() {
       setFees(ZERO_FEES);
     }
   }
+
+  // Manual fee fields show when no pricing rule is selected AND the admin opted
+  // into manual entry (or there's simply no rule chosen yet on a no-match order).
+  const showManualFees = ruleId === null && manualMode;
 
   const totalFee = fees.service_fee_with_vat + fees.shipping_customs_fee;
   const canSubmit = order != null && totalFee > 0;
@@ -115,16 +124,36 @@ export function NewTaxInvoiceForm() {
                 initialBrand={brandName}
                 hintProductType={order.product_type}
                 onSelectRule={(rule) => {
+                  setManualMode(false);
                   setRuleId(rule.id);
                   setBrandName(rule.brand_name);
                   setCategoryAr(rule.category_ar);
                   setFees(feesFromRule(rule));
                 }}
-                onManual={() => setRuleId(null)}
+                onManual={() => {
+                  setRuleId(null);
+                  setManualMode(true);
+                }}
               />
 
-              {/* Manual fee entry — editable only when no rule is selected. */}
-              {ruleId === null && (
+              {/* Always-visible escape hatch: enter fees by hand. Works even
+                  when the brand has no pricing rows (empty category dropdown),
+                  which is the main 'needs pricing' case. */}
+              {!showManualFees && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRuleId(null);
+                    setManualMode(true);
+                  }}
+                  className="mt-3 text-[12px] font-medium text-navy underline-offset-2 hover:underline"
+                >
+                  Enter price manually
+                </button>
+              )}
+
+              {/* Manual fee entry. */}
+              {showManualFees && (
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <Field label="Service net">
                     <Input
