@@ -81,73 +81,58 @@ export async function POST() {
   }
   const { shopDomain, accessToken } = creds;
 
-  const targetUrl = `${appUrl()}/api/webhooks/shopify/orders-create`;
-  const targetTopic = "orders/create";
+  // Topics we subscribe to, each mapped to its handler endpoint. Both checkout
+  // topics point at the same route (idempotent upsert handles create+update).
+  const SUBSCRIPTIONS: { topic: string; address: string }[] = [
+    { topic: "orders/create", address: `${appUrl()}/api/webhooks/shopify/orders-create` },
+    { topic: "checkouts/create", address: `${appUrl()}/api/webhooks/shopify/checkouts-create` },
+    { topic: "checkouts/update", address: `${appUrl()}/api/webhooks/shopify/checkouts-create` },
+  ];
 
-  // Check existing first — Shopify rejects duplicate (topic, address) pairs.
-  const listRes = await fetch(
-    `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json?topic=${targetTopic}`,
-    {
-      headers: { "X-Shopify-Access-Token": accessToken, Accept: "application/json" },
-    },
-  );
-  if (listRes.ok) {
-    const listData = (await listRes.json()) as { webhooks: WebhookRow[] };
-    const existing = (listData.webhooks ?? []).find(
-      (w) => w.topic === targetTopic && w.address === targetUrl,
+  const results: Array<{ topic: string; action: string; message?: string }> = [];
+
+  for (const { topic, address } of SUBSCRIPTIONS) {
+    // Check existing first — Shopify rejects duplicate (topic, address) pairs.
+    const listRes = await fetch(
+      `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json?topic=${topic}`,
+      { headers: { "X-Shopify-Access-Token": accessToken, Accept: "application/json" } },
     );
-    if (existing) {
-      return NextResponse.json({
-        ok: true,
-        action: "already_registered",
-        webhook: existing,
-      });
+    if (listRes.ok) {
+      const listData = (await listRes.json()) as { webhooks: WebhookRow[] };
+      const existing = (listData.webhooks ?? []).find(
+        (w) => w.topic === topic && w.address === address,
+      );
+      if (existing) {
+        results.push({ topic, action: "already_registered" });
+        continue;
+      }
     }
-  }
 
-  // Create
-  const createRes = await fetch(
-    `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json`,
-    {
-      method: "POST",
-      headers: {
-        "X-Shopify-Access-Token": accessToken,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        webhook: {
-          topic: targetTopic,
-          address: targetUrl,
-          format: "json",
-        },
-      }),
-    },
-  );
-
-  if (!createRes.ok) {
-    const body = await createRes.text();
-    return NextResponse.json(
+    const createRes = await fetch(
+      `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/webhooks.json`,
       {
-        error: "Shopify webhook creation failed",
-        status: createRes.status,
-        message: body.slice(0, 500),
+        method: "POST",
+        headers: {
+          "X-Shopify-Access-Token": accessToken,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ webhook: { topic, address, format: "json" } }),
       },
-      { status: 502 },
     );
-  }
-  const created = (await createRes.json()) as {
-    webhook: WebhookRow & { client_secret?: string };
-  };
 
-  // Whether Shopify shows the signing secret already configured on the
-  // app's API credentials page — surface a hint so admin knows where to
-  // copy it from.
+    if (!createRes.ok) {
+      const body = await createRes.text();
+      results.push({ topic, action: "failed", message: body.slice(0, 300) });
+      continue;
+    }
+    results.push({ topic, action: "created" });
+  }
+
   return NextResponse.json({
     ok: true,
-    action: "created",
-    webhook: created.webhook,
+    results,
     notice:
-      "Webhook created. Copy the webhook signing secret from your Shopify Custom App → API credentials → Webhook subscriptions, then set it as SHOPIFY_WEBHOOK_SECRET in Vercel env vars (Production scope) and redeploy. The webhook handler will reject deliveries until the secret is configured.",
+      "Webhooks registered. If any were newly created, ensure SHOPIFY_WEBHOOK_SECRET is set in Vercel env vars (Production scope). The same secret verifies all topics.",
   });
 }
