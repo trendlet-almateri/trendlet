@@ -126,6 +126,38 @@ export async function notifyCustomerOnStatusChange(
     return { mode: "live", message_sid: null, error: res.error };
   }
 
-  // Stamp whatsapp_sent_at on the customer_invoice if delivered, else just return.
+  // Mirror the notification into the kind-ai support inbox so agents can see
+  // that this message went to this customer. Best-effort: a failure here must
+  // not affect the Twilio result, which already succeeded.
+  void mirrorToSupportInbox({
+    phone: normalized,
+    message: `${status.label_en} — ${sub?.sub_order_number ?? ""} ${sub?.product_title ?? ""}`.trim(),
+    message_sid: res.data?.sid ?? null,
+  }).catch((e) => console.error("[twilio] mirror to support inbox failed", e));
+
   return { mode: "live", message_sid: res.data?.sid ?? null, error: null };
+}
+
+/**
+ * Fire-and-forget POST to the kind-ai support inbox. Records the outbound
+ * order-status message in the customer's conversation thread there.
+ * No-op (logged) when SUPPORT_INBOX_URL / SUPPORT_INBOX_TOKEN aren't set.
+ */
+async function mirrorToSupportInbox(payload: {
+  phone: string;
+  message: string;
+  message_sid: string | null;
+}): Promise<void> {
+  const url = process.env.SUPPORT_INBOX_URL;
+  const token = process.env.SUPPORT_INBOX_TOKEN;
+  if (!url || !token) return;
+
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 }
