@@ -6,6 +6,7 @@ import { Clock, MoreHorizontal, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, ROLE_STATUS_WHITELIST, type StatusCode } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils/date";
+import { formatSubOrderNumber } from "@/lib/utils/sub-order";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
@@ -223,7 +224,7 @@ export function SourcingCard({
           {/* ── Header ── */}
           <header className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
-              {row.sub_order_number}
+              {formatSubOrderNumber(row.sub_order_number, row.order?.item_count)}
             </span>
             <span className={cn(
               "rounded-md border px-1.5 py-px text-[10px] font-medium",

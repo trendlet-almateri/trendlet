@@ -6,6 +6,7 @@ import { Clock, MoreHorizontal, AlertTriangle, Loader2, ScanBarcode } from "luci
 import { cn } from "@/lib/utils";
 import { STATUS_BY_CODE, type StatusCode } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils/date";
+import { formatSubOrderNumber } from "@/lib/utils/sub-order";
 import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
@@ -262,7 +263,7 @@ export function EuCard({
           {/* ── Header ── */}
           <header className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
-              {row.sub_order_number}
+              {formatSubOrderNumber(row.sub_order_number, row.order?.item_count)}
             </span>
 
             {/* Status pill */}

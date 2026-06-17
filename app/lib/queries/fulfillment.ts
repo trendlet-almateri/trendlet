@@ -37,6 +37,8 @@ export type FulfillmentRow = {
     customer_name: string;
     customer_city: string | null;
     customer_phone: string | null;
+    /** Total sub-orders (line items) on the parent order — for the "X/N" display. */
+    item_count: number;
   } | null;
 };
 
@@ -103,6 +105,7 @@ export async function fetchFulfillmentQueue(opts: {
       brand:brands!inner ( id, name, region ),
       order:orders (
         id, shopify_order_number,
+        sub_orders ( count ),
         customer:customers ( first_name, last_name, phone, default_address )
       ),
       supplier_invoice_links:sub_order_supplier_invoices ( supplier_invoice_id, linked_at )
@@ -137,6 +140,7 @@ export async function fetchFulfillmentQueue(opts: {
         order: {
           id: string;
           shopify_order_number: string | null;
+          sub_orders: { count: number }[] | null;
           customer: {
             first_name: string | null;
             last_name: string | null;
@@ -176,6 +180,7 @@ export async function fetchFulfillmentQueue(opts: {
               customer_name: fullName,
               customer_city: c?.default_address?.city ?? null,
               customer_phone: c?.phone ?? null,
+              item_count: r.order.sub_orders?.[0]?.count ?? 0,
             }
           : null,
       };

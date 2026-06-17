@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { StatusPill } from "@/components/status/status-pill";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime, shortDate } from "@/lib/utils/date";
+import { formatSubOrderNumber } from "@/lib/utils/sub-order";
 import { deriveOrderCancelState, orderCancelLabel } from "@/lib/workflow/order-cancel-state";
 
 export const dynamic = "force-dynamic";
@@ -164,7 +165,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                     <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-tertiary">
-                          {s.sub_order_number}
+                          {formatSubOrderNumber(s.sub_order_number, order.sub_orders.length)}
                         </span>
                         <StatusPill status={s.status} isUnassigned={s.is_unassigned} />
                         {s.is_delayed && (
