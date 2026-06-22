@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, AlertTriangle, Clock4, MoreHorizontal, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock4, X } from "lucide-react";
 import type { OrderRow as OrderRowData } from "@/lib/queries/orders";
 import { StatusSummaryBar } from "@/components/status/status-summary-bar";
 import { StatusPill } from "@/components/status/status-pill";
+import { regionLabel } from "@/lib/utils/region";
 import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDate } from "@/lib/utils/date";
@@ -29,15 +30,9 @@ function getInitials(first: string | null, last: string | null): string {
   return [(first ?? "")[0], (last ?? "")[0]].filter(Boolean).join("").toUpperCase() || "?";
 }
 
-function regionLabel(country?: string | null): string | null {
-  if (!country) return null;
-  const c = country.toUpperCase();
-  if (["SA", "SAU", "SAUDI ARABIA"].includes(c)) return "KSA";
-  if (["US", "USA", "UNITED STATES"].includes(c)) return "US";
-  const EU = ["GB","DE","FR","IT","ES","NL","BE","AT","PT","SE","DK","FI","NO","PL","CZ","HU","RO","GR","IE","HR","CH","AE"];
-  if (EU.includes(c)) return "EU";
-  return country.slice(0, 3).toUpperCase();
-}
+// Shared with the Orders filter dropdown so the bucket here always agrees
+// with what the filter offers (KSA / US / EU / 3-letter fallback).
+// Implementation lives in lib/utils/region.ts.
 
 const REGION_CLS: Record<string, string> = {
   KSA: "bg-emerald-100 text-emerald-700",
@@ -251,18 +246,6 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </div>
         </td>
 
-        {/* ACTIONS — desktop only */}
-        <td className="hidden px-3 py-4 text-center align-middle md:table-cell" data-no-row-click>
-          <div className="flex items-center justify-center">
-            <button
-              type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--line)] hover:text-[var(--ink)]"
-              aria-label="More options"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </div>
-        </td>
       </tr>
 
 

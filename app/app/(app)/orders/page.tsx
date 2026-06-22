@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/require-role";
 import { fetchAdminOrders } from "@/lib/queries/orders";
+import { fetchBrandsForAdmin, fetchAssigneeOptions } from "@/lib/queries/brands";
 import { OrdersView } from "@/components/orders/orders-view";
 import { OrdersRealtime } from "@/components/orders/orders-realtime";
 import { PageHeader, TabPills } from "@/components/system";
@@ -23,9 +24,17 @@ export default async function OrdersPage({
   const requested = searchParams.filter as FilterKey | undefined;
   const filter: FilterKey = requested && VALID_FILTERS.includes(requested) ? requested : "all";
 
-  // Pull all orders once; counts come from the same fetch (mock dataset is small).
-  // When volume grows, swap counts for a separate aggregated query.
-  const all = await fetchAdminOrders({ limit: 500, filter: "all" });
+  // Pull orders + brand list + assignee list concurrently. Counts come from the
+  // same fetch (mock dataset is small). When volume grows, swap counts for a
+  // separate aggregated query.
+  const [all, brandsData, assigneesData] = await Promise.all([
+    fetchAdminOrders({ limit: 500, filter: "all" }),
+    fetchBrandsForAdmin(),
+    fetchAssigneeOptions(),
+  ]);
+  // Reshape for the filter popover — it only needs name / id+full_name.
+  const brands = brandsData.map((b) => ({ name: b.name }));
+  const assignees = assigneesData.map((a) => ({ id: a.id, full_name: a.full_name }));
 
   const counts = {
     all: all.length,
@@ -88,7 +97,12 @@ export default async function OrdersPage({
         hrefFor={(key) => (key === "all" ? "/orders" : `/orders?filter=${key}`)}
       />
 
-      <OrdersView orders={filtered} totalCount={counts.all} />
+      <OrdersView
+        orders={filtered}
+        totalCount={counts.all}
+        brands={brands}
+        assignees={assignees}
+      />
       <OrdersRealtime />
     </div>
   );

@@ -1,6 +1,16 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { StatusCode } from "@/lib/constants";
 
+/**
+ * Statuses that mean a sub-order is "done" (no further work expected).
+ * Exported so the orders page / filters share one source of truth.
+ */
+export const FINAL_STATUSES = new Set<StatusCode>([
+  "delivered",
+  "cancelled",
+  "returned",
+]);
+
 export type OrderRow = {
   id: string;
   shopify_order_number: string;
@@ -22,6 +32,10 @@ export type OrderRow = {
     sku: string | null;
     quantity: number;
     product_image_url: string | null;
+    /** profiles.id of the employee assigned to this sub-order (null when unassigned). */
+    assigned_employee_id: string | null;
+    /** Convenience name pulled from the joined profile. */
+    assigned_employee_name: string | null;
   }[];
 };
 
@@ -49,7 +63,12 @@ export async function fetchAdminOrders({
       currency,
       financial_status,
       customer:customers ( first_name, last_name, default_address ),
-      sub_orders ( id, sub_order_number, status, is_unassigned, is_at_risk, is_delayed, brand_name_raw, product_title, variant_title, sku, quantity, product_image_url )
+      sub_orders (
+        id, sub_order_number, status, is_unassigned, is_at_risk, is_delayed,
+        brand_name_raw, product_title, variant_title, sku, quantity, product_image_url,
+        assigned_employee_id,
+        assigned_employee:profiles!sub_orders_assigned_employee_id_fkey ( full_name )
+      )
     `)
     .order("shopify_created_at", { ascending: false })
     .limit(limit);
@@ -59,7 +78,18 @@ export async function fetchAdminOrders({
     return [];
   }
 
-  const rows = (data ?? []) as unknown as OrderRow[];
+  // Flatten the joined assigned_employee.full_name into assigned_employee_name.
+  // The Supabase relational select returns the joined object as a nested key,
+  // so we normalize it here so the OrderRow consumer never deals with the join shape.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: OrderRow[] = ((data ?? []) as any[]).map((o) => ({
+    ...o,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sub_orders: (o.sub_orders ?? []).map((s: any) => ({
+      ...s,
+      assigned_employee_name: s.assigned_employee?.full_name ?? null,
+    })),
+  }));
 
   if (filter === "all") return rows;
   if (filter === "unassigned") {

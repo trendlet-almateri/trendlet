@@ -1,12 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { LayoutList, GitBranch, Search, SlidersHorizontal, Columns, ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { LayoutList, GitBranch, Search, SlidersHorizontal, Columns, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrdersTable } from "./orders-table";
 import { OrdersPipeline } from "./orders-pipeline";
 import { OrderDrawer } from "./order-drawer";
-import type { OrderRow } from "@/lib/queries/orders";
+import {
+  OrdersFilters,
+  ActiveFiltersStrip,
+  parseFilters,
+  serializeFilters,
+  UNASSIGNED_SENTINEL,
+  type OrdersFilterState,
+} from "./orders-filters";
+import { FINAL_STATUSES, type OrderRow } from "@/lib/queries/orders";
+import { regionLabel } from "@/lib/utils/region";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -14,34 +24,50 @@ type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 type Props = {
   orders: OrderRow[];
   totalCount: number;
+  brands: { name: string }[];
+  assignees: { id: string; full_name: string }[];
 };
 
-type FilterChip = {
-  id: string;
-  label: string;
-  active: boolean;
-  rose?: boolean;
-};
+export function OrdersView({ orders, totalCount, brands, assignees }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-const INITIAL_CHIPS: FilterChip[] = [
-  { id: "status",    label: "Status",     active: false },
-  { id: "brand",     label: "Brand",      active: false },
-  { id: "assignee",  label: "Assignee",   active: false },
-  { id: "region",    label: "Region",     active: false },
-  { id: "date",      label: "Date range", active: false },
-  { id: "issues",    label: "Issues only", active: false, rose: true },
-];
-
-export function OrdersView({ orders, totalCount }: Props) {
   const [view,     setView]     = React.useState<"table" | "pipeline">("table");
   const [page,     setPage]     = React.useState(1);
   const [pageSize, setPageSize] = React.useState<PageSize>(25);
   const [search,   setSearch]   = React.useState("");
-  const [chips,    setChips]    = React.useState(INITIAL_CHIPS);
   const [drawer,   setDrawer]   = React.useState<OrderRow | null>(null);
 
-  // Filter by search
-  const filtered = React.useMemo(() => {
+  // Filters: hydrate from URL on mount, push back to URL on change.
+  // Initial state derived synchronously so SSR + first paint agree.
+  const [filters, setFilters] = React.useState<OrdersFilterState>(() =>
+    parseFilters(new URLSearchParams(searchParams?.toString() ?? "")),
+  );
+
+  React.useEffect(() => {
+    const sp = serializeFilters(filters);
+    // Preserve any unrelated query params (e.g. ?filter= legacy TabPill key).
+    const existing = new URLSearchParams(searchParams?.toString() ?? "");
+    // Drop filter keys we own so we don't double-emit.
+    for (const k of ["status", "brand", "assignee", "region", "from", "to", "issues"]) {
+      existing.delete(k);
+    }
+    for (const [k, v] of sp.entries()) existing.set(k, v);
+    const qs = existing.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  // Quick lookup: assignee id → full_name for the active-chip labels.
+  const assigneeNameById = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const a of assignees) m[a.id] = a.full_name;
+    return m;
+  }, [assignees]);
+
+  // ── Search (textual) ─────────────────────────────────────────────────
+  const searched = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return orders;
     return orders.filter((o) => {
@@ -56,14 +82,53 @@ export function OrdersView({ orders, totalCount }: Props) {
     });
   }, [orders, search]);
 
-  // "Issues only" chip filter
-  const issueChip = chips.find((c) => c.id === "issues");
+  // ── Structured filters (combinable, AND across categories) ───────────
   const displayed = React.useMemo(() => {
-    if (!issueChip?.active) return filtered;
-    return filtered.filter((o) =>
-      o.sub_orders.some((s) => s.is_delayed || s.is_unassigned),
-    );
-  }, [filtered, issueChip?.active]);
+    const f = filters;
+    return searched.filter((o) => {
+      // STATUS bucket (mirrors TabPill semantics)
+      if (f.status === "active" && !o.sub_orders.some((s) => !FINAL_STATUSES.has(s.status))) return false;
+      if (f.status === "delayed" && !o.sub_orders.some((s) => s.is_delayed)) return false;
+      if (f.status === "completed" && !o.sub_orders.every((s) => FINAL_STATUSES.has(s.status))) return false;
+      if (f.status === "unassigned" && !o.sub_orders.some((s) => s.is_unassigned)) return false;
+      if (f.status === "cancelled" && !o.sub_orders.every((s) => s.status === "cancelled")) return false;
+
+      // BRAND (OR within field, AND with other filters)
+      if (f.brands.length && !o.sub_orders.some((s) => s.brand_name_raw && f.brands.includes(s.brand_name_raw))) {
+        return false;
+      }
+
+      // ASSIGNEE
+      if (f.assignees.length) {
+        const wantUnassigned = f.assignees.includes(UNASSIGNED_SENTINEL);
+        const ok = o.sub_orders.some(
+          (s) =>
+            (wantUnassigned && s.is_unassigned) ||
+            (s.assigned_employee_id && f.assignees.includes(s.assigned_employee_id)),
+        );
+        if (!ok) return false;
+      }
+
+      // REGION (against customer's default_address.country)
+      if (f.regions.length) {
+        const country = o.customer?.default_address?.country;
+        const label = regionLabel(country);
+        const bucket =
+          label === "KSA" || label === "US" || label === "EU" ? label : "Other";
+        if (!f.regions.includes(bucket as (typeof f.regions)[number])) return false;
+      }
+
+      // DATE RANGE (inclusive, against shopify_created_at date portion)
+      const created = o.shopify_created_at.slice(0, 10);
+      if (f.dateFrom && created < f.dateFrom) return false;
+      if (f.dateTo && created > f.dateTo) return false;
+
+      // ISSUES ONLY
+      if (f.issuesOnly && !o.sub_orders.some((s) => s.is_delayed || s.is_unassigned)) return false;
+
+      return true;
+    });
+  }, [searched, filters]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(displayed.length / pageSize));
@@ -73,13 +138,7 @@ export function OrdersView({ orders, totalCount }: Props) {
   const pageItems  = displayed.slice(sliceStart, sliceEnd);
 
   // Reset page when filter/search/page-size changes
-  React.useEffect(() => { setPage(1); }, [search, chips, pageSize]);
-
-  function toggleChip(id: string) {
-    setChips((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, active: !c.active } : c)),
-    );
-  }
+  React.useEffect(() => { setPage(1); }, [search, filters, pageSize]);
 
   function renderPageButtons() {
     const pages: (number | "…")[] = [];
@@ -116,33 +175,13 @@ export function OrdersView({ orders, totalCount }: Props) {
           </kbd>
         </div>
 
-        {/* Filter chips */}
-        <div className="flex flex-wrap items-center gap-2">
-          {chips.map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => toggleChip(chip.id)}
-              className={cn(
-                "flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors",
-                chip.active
-                  ? chip.rose
-                    ? "border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]"
-                    : "border border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : chip.rose
-                    ? "border border-dashed border-[var(--rose)]/50 text-[var(--rose)]/70 hover:border-[var(--rose)]"
-                    : "border border-dashed border-[var(--line)] text-[var(--muted)] hover:border-[var(--accent)]/40 hover:text-[var(--ink)]",
-              )}
-            >
-              {chip.active ? (
-                <X className="h-3 w-3" aria-hidden />
-              ) : (
-                <Plus className="h-3 w-3" aria-hidden />
-              )}
-              {chip.label}
-            </button>
-          ))}
-        </div>
+        {/* Filters popover (consolidates the 6 dimensions previously shown as chips) */}
+        <OrdersFilters
+          value={filters}
+          onChange={setFilters}
+          brands={brands}
+          assignees={assignees}
+        />
 
         {/* Spacer */}
         <div className="ml-auto flex items-center gap-2">
@@ -195,6 +234,13 @@ export function OrdersView({ orders, totalCount }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Active filter chips under the toolbar (hidden when no filters active) */}
+      <ActiveFiltersStrip
+        value={filters}
+        onChange={setFilters}
+        assigneeNameById={assigneeNameById}
+      />
 
       {/* View */}
       {view === "table" ? (

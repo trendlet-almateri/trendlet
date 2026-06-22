@@ -34,7 +34,6 @@ export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
             <th className="hidden whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Total</th>
             <th className="hidden whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Quantity</th>
             <th className="hidden w-[120px] whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Alerts</th>
-            <th className="hidden w-[72px] whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
