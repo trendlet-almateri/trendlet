@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
-import { renderCustomerInvoicePdf, type InvoicePdfData } from "@/lib/pdf/customer-invoice-pdf";
+import { renderTaxInvoicePdf, type TaxInvoicePdfData } from "@/lib/pdf/tax-invoice-pdf";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +31,9 @@ export async function GET(
       shipment_fee, tax_amount, tax_percent, total, total_currency,
       order:orders (
         shopify_order_number,
-        customer:customers ( first_name, last_name, email, default_address ),
+        customer:customers ( first_name, last_name, email, phone, default_address ),
         sub_orders ( product_title, sku, quantity )
-      ),
-      supplier_invoice:supplier_invoices ( barcode )
+      )
     `)
     .eq("id", params.id)
     .maybeSingle();
@@ -50,19 +49,22 @@ export async function GET(
     .eq("customer_invoice_id", params.id)
     .order("position", { ascending: true });
 
-  type Addr = { address1?: string | null; city?: string | null; country?: string | null } | null;
+  type Addr = {
+    address1?: string | null;
+    city?: string | null;
+    country?: string | null;
+    phone?: string | null;
+  } | null;
   const order = (inv as { order: unknown }).order as {
     shopify_order_number: string | null;
     customer: {
       first_name: string | null;
       last_name: string | null;
       email: string | null;
+      phone: string | null;
       default_address: Addr;
     } | null;
     sub_orders: { product_title: string | null; sku: string | null; quantity: number | null }[] | null;
-  } | null;
-  const supplierInv = (inv as { supplier_invoice: unknown }).supplier_invoice as {
-    barcode: string | null;
   } | null;
 
   const customerName = order?.customer
@@ -70,57 +72,66 @@ export async function GET(
     : "Customer";
   const addr = order?.customer?.default_address ?? null;
 
-  const data: InvoicePdfData = {
+  // Same shared invoice template as the tax invoice (one fixed template). The
+  // customer invoice has no payment-gateway info, so the payment section is
+  // hidden (payment.paid = false).
+  const lineItems =
+    itemRows && itemRows.length > 0
+      ? (itemRows as {
+          title: string;
+          sku: string | null;
+          quantity: number;
+          unit_price: number | null;
+          line_total: number | null;
+        }[]).map((r) => {
+          const qty = r.quantity ?? 1;
+          const unit = r.unit_price != null ? Number(r.unit_price) : 0;
+          return {
+            title: r.title,
+            variant_title: r.sku ? `SKU ${r.sku}` : null,
+            quantity: qty,
+            unit_price: unit,
+            line_total: r.line_total != null ? Number(r.line_total) : unit * qty,
+          };
+        })
+      : (order?.sub_orders ?? []).map((s) => ({
+          title: s.product_title ?? "Item",
+          variant_title: s.sku ? `SKU ${s.sku}` : null,
+          quantity: s.quantity ?? 1,
+          unit_price: 0,
+          line_total: 0,
+        }));
+
+  const issueDate =
+    (inv as { generated_at: string | null }).generated_at ?? new Date().toISOString();
+  const dueDate = new Date(new Date(issueDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const data: TaxInvoicePdfData = {
     invoice_number: (inv as { invoice_number: string }).invoice_number,
-    generated_at:
-      (inv as { generated_at: string | null }).generated_at ?? new Date().toISOString(),
-    language:
-      ((inv as { language: InvoicePdfData["language"] }).language) ?? "en",
+    issue_date: issueDate,
+    due_date: dueDate,
+    order: { shopify_order_number: order?.shopify_order_number ?? null },
     customer: {
       name: customerName,
-      email: order?.customer?.email ?? null,
-      address: addr
-        ? { line1: addr.address1, city: addr.city, country: addr.country }
-        : null,
+      phone: order?.customer?.phone ?? addr?.phone ?? null,
+      city: addr?.city ?? null,
+      payment_method: null,
     },
-    order: { shopify_order_number: order?.shopify_order_number ?? null },
-    items:
-      itemRows && itemRows.length > 0
-        ? (itemRows as {
-            title: string;
-            sku: string | null;
-            quantity: number;
-            unit_price: number | null;
-            line_total: number | null;
-          }[]).map((r) => ({
-            title: r.title,
-            sku: r.sku,
-            quantity: r.quantity,
-            unit_price: r.unit_price != null ? Number(r.unit_price) : undefined,
-            line_total: r.line_total != null ? Number(r.line_total) : undefined,
-          }))
-        : (order?.sub_orders ?? []).map((s) => ({
-            title: s.product_title ?? "Item",
-            sku: s.sku,
-            quantity: s.quantity ?? 1,
-          })),
+    line_items: lineItems,
     totals: {
-      item_price: Number((inv as { item_price: number }).item_price),
-      discount_amount: Number((inv as { discount_amount?: number }).discount_amount ?? 0),
-      shipment_fee: Number((inv as { shipment_fee: number }).shipment_fee),
-      tax_amount: Number((inv as { tax_amount: number }).tax_amount),
-      tax_percent: Number((inv as { tax_percent: number }).tax_percent),
-      total: Number((inv as { total: number }).total),
+      subtotal: Number((inv as { item_price: number }).item_price),
+      discount: Number((inv as { discount_amount?: number }).discount_amount ?? 0),
+      grand_total: Number((inv as { total: number }).total),
       currency: (inv as { total_currency: string }).total_currency,
     },
-    barcode: supplierInv?.barcode ?? null,
+    payment: { paid: false, method: null, paid_at: null },
   };
 
   // Wrap render in try/catch so production iframes don't show a generic
   // 500 — we surface the actual error message + stack to make Vercel-only
   // runtime issues (font path, asset bundling, fontkit failures) debuggable.
   try {
-    const buffer = await renderCustomerInvoicePdf(data);
+    const buffer = await renderTaxInvoicePdf(data);
     // Coerce to Uint8Array for tighter NextResponse body compatibility.
     const body = new Uint8Array(buffer);
 
