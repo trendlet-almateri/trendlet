@@ -1,25 +1,33 @@
 /**
- * Admin-only DHL shipment-creation TEST route.
+ * DHL shipment-creation TEST route (throwaway diagnostic).
  *
  * Sends the real MyDHL API shipment payload server-side (from Vercel's network,
- * not a local hotspot) so we can validate the Basic-auth credentials + payload
- * against DHL's TEST endpoint and see the actual response.
+ * not a local hotspot — local POSTs to DHL get connection-reset) so we can
+ * validate the Basic-auth credentials + payload against DHL's TEST endpoint and
+ * see the actual response.
  *
- * GET /api/admin/dhl-test-shipment
+ *   GET /api/admin/dhl-test-shipment?token=trendlet-dhl-probe-7f3a91c2
  *
- * Auth (DHL): Basic, read from env DHL_TEST_BASIC (the base64 user:pass). Falls
- * back to DHL_API_KEY. Never hardcode the credential.
+ * Gate: a URL ?token= (not a login) so it can be hit by just opening a URL.
+ * DHL auth: Basic, read from env DHL_TEST_BASIC (the base64 user:pass), fallback
+ * DHL_API_KEY. The credential is NEVER hardcoded — set it in Vercel env.
  *
- * This is a throwaway diagnostic — once the real flow is wired into
- * lib/integrations/dhl.ts, remove this route.
+ * Remove this route once the real flow is wired into lib/integrations/dhl.ts.
  */
-import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/require-role";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  await requireAdmin();
+// Throwaway URL-token gate so the route can be hit by just opening a URL (no
+// admin login). The token is NOT a secret credential — it only stops random
+// public traffic from triggering the DHL test. Removed with the route.
+const TEST_TOKEN = "trendlet-dhl-probe-7f3a91c2";
+
+export async function GET(req: NextRequest) {
+  const token = req.nextUrl.searchParams.get("token");
+  if (token !== TEST_TOKEN) {
+    return NextResponse.json({ ok: false, error: "Missing or wrong ?token=" }, { status: 401 });
+  }
 
   const basic = process.env.DHL_TEST_BASIC ?? process.env.DHL_API_KEY;
   if (!basic) {
