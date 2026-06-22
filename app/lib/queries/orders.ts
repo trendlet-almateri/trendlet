@@ -1,15 +1,10 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { StatusCode } from "@/lib/constants";
 
-/**
- * Statuses that mean a sub-order is "done" (no further work expected).
- * Exported so the orders page / filters share one source of truth.
- */
-export const FINAL_STATUSES = new Set<StatusCode>([
-  "delivered",
-  "cancelled",
-  "returned",
-]);
+// Re-export so existing `import { FINAL_STATUSES } from "@/lib/queries/orders"`
+// still works for server callers. Client code should import from
+// `@/lib/utils/order-status` directly to avoid pulling next/headers transitively.
+export { FINAL_STATUSES } from "@/lib/utils/order-status";
 
 export type OrderRow = {
   id: string;

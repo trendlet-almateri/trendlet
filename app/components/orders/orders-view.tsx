@@ -15,7 +15,8 @@ import {
   UNASSIGNED_SENTINEL,
   type OrdersFilterState,
 } from "./orders-filters";
-import { FINAL_STATUSES, type OrderRow } from "@/lib/queries/orders";
+import type { OrderRow } from "@/lib/queries/orders";
+import { FINAL_STATUSES } from "@/lib/utils/order-status";
 import { regionLabel } from "@/lib/utils/region";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
