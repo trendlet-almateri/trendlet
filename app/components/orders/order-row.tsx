@@ -104,7 +104,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         }
       >
         {/* ORDER */}
-        <td className="whitespace-nowrap px-4 py-3 align-middle">
+        <td className="whitespace-nowrap px-4 py-4 align-middle">
           <div className="flex flex-col gap-0.5">
               <span className={cn(
                 "font-[family-name:var(--font-jetbrains,monospace)] text-[12px] font-semibold tabular-nums",
@@ -133,7 +133,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* CUSTOMER */}
-        <td className="max-w-[1px] overflow-hidden px-3 py-3 align-middle">
+        <td className="max-w-[1px] overflow-hidden px-3 py-4 align-middle">
           <div className="flex items-center gap-2.5">
             <span className={cn(
               "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",
@@ -164,7 +164,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* SUB-ORDERS — desktop only */}
-        <td className="hidden px-3 py-3 text-center align-middle md:table-cell">
+        <td className="hidden px-3 py-4 text-center align-middle md:table-cell">
           <div className="flex flex-col items-center gap-0.5">
             <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
               {doneCount} / {o.sub_orders.length}
@@ -174,7 +174,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* STATUS SUMMARY */}
-        <td className="min-w-[110px] whitespace-nowrap px-3 py-3 align-middle">
+        <td className="min-w-[160px] whitespace-nowrap px-3 py-4 align-middle">
           {isCancelled ? (
             <span className="pill whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
               <X className="h-3 w-3 shrink-0" aria-hidden />
@@ -188,13 +188,20 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
               </span>
               <StatusSummaryBar subOrders={o.sub_orders} />
             </div>
+          ) : o.sub_orders.length === 1 ? (
+            // Single sub-order: one clean badge — no full-width bar.
+            <StatusPill
+              status={o.sub_orders[0].status}
+              isUnassigned={o.sub_orders[0].is_unassigned}
+            />
           ) : (
+            // Multi sub-order: proportional bar earns its keep.
             <StatusSummaryBar subOrders={o.sub_orders} />
           )}
         </td>
 
         {/* TOTAL — desktop only */}
-        <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
+        <td className="hidden whitespace-nowrap px-3 py-4 text-center align-middle md:table-cell">
           <span className={cn(
             "font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums",
             isCancelled || isRefunded
@@ -208,14 +215,14 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* QUANTITY — desktop only */}
-        <td className="hidden whitespace-nowrap px-3 py-3 text-center align-middle md:table-cell">
+        <td className="hidden whitespace-nowrap px-3 py-4 text-center align-middle md:table-cell">
           <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
             {o.sub_orders.reduce((sum, s) => sum + s.quantity, 0)}
           </span>
         </td>
 
         {/* ALERTS — desktop only */}
-        <td className="hidden px-3 py-3 align-middle md:table-cell">
+        <td className="hidden px-3 py-4 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             {isCancelled || (!hasUnassigned && !hasDelayed && !hasAtRisk) ? (
               <span className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--hover)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--muted)]">
@@ -245,7 +252,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         </td>
 
         {/* ACTIONS — desktop only */}
-        <td className="hidden px-3 py-3 text-center align-middle md:table-cell" data-no-row-click>
+        <td className="hidden px-3 py-4 text-center align-middle md:table-cell" data-no-row-click>
           <div className="flex items-center justify-center">
             <button
               type="button"

@@ -99,8 +99,8 @@ export function OrdersView({ orders, totalCount }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Top bar: search + chips + toggle + sort/columns */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Top bar: search + chips + toggle + sort/columns — all 32px tall */}
+      <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
         <div className="relative flex items-center">
           <Search className="absolute left-2.5 h-3.5 w-3.5 text-[var(--muted)]" aria-hidden />
@@ -109,7 +109,7 @@ export function OrdersView({ orders, totalCount }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search orders…"
-            className="h-8 min-w-[200px] rounded-md border border-[var(--line)] bg-[var(--panel)] pl-8 pr-10 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
+            className="h-8 min-w-[220px] lg:min-w-[280px] rounded-md border border-[var(--line)] bg-[var(--panel)] pl-8 pr-10 text-[12px] text-[var(--ink)] placeholder:text-[var(--muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
           />
           <kbd className="absolute right-2 rounded border border-[var(--line)] px-1 py-px font-[family-name:var(--font-jetbrains,_monospace)] text-[9px] text-[var(--muted)]">
             ⌘K
@@ -117,14 +117,14 @@ export function OrdersView({ orders, totalCount }: Props) {
         </div>
 
         {/* Filter chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {chips.map((chip) => (
             <button
               key={chip.id}
               type="button"
               onClick={() => toggleChip(chip.id)}
               className={cn(
-                "flex h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium transition-colors",
+                "flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors",
                 chip.active
                   ? chip.rose
                     ? "border border-[var(--rose)]/40 bg-[var(--rose-bg)] text-[var(--rose)]"
@@ -135,9 +135,9 @@ export function OrdersView({ orders, totalCount }: Props) {
               )}
             >
               {chip.active ? (
-                <X className="h-2.5 w-2.5" aria-hidden />
+                <X className="h-3 w-3" aria-hidden />
               ) : (
-                <Plus className="h-2.5 w-2.5" aria-hidden />
+                <Plus className="h-3 w-3" aria-hidden />
               )}
               {chip.label}
             </button>
@@ -145,51 +145,51 @@ export function OrdersView({ orders, totalCount }: Props) {
         </div>
 
         {/* Spacer */}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-2">
           {/* Sort */}
           <button
             type="button"
-            className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
           >
-            <SlidersHorizontal className="h-3 w-3" aria-hidden />
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
             Priority
           </button>
 
           {/* Columns */}
           <button
             type="button"
-            className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
           >
-            <Columns className="h-3 w-3" aria-hidden />
+            <Columns className="h-3.5 w-3.5" aria-hidden />
             Columns
           </button>
 
-          {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-[var(--line)] bg-[var(--panel)] p-0.5">
+          {/* View toggle — outer p-0.5 + inner h-7 = 32px total to match the row */}
+          <div className="flex h-8 items-center rounded-lg border border-[var(--line)] bg-[var(--panel)] p-0.5">
             <button
               type="button"
               onClick={() => setView("table")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                "flex h-7 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors",
                 view === "table"
                   ? "bg-[var(--ink)] text-white"
                   : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
-              <LayoutList className="h-3 w-3" aria-hidden />
+              <LayoutList className="h-3.5 w-3.5" aria-hidden />
               Table
             </button>
             <button
               type="button"
               onClick={() => setView("pipeline")}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                "flex h-7 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors",
                 view === "pipeline"
                   ? "bg-[var(--ink)] text-white"
                   : "text-[var(--muted)] hover:text-[var(--ink)]",
               )}
             >
-              <GitBranch className="h-3 w-3" aria-hidden />
+              <GitBranch className="h-3.5 w-3.5" aria-hidden />
               Pipeline
             </button>
           </div>

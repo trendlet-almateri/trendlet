@@ -64,11 +64,11 @@ export default async function OrdersPage({
             : all.filter((o) => o.sub_orders.some((s) => s.is_unassigned));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-7">
       <PageHeader title="Orders" />
 
       {/* Summary stats — same card language as Tax Invoices / Invoices */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <StatsCard label="Active Orders"     value={counts.active.toLocaleString("en-US")}     tone={counts.active > 0     ? "blue"  : "ink"} />
         <StatsCard label="Unassigned Orders" value={counts.unassigned.toLocaleString("en-US")} tone={counts.unassigned > 0 ? "rose"  : "ink"} />
         <StatsCard label="Completed Orders"  value={counts.done.toLocaleString("en-US")}       tone={counts.done > 0       ? "green" : "ink"} />
