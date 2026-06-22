@@ -11,6 +11,7 @@ import {
   type PricingRule,
 } from "@/lib/queries/tax-pricing";
 import { renderTaxInvoicePdf } from "@/lib/pdf/tax-invoice-pdf";
+import { buildTaxInvoicePdfData } from "@/lib/services/tax-invoice-pdf-data";
 import { uploadTaxInvoicePdf } from "@/lib/storage/tax-invoices";
 
 /* ── order typeahead ─────────────────────────────────────────────────── */
@@ -234,24 +235,14 @@ export async function createTaxInvoiceAction(
   }
 
   // Render + store the PDF (always — drafts get a PDF too so admin can preview).
+  // The customer-facing invoice body (line items, customer, payment) is built
+  // from the order's Shopify raw_payload at render time.
   try {
-    const { data: ord } = await sb
-      .from("orders")
-      .select("shopify_order_number")
-      .eq("id", v.order_id)
-      .maybeSingle();
-
-    const pdf = await renderTaxInvoicePdf({
-      invoice_number: invoiceNumber,
-      generated_at: new Date().toISOString(),
-      order: {
-        shopify_order_number:
-          (ord as { shopify_order_number?: string } | null)?.shopify_order_number ?? null,
-      },
-      brand_name: brandName,
-      category_ar: categoryAr,
-      fees: { ...fees, total_fee: totalFee, currency: "SAR" },
-    });
+    const pdfData = await buildTaxInvoicePdfData(v.order_id, invoiceNumber);
+    if (!pdfData) {
+      return { ok: false, error: `Invoice ${invoiceNumber} saved, but order data couldn't be read for the PDF.` };
+    }
+    const pdf = await renderTaxInvoicePdf(pdfData);
     const path = await uploadTaxInvoicePdf(invoiceNumber, pdf);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (sb as any)

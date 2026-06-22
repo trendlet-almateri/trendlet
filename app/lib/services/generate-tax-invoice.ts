@@ -12,6 +12,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { findPricingRule } from "@/lib/queries/tax-pricing";
 import { renderTaxInvoicePdf } from "@/lib/pdf/tax-invoice-pdf";
+import { buildTaxInvoicePdfData } from "@/lib/services/tax-invoice-pdf-data";
 import { uploadTaxInvoicePdf } from "@/lib/storage/tax-invoices";
 
 type GenResult =
@@ -128,14 +129,9 @@ export async function generateTaxInvoiceForOrder(orderId: string): Promise<GenRe
   }
 
   try {
-    const pdf = await renderTaxInvoicePdf({
-      invoice_number: invoiceNumber,
-      generated_at: new Date().toISOString(),
-      order: { shopify_order_number: order.shopify_order_number ?? null },
-      brand_name: matched.brand_name,
-      category_ar: matched.category_ar,
-      fees: { ...fees, total_fee: totalFee, currency: "SAR" },
-    });
+    const pdfData = await buildTaxInvoicePdfData(orderId, invoiceNumber);
+    if (!pdfData) throw new Error("order data unavailable for PDF");
+    const pdf = await renderTaxInvoicePdf(pdfData);
     const path = await uploadTaxInvoicePdf(invoiceNumber, pdf);
     await sb.from("tax_invoices").update({ pdf_storage_path: path }).eq("id", inv.id);
   } catch (e) {
