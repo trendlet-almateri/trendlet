@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Missing or wrong ?token=" }, { status: 401 });
   }
 
+  const usedVar = process.env.DHL_TEST_BASIC
+    ? "DHL_TEST_BASIC"
+    : process.env.DHL_API_KEY
+      ? "DHL_API_KEY (fallback)"
+      : null;
   const basic = process.env.DHL_TEST_BASIC ?? process.env.DHL_API_KEY;
   if (!basic) {
     return NextResponse.json(
@@ -36,6 +41,19 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  // Safe diagnostic — decoded USERNAME only (password redacted) so we can confirm
+  // WHICH credential the build is actually using (new apJ8... vs old apT4...).
+  let decodedUser = "(decode failed)";
+  let basicLen = basic.length;
+  try {
+    const decoded = Buffer.from(basic, "base64").toString("utf8");
+    const colon = decoded.indexOf(":");
+    decodedUser = colon > 0 ? decoded.slice(0, colon) : "(no colon)";
+  } catch {
+    // keep default
+  }
+  const cred = { usedVar, decodedUser, basicLen };
 
   const url = "https://express.api.dhl.com/mydhlapi/test/shipments";
 
@@ -123,7 +141,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { ok: res.ok, status: res.status, messageRef, response: body },
+      { ok: res.ok, status: res.status, cred, messageRef, response: body },
       { status: 200 },
     );
   } catch (e) {
