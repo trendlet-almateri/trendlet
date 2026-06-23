@@ -39,47 +39,63 @@ export async function GET(req: NextRequest) {
 
   const url = "https://express.api.dhl.com/mydhlapi/test/shipments";
 
+  // Payload mirrors DHL's official Postman collection "Domestic Shipment
+  // Request" (ticket CS5700608): productCode "N" (domestic), account 458548514,
+  // customerDetails.{shipperDetails,receiverDetails} nesting (NOT flat
+  // shipper/receiver), waybillDoc output. Plain dates with GMT offset.
   const payload = {
-    plannedShippingDateAndTime: "2026-06-18T10:00:00+03:00",
+    plannedShippingDateAndTime: "2026-06-30T10:43:06 GMT+03:00",
     pickup: { isRequested: false },
-    productCode: "P",
-    accounts: [{ typeCode: "shipper", number: "457343932" }],
-    shipper: {
-      postalAddress: {
-        streetLines: ["123 Warehouse St"],
-        cityName: "Riyadh",
-        postalCode: "12345",
-        countryCode: "SA",
-      },
-      contactInformation: {
-        fullName: "Trendlet Warehouse",
-        phone: "+966500000000",
-        email: "ops@trendlet.com",
-      },
+    outputImageProperties: {
+      encodingFormat: "pdf",
+      imageOptions: [
+        { hideAccountNumber: false, isRequested: false, typeCode: "waybillDoc" },
+      ],
     },
-    receiver: {
-      postalAddress: {
-        streetLines: ["456 Customer St"],
-        cityName: "Jeddah",
-        postalCode: "23456",
-        countryCode: "SA",
+    productCode: "N",
+    accounts: [{ number: "458548514", typeCode: "shipper" }],
+    customerDetails: {
+      shipperDetails: {
+        postalAddress: {
+          postalCode: "13337",
+          cityName: "Riyadh",
+          countryCode: "SA",
+          addressLine1: "2929, Raihana Bint Zaid Street",
+          addressLine2: "Al Olaya District",
+          addressLine3: "SPLD2929",
+        },
+        contactInformation: {
+          phone: "+1234567890",
+          companyName: "Shipper Company",
+          fullName: "Shipper Name",
+        },
       },
-      contactInformation: {
-        fullName: "Test Customer",
-        phone: "+966511111111",
-        email: "test@example.com",
+      receiverDetails: {
+        postalAddress: {
+          cityName: "Riyadh",
+          countryCode: "SA",
+          postalCode: "13337",
+          addressLine1: "2929, Raihana Bint Zaid Street",
+          addressLine2: "Al Olaya District",
+          addressLine3: "SPLD2929",
+        },
+        contactInformation: {
+          phone: "1234567890",
+          companyName: "Receiver Company",
+          fullName: "Receiver Name",
+        },
       },
     },
     content: {
-      packages: [{ weight: 1.0, dimensions: { length: 20, width: 15, height: 10 } }],
-      isCustomsDeclarable: false,
-      description: "Test shipment",
       unitOfMeasurement: "metric",
-    },
-    outputImageProperties: {
-      printerDPI: 300,
-      encodingFormat: "pdf",
-      imageOptions: [{ typeCode: "label", templateName: "ECOM26_84_001" }],
+      incoterm: "DAP",
+      isCustomsDeclarable: false,
+      description: "Cosmetics: Skincare",
+      packages: [
+        { weight: 1.097, dimensions: { length: 18, width: 13, height: 13 } },
+      ],
+      declaredValue: 3,
+      declaredValueCurrency: "KGS",
     },
   };
 
