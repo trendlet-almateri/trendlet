@@ -222,7 +222,11 @@ function RegenerateButton() {
     setMsg(null);
     const res = await regenerateAllTaxInvoicesAction();
     setBusy(false);
-    setMsg(res.ok ? `Done: ${res.done} regenerated${res.failed ? `, ${res.failed} failed` : ""}` : `Error: ${res.error}`);
+    setMsg(
+      res.ok
+        ? `Done: ${res.done} regenerated${res.failed ? `, ${res.failed} failed — ${res.error ?? ""}` : ""}`
+        : `Error: ${res.error}`,
+    );
   }
 
   return (
