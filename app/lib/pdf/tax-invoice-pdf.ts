@@ -44,6 +44,32 @@ async function loadLogoDataUrl(): Promise<string | null> {
   return null;
 }
 
+/* ── Arabic font (embedded so Chrome always has the glyphs) ──────────────
+ * Vercel's headless chromium ships no Arabic font, so Arabic text renders
+ * blank unless we embed one. NotoSansArabic lives in public/fonts and is
+ * trace-included for the PDF routes. */
+let cachedArabicFont: string | null | undefined;
+async function loadArabicFontDataUrl(): Promise<string | null> {
+  if (cachedArabicFont !== undefined) return cachedArabicFont;
+  const candidates = [
+    join(process.cwd(), "public", "fonts", "NotoSansArabic-Regular.ttf"),
+    join(process.cwd(), "app", "public", "fonts", "NotoSansArabic-Regular.ttf"),
+    "/var/task/public/fonts/NotoSansArabic-Regular.ttf",
+  ];
+  for (const p of candidates) {
+    try {
+      const bytes = await readFile(p);
+      cachedArabicFont = `data:font/ttf;base64,${bytes.toString("base64")}`;
+      return cachedArabicFont;
+    } catch {
+      // try next
+    }
+  }
+  console.warn("[tax-invoice-pdf] NotoSansArabic font not found; Arabic may render blank");
+  cachedArabicFont = null;
+  return null;
+}
+
 /* ── browser launch (serverless vs local) ────────────────────────────── */
 
 // Common local Chrome/Edge locations (Windows + macOS + Linux).
@@ -82,7 +108,8 @@ function isServerless(): boolean {
 
 export async function renderTaxInvoicePdf(data: TaxInvoicePdfData): Promise<Buffer> {
   const logoDataUrl = await loadLogoDataUrl();
-  const html = renderTaxInvoiceHtml(data, logoDataUrl);
+  const arabicFontDataUrl = await loadArabicFontDataUrl();
+  const html = renderTaxInvoiceHtml(data, logoDataUrl, arabicFontDataUrl);
 
   // puppeteer-core is the same in both environments; only the launch args differ.
   const puppeteer = (await import("puppeteer-core")).default;
