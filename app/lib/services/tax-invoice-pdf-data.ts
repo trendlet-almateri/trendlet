@@ -37,6 +37,7 @@ type ShopifyRawPayload = {
   payment_gateway_names?: string[] | null;
   financial_status?: string | null;
   processed_at?: string | null;
+  created_at?: string | null;
   shipping_address?: ShopMoney | null;
   billing_address?: ShopMoney | null;
 };
@@ -79,7 +80,7 @@ export async function buildTaxInvoicePdfData(
   const { data: order, error } = await sb
     .from("orders")
     .select(`
-      id, shopify_order_number, raw_payload,
+      id, shopify_order_number, raw_payload, shopify_created_at,
       customer:customers ( first_name, last_name, phone, default_address )
     `)
     .eq("id", orderId)
@@ -164,8 +165,14 @@ export async function buildTaxInvoicePdfData(
   const paymentMethod = gatewayLabel(raw.payment_gateway_names?.[0] ?? null);
   const paid = raw.financial_status === "paid";
 
-  const issueDate = new Date().toISOString();
-  const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Issue date = the order's actual date (Shopify created_at), not render time.
+  // Due date = 7 days after issue.
+  const orderDate =
+    raw.created_at ??
+    (order.shopify_created_at as string | null) ??
+    new Date().toISOString();
+  const issueDate = orderDate;
+  const dueDate = new Date(new Date(orderDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
   return {
     invoice_number: invoiceNumber,
