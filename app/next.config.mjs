@@ -13,6 +13,7 @@ const nextConfig = {
     // fs.readFile calls and the asset is missing in production.
     outputFileTracingIncludes: {
       "/invoices/**": ["./public/logo.png", "./public/fonts/**"],
+      "/tax-invoices/**": ["./public/logo.png", "./public/fonts/**"],
       "/api/**": ["./public/logo.png", "./public/fonts/**"],
     },
   },
