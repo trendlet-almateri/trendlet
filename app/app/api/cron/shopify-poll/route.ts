@@ -164,7 +164,7 @@ export async function GET(req: Request) {
             // generateTaxInvoiceForOrder is itself idempotent (checks an existing
             // tax_invoices row + a UNIQUE(order_id) index) → returns "skipped"
             // rather than creating a duplicate.
-            if (inv.action === "issued" || inv.action === "needs_pricing") summary.invoiced++;
+            if (inv.action === "issued") summary.invoiced++;
           } catch (e) {
             console.error("[shopify-poll] tax invoice failed", e);
           }
@@ -243,7 +243,7 @@ export async function GET(req: Request) {
       if (Date.now() - t0 > BUDGET_MS) break;
       try {
         const inv = await generateTaxInvoiceForOrder(o.id);
-        if (inv.action === "issued" || inv.action === "needs_pricing") invoiceBackfill++;
+        if (inv.action === "issued") invoiceBackfill++;
       } catch (e) {
         console.error("[shopify-poll] invoice backfill failed", o.id, e);
       }
