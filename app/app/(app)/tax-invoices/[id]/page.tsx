@@ -4,6 +4,7 @@ import { ChevronRight, FileText } from "lucide-react";
 import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getTaxInvoiceSignedUrl } from "@/lib/storage/tax-invoices";
+import { buildTaxInvoicePdfData } from "@/lib/services/tax-invoice-pdf-data";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -14,13 +15,6 @@ type TaxInvoiceDetail = {
   id: string;
   invoice_number: string;
   status: "draft" | "issued";
-  brand_name: string | null;
-  category_ar: string | null;
-  service_fee_net: number;
-  service_fee_vat: number;
-  service_fee_with_vat: number;
-  shipping_customs_fee: number;
-  total_fee: number;
   currency: string;
   pdf_storage_path: string | null;
   generated_at: string | null;
@@ -58,9 +52,7 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
   const { data, error } = await sb
     .from("tax_invoices")
     .select(`
-      id, invoice_number, status, brand_name, category_ar,
-      service_fee_net, service_fee_vat, service_fee_with_vat, shipping_customs_fee,
-      total_fee, currency, pdf_storage_path, generated_at,
+      id, invoice_number, status, currency, pdf_storage_path, generated_at,
       order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name, email ) )
     `)
     .eq("id", params.id)
@@ -75,6 +67,14 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
   const pdfSignedUrl = inv.pdf_storage_path
     ? await getTaxInvoiceSignedUrl(inv.pdf_storage_path)
     : null;
+
+  // Totals + per-item breakdown come from the order at render time (same source
+  // as the PDF) — the tax_invoices row no longer stores fee figures.
+  const pdfData = inv.order ? await buildTaxInvoicePdfData(inv.order.id, inv.invoice_number) : null;
+  const totals = pdfData?.totals ?? null;
+  const breakdown = pdfData?.breakdown ?? null;
+  const items = pdfData?.line_items ?? [];
+  const grandTotal = totals?.grand_total ?? 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -99,7 +99,7 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
         <div className="flex flex-col items-end gap-0.5">
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Total</span>
           <span className="mono text-[22px] font-semibold text-[var(--ink)]">
-            {formatCurrency(inv.total_fee, inv.currency)}
+            {formatCurrency(grandTotal, inv.currency)}
           </span>
         </div>
       </header>
@@ -126,22 +126,38 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
         {/* Right rail */}
         <aside className="flex flex-col gap-4">
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Fees</h2>
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Totals</h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">
-              <Row label="Service fee (net)" value={formatCurrency(inv.service_fee_net, inv.currency)} />
-              <Row label="VAT (15%)" value={formatCurrency(inv.service_fee_vat, inv.currency)} />
-              <Row label="Service incl. VAT" value={formatCurrency(inv.service_fee_with_vat, inv.currency)} />
-              <Row label="Shipping & customs" value={formatCurrency(inv.shipping_customs_fee, inv.currency)} />
+              <Row label="Subtotal (incl. VAT & fees)" value={formatCurrency(totals?.subtotal ?? 0, inv.currency)} />
+              {totals && totals.discount > 0 && (
+                <Row label="Discount" value={`- ${formatCurrency(totals.discount, inv.currency)}`} />
+              )}
+              {breakdown && <Row label="Shipping & customs" value={formatCurrency(breakdown.shipping, inv.currency)} />}
+              {breakdown && <Row label="Service fee (profit)" value={formatCurrency(breakdown.profit, inv.currency)} />}
               <div className="my-1 border-t border-[var(--line)]" />
-              <Row label="Total" value={formatCurrency(inv.total_fee, inv.currency)} bold />
+              <Row label="Total due" value={formatCurrency(grandTotal, inv.currency)} bold />
+              {breakdown && <Row label="VAT (15%, included)" value={formatCurrency(breakdown.vat, inv.currency)} />}
             </dl>
           </section>
 
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Item</h2>
-            <div className="flex flex-col gap-1 text-[13px]">
-              <span className="font-medium text-[var(--ink)]">{inv.brand_name ?? "—"}</span>
-              {inv.category_ar && <span className="text-[var(--ink-2)]" dir="rtl">{inv.category_ar}</span>}
+            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Items</h2>
+            <div className="flex flex-col gap-2 text-[13px]">
+              {items.length === 0 ? (
+                <span className="text-[var(--muted)]">—</span>
+              ) : (
+                items.map((it, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-[var(--ink)]">{it.title}</span>
+                      {it.variant_title && <span className="text-[12px] text-[var(--ink-2)]" dir="auto">{it.variant_title}</span>}
+                    </div>
+                    <span className="mono whitespace-nowrap text-[var(--ink-2)]">
+                      {it.quantity} × {formatCurrency(it.unit_price, inv.currency)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
