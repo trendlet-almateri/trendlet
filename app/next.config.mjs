@@ -12,9 +12,13 @@ const nextConfig = {
     // PDF renderer). Without this, Vercel's tracer doesn't follow runtime
     // fs.readFile calls and the asset is missing in production.
     outputFileTracingIncludes: {
-      "/invoices/**": ["./public/logo.png", "./public/fonts/**"],
-      "/tax-invoices/**": ["./public/logo.png", "./public/fonts/**"],
-      "/api/**": ["./public/logo.png", "./public/fonts/**"],
+      // The PDF renderer needs the logo/fonts AND the @sparticuz/chromium
+      // binary (bin/*.br). External packages aren't auto-traced into every
+      // function, so include the chromium files explicitly for each route that
+      // renders a PDF — otherwise: "input directory .../chromium/bin not exist".
+      "/invoices/**": ["./public/logo.png", "./public/fonts/**", "./node_modules/@sparticuz/chromium/**"],
+      "/tax-invoices/**": ["./public/logo.png", "./public/fonts/**", "./node_modules/@sparticuz/chromium/**"],
+      "/api/**": ["./public/logo.png", "./public/fonts/**", "./node_modules/@sparticuz/chromium/**"],
     },
   },
   images: {
