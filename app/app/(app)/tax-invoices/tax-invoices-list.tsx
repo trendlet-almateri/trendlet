@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Hash,
   Receipt,
+  RefreshCw,
   Search,
   Store,
   Tag,
@@ -21,6 +22,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { formatCurrency } from "@/lib/utils/currency";
 import { relativeTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
+import { regenerateAllTaxInvoicesAction } from "./actions";
 
 export type TaxInvoiceStatus = "draft" | "issued" | "needs_pricing";
 
@@ -155,6 +157,7 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-1">
+          <RegenerateButton />
           {FILTERS.map((f) => {
             const active = filter === f.key;
             const n = counts[f.key];
@@ -203,6 +206,37 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Regenerate-all button ─────────────────────────────────────────────────
+function RegenerateButton() {
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState<string | null>(null);
+
+  async function run() {
+    if (busy) return;
+    if (!confirm("Re-render ALL tax-invoice PDFs onto the current calculation? No invoices are deleted.")) return;
+    setBusy(true);
+    setMsg(null);
+    const res = await regenerateAllTaxInvoicesAction();
+    setBusy(false);
+    setMsg(res.ok ? `Done: ${res.done} regenerated${res.failed ? `, ${res.failed} failed` : ""}` : `Error: ${res.error}`);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={run}
+        disabled={busy}
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] px-2.5 text-[12px] font-medium text-[var(--ink-2)] hover:bg-[var(--hover)] disabled:opacity-60"
+      >
+        <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} aria-hidden />
+        {busy ? "Regenerating…" : "Regenerate PDFs"}
+      </button>
+      {msg && <span className="text-[11px] text-[var(--muted)]">{msg}</span>}
     </div>
   );
 }
