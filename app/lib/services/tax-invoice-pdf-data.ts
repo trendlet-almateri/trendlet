@@ -126,10 +126,13 @@ export async function buildTaxInvoicePdfData(
   let breakdownShipping = 0;
   let breakdownProfit = 0;
   let breakdownVat = 0;
+  let missingExtra = false; // any item whose product has no custom.extra set
   await Promise.all(
     rawItems.map(async (li) => {
       const qty = li.quantity ?? 1;
-      const extra = li.product_id != null ? (await getProductExtra(li.product_id)) ?? 0 : 0;
+      const raw = li.product_id != null ? await getProductExtra(li.product_id) : null;
+      if (raw == null) missingExtra = true;
+      const extra = raw ?? 0;
       const shippingPerItem = Math.max(0, extra - FIXED_PROFIT_PER_ITEM);
       breakdownShipping += shippingPerItem * qty;
       breakdownProfit += FIXED_PROFIT_PER_ITEM * qty;
@@ -140,6 +143,7 @@ export async function buildTaxInvoicePdfData(
     shipping: +breakdownShipping.toFixed(2),
     profit: +breakdownProfit.toFixed(2),
     vat: +breakdownVat.toFixed(2),
+    missing_extra: missingExtra,
   };
 
   // Totals. Prefer Shopify's own figures; fall back to summing line items.
