@@ -69,6 +69,8 @@ export async function generateTaxInvoiceForOrder(orderId: string): Promise<GenRe
   try {
     const pdfData = await buildTaxInvoicePdfData(orderId, invoiceNumber);
     if (!pdfData) throw new Error("order data unavailable for PDF");
+    // Snapshot the order total so list cards show real money without recomputing.
+    await sb.from("tax_invoices").update({ total_fee: pdfData.totals.grand_total }).eq("id", inv.id);
     const pdf = await renderTaxInvoicePdf(pdfData);
     const path = await uploadTaxInvoicePdf(invoiceNumber, pdf);
     await sb.from("tax_invoices").update({ pdf_storage_path: path }).eq("id", inv.id);

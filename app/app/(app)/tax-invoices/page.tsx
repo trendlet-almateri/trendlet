@@ -48,9 +48,9 @@ async function TaxInvoicesData() {
   const { data } = await sb
     .from("tax_invoices")
     .select(`
-      id, invoice_number, status, brand_name, category_ar, total_fee, currency,
+      id, invoice_number, status, total_fee, currency,
       created_at, generated_at,
-      order:orders ( shopify_order_number )
+      order:orders ( shopify_order_number, customer:customers ( first_name, last_name ) )
     `)
     .order("created_at", { ascending: false }) // newest first
     .limit(200);

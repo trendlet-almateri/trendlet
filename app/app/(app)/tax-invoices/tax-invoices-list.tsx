@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Search,
   Store,
-  Tag,
   Clock,
   type LucideIcon,
 } from "lucide-react";
@@ -30,13 +29,14 @@ export type TaxInvoiceRow = {
   id: string;
   invoice_number: string;
   status: TaxInvoiceStatus;
-  brand_name: string | null;
-  category_ar: string | null;
   total_fee: number;
   currency: string;
   created_at: string;
   generated_at: string | null;
-  order: { shopify_order_number: string | null } | null;
+  order: {
+    shopify_order_number: string | null;
+    customer: { first_name: string | null; last_name: string | null } | null;
+  } | null;
 };
 
 // ── Status visuals — semantic, restrained ─────────────────────────────────
@@ -57,6 +57,11 @@ const STATUS_STYLE: Record<TaxInvoiceStatus, { cls: string; dot: string; label: 
     label: "Draft",
   },
 };
+
+function customerName(inv: TaxInvoiceRow): string {
+  const c = inv.order?.customer;
+  return c ? [c.first_name, c.last_name].filter(Boolean).join(" ") : "";
+}
 
 type FilterKey = "all" | "issued" | "needs_pricing" | "failed";
 
@@ -133,8 +138,7 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
       const hay = [
         inv.invoice_number,
         inv.order?.shopify_order_number ?? "",
-        inv.brand_name ?? "",
-        inv.category_ar ?? "",
+        inv.order?.customer ? `${inv.order.customer.first_name ?? ""} ${inv.order.customer.last_name ?? ""}` : "",
       ]
         .join(" ")
         .toLowerCase();
@@ -279,25 +283,16 @@ function InvoiceCard({ inv, index }: { inv: TaxInvoiceRow; index: number }) {
 
       {/* Middle: meta with icons */}
       <div className="flex flex-col gap-2 text-[12.5px]">
-        {inv.order?.shopify_order_number ? (
-          <MetaRow icon={Hash} muted="Order">
-            <span className="mono tabular-nums text-[var(--ink-2)]">
-              {inv.order.shopify_order_number}
-            </span>
-          </MetaRow>
-        ) : null}
-        {inv.brand_name ? (
-          <MetaRow icon={Store} muted="Brand">
-            <span className="truncate font-medium text-[var(--ink-2)]">{inv.brand_name}</span>
-          </MetaRow>
-        ) : null}
-        {inv.category_ar ? (
-          <MetaRow icon={Tag} muted="Category">
-            <span dir="rtl" className="truncate text-[var(--ink-2)]">
-              {inv.category_ar}
-            </span>
-          </MetaRow>
-        ) : null}
+        <MetaRow icon={Hash} muted="Order">
+          <span className="mono tabular-nums text-[var(--ink-2)]">
+            {inv.order?.shopify_order_number ?? "—"}
+          </span>
+        </MetaRow>
+        <MetaRow icon={Store} muted="Customer">
+          <span className="truncate font-medium text-[var(--ink-2)]">
+            {customerName(inv) || "—"}
+          </span>
+        </MetaRow>
         <MetaRow icon={Clock} muted="Updated">
           <span className="text-[var(--muted)]">{relativeTime(ts)}</span>
         </MetaRow>
