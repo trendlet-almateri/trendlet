@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
   Store,
+  Tag,
   Clock,
   type LucideIcon,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export type TaxInvoiceRow = {
   order: {
     shopify_order_number: string | null;
     customer: { first_name: string | null; last_name: string | null } | null;
+    sub_orders: { brand: { name: string | null } | null }[] | null;
   } | null;
 };
 
@@ -61,6 +63,14 @@ const STATUS_STYLE: Record<TaxInvoiceStatus, { cls: string; dot: string; label: 
 function customerName(inv: TaxInvoiceRow): string {
   const c = inv.order?.customer;
   return c ? [c.first_name, c.last_name].filter(Boolean).join(" ") : "";
+}
+
+/** Distinct brand names from the order's sub-orders (often empty under the new model). */
+function brandNames(inv: TaxInvoiceRow): string {
+  const names = (inv.order?.sub_orders ?? [])
+    .map((s) => s.brand?.name)
+    .filter((n): n is string => !!n);
+  return [...new Set(names)].join(", ");
 }
 
 type FilterKey = "all" | "issued" | "needs_pricing" | "failed";
@@ -138,7 +148,8 @@ export function TaxInvoicesList({ invoices }: { invoices: TaxInvoiceRow[] }) {
       const hay = [
         inv.invoice_number,
         inv.order?.shopify_order_number ?? "",
-        inv.order?.customer ? `${inv.order.customer.first_name ?? ""} ${inv.order.customer.last_name ?? ""}` : "",
+        customerName(inv),
+        brandNames(inv),
       ]
         .join(" ")
         .toLowerCase();
@@ -293,6 +304,11 @@ function InvoiceCard({ inv, index }: { inv: TaxInvoiceRow; index: number }) {
             {customerName(inv) || "—"}
           </span>
         </MetaRow>
+        {brandNames(inv) ? (
+          <MetaRow icon={Tag} muted="Brand">
+            <span className="truncate text-[var(--ink-2)]">{brandNames(inv)}</span>
+          </MetaRow>
+        ) : null}
         <MetaRow icon={Clock} muted="Updated">
           <span className="text-[var(--muted)]">{relativeTime(ts)}</span>
         </MetaRow>

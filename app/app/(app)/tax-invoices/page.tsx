@@ -50,7 +50,11 @@ async function TaxInvoicesData() {
     .select(`
       id, invoice_number, status, total_fee, currency,
       created_at, generated_at,
-      order:orders ( shopify_order_number, customer:customers ( first_name, last_name ) )
+      order:orders (
+        shopify_order_number,
+        customer:customers ( first_name, last_name ),
+        sub_orders ( brand:brands ( name ) )
+      )
     `)
     .order("created_at", { ascending: false }) // newest first
     .limit(200);
