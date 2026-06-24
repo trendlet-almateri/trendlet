@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { LayoutList, GitBranch, Search, SlidersHorizontal, Columns, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutList, GitBranch, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrdersTable } from "./orders-table";
 import { OrdersPipeline } from "./orders-pipeline";
@@ -184,26 +184,9 @@ export function OrdersView({ orders, totalCount, brands, assignees }: Props) {
           assignees={assignees}
         />
 
-        {/* Spacer */}
+        {/* Right cluster: just the view switch (Priority / Columns removed —
+            they were non-functional and added visual noise). */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Sort */}
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-            Priority
-          </button>
-
-          {/* Columns */}
-          <button
-            type="button"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 text-[12px] font-medium text-[var(--muted)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--ink)]"
-          >
-            <Columns className="h-3.5 w-3.5" aria-hidden />
-            Columns
-          </button>
-
           {/* View toggle — outer p-0.5 + inner h-7 = 32px total to match the row */}
           <div className="flex h-8 items-center rounded-lg border border-[var(--line)] bg-[var(--panel)] p-0.5">
             <button
