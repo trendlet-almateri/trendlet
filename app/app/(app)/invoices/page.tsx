@@ -18,7 +18,7 @@ export default async function InvoicesPage() {
   const scope = isAdmin ? {} : { generatedBy: user.id };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <PageHeader title="Invoices" />
         <Link

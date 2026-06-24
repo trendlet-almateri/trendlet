@@ -12,6 +12,7 @@ export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
   if (!orders.length) {
     return (
       <EmptyState
+        fill={false}
         icon={Package}
         title="No orders yet"
         description="Orders will appear here as Shopify webhooks deliver them."

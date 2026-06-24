@@ -5,6 +5,7 @@ import { fetchFulfillmentQueue, type FulfillmentRow } from "@/lib/queries/fulfil
 import { cn } from "@/lib/utils";
 import { SourcingFilterBar } from "@/components/sourcing/sourcing-filter-bar";
 import { EuGrid } from "@/components/eu/eu-grid";
+import { EmptyState } from "@/components/common/empty-state";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -100,7 +101,7 @@ export default async function EuFulfillmentPage({
     .toUpperCase();
 
   return (
-    <div className="flex flex-col gap-4 pb-16 md:gap-5">
+    <div className="flex flex-1 flex-col gap-4 pb-16 md:gap-5">
       {/* ── Page title ── */}
       <div>
         <h1 className="text-[19px] font-bold tracking-[-0.02em] text-[var(--ink)] md:text-[22px]">
@@ -128,15 +129,11 @@ export default async function EuFulfillmentPage({
 
       {/* ── Card grid ── */}
       {visible.length === 0 && rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-[var(--line)] bg-[var(--hover)] py-16 text-center">
-          <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line)] bg-white">
-            <Globe className="h-5 w-5 text-[var(--muted)]" />
-          </span>
-          <p className="text-[13px] font-medium text-[var(--ink)]">No EU tasks</p>
-          <p className="max-w-[320px] text-[12px] text-[var(--muted)]">
-            Items appear here when EU brand orders come in and are assigned to you.
-          </p>
-        </div>
+        <EmptyState
+          icon={Globe}
+          title="No EU tasks"
+          description="Items appear here when EU brand orders come in and are assigned to you."
+        />
       ) : (
         <EuGrid
           rows={visible}

@@ -66,7 +66,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Suspense>
           }
         />
-        <main className="flex-1 px-4 pb-20 pt-24 md:px-8 md:pb-8 md:pt-6 lg:px-10">{children}</main>
+        <main className="flex flex-1 flex-col px-4 pb-20 pt-24 md:px-8 md:pb-8 md:pt-6 lg:px-10">
+          {/* Inner min-h-full + flex-col so page roots that opt into flex-1
+              can actually grow (their tallest child fills the rest of the
+              viewport — see components/common/empty-state.tsx fill mode). */}
+          <div className="flex min-h-full flex-1 flex-col">{children}</div>
+        </main>
       </div>
 
       <BottomNav

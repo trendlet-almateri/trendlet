@@ -36,7 +36,7 @@ export default async function ReturnsPage() {
   const rows = (data ?? []) as unknown as ReturnRow[];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <PageHeader title="Returns" />
 
       {rows.length === 0 ? (

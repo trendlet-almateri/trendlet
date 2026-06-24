@@ -35,7 +35,7 @@ export default async function ShipmentsPage() {
   const nearLimit = dhlUsed >= DHL_DAILY_LIMIT * 0.8;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
         <span
