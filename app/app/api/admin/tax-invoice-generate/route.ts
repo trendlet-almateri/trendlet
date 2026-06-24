@@ -1,15 +1,18 @@
 /**
- * POST /api/admin/tax-invoice-generate   { order_id: "<uuid>" }
+ * POST /api/admin/tax-invoice-generate
+ *   { order_id: "<uuid>" }        → (re)run generateTaxInvoiceForOrder for one order
+ *   { regenerate: "<invoiceId>" } → re-render ONE existing invoice's PDF (new breakdown calc)
+ *   { regenerate: "all" }         → re-render every existing invoice's PDF
  *
- * Manually (re)run generateTaxInvoiceForOrder for one order and return its
- * result — used to backfill orders whose webhook-time generation was lost, and
- * to diagnose why an order produced no invoice. Idempotent (the service itself
- * checks for an existing invoice + UNIQUE(order_id)).
+ * The `regenerate` modes only re-render the PDF (which is where the per-item
+ * 70-SAR breakdown lives) and upsert it in storage — no row is changed or
+ * deleted. Used to bring old invoices onto the new tax-generation calc.
  *
  * Auth: Bearer CRON_SECRET (same token the GitHub poll uses).
  */
 import { NextResponse } from "next/server";
 import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
+import { regenerateTaxInvoicePdf, regenerateAllTaxInvoicePdfs } from "@/lib/services/regenerate-tax-invoice-pdf";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,19 +24,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let orderId: string | undefined;
+  let body: { order_id?: string; regenerate?: string } = {};
   try {
-    orderId = (await req.json())?.order_id;
+    body = (await req.json()) ?? {};
   } catch {
     /* ignore */
   }
-  if (!orderId) {
-    return NextResponse.json({ error: "order_id required" }, { status: 400 });
-  }
 
   try {
-    const result = await generateTaxInvoiceForOrder(orderId);
-    return NextResponse.json({ ok: true, result });
+    if (body.regenerate === "all") {
+      const results = await regenerateAllTaxInvoicePdfs();
+      return NextResponse.json({ ok: true, results });
+    }
+    if (body.regenerate) {
+      const result = await regenerateTaxInvoicePdf(body.regenerate);
+      return NextResponse.json({ ok: true, result });
+    }
+    if (body.order_id) {
+      const result = await generateTaxInvoiceForOrder(body.order_id);
+      return NextResponse.json({ ok: true, result });
+    }
+    return NextResponse.json({ error: "order_id or regenerate required" }, { status: 400 });
   } catch (e) {
     return NextResponse.json(
       {
