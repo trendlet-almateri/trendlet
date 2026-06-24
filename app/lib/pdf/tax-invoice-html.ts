@@ -51,6 +51,7 @@ const NOTES = [
 export function renderTaxInvoiceHtml(
   data: TaxInvoicePdfData,
   _logoDataUrl: string | null,
+  arabicFontDataUrl: string | null = null,
 ): string {
   const { invoice_number, issue_date, due_date, order, customer, line_items, totals, payment, breakdown } = data;
 
@@ -136,9 +137,16 @@ export function renderTaxInvoiceHtml(
 <head>
 <meta charset="UTF-8" />
 <style>
+  ${arabicFontDataUrl ? `@font-face {
+    font-family: 'NotoArabic';
+    src: url('${arabicFontDataUrl}') format('truetype');
+    font-weight: normal;
+  }` : ""}
   * { margin: 0; padding: 0; box-sizing: border-box; }
   @page { size: A4; margin: 0; }
-  body { font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif; color: #0f1419; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* NotoArabic first so Arabic glyphs always render in headless Chrome (which
+     ships no Arabic font); Latin falls through to the sans-serif stack. */
+  body { font-family: 'NotoArabic', 'Segoe UI', 'Tahoma', Arial, sans-serif; color: #0f1419; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { width: 100%; }
   .invoice { background: #fff; width: 100%; margin: 0; padding: 40px 48px; }
 
