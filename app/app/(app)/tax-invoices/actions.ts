@@ -17,9 +17,16 @@ export async function regenerateAllTaxInvoicesAction(): Promise<{
   await requireRole(["admin"]);
   try {
     const results = await regenerateAllTaxInvoicePdfs();
-    const failed = results.filter((r) => !r.ok).length;
+    const fails = results.filter((r) => !r.ok);
     revalidatePath("/tax-invoices");
-    return { ok: true, done: results.length - failed, failed };
+    // Surface the first failure's reason so a 0/N result is debuggable from the UI.
+    const firstErr = fails[0]?.error;
+    return {
+      ok: true,
+      done: results.length - fails.length,
+      failed: fails.length,
+      error: firstErr ? `e.g. ${firstErr}` : undefined,
+    };
   } catch (e) {
     return { ok: false, done: 0, failed: 0, error: e instanceof Error ? e.message : String(e) };
   }
