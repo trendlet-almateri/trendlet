@@ -125,6 +125,13 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
 
         {/* Right rail */}
         <aside className="flex flex-col gap-4">
+          {breakdown?.missing_extra && (
+            <div className="rounded-[var(--radius)] border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-4 py-3 text-[12.5px] text-[var(--amber)]">
+              <span className="font-semibold">Missing product extra.</span> A product on this
+              order has no <code>custom.extra</code> set in Shopify, so shipping shows 0.
+              Add it to the product, then Regenerate this invoice.
+            </div>
+          )}
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Totals</h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">

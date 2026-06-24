@@ -48,5 +48,8 @@ export type TaxInvoicePdfData = {
     shipping: number; // Σ max(0, extra-70) × qty
     profit: number;   // 70 × total qty
     vat: number;      // Σ (profit × 0.15) × qty — shown BELOW the total
+    /** True if ANY item's product has no custom.extra metafield set — the admin
+     *  should add it in Shopify, then regenerate for correct shipping. */
+    missing_extra: boolean;
   };
 };
