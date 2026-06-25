@@ -127,8 +127,10 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </div>
         </td>
 
-        {/* CUSTOMER */}
-        <td className="max-w-[1px] overflow-hidden px-3 py-4 align-middle">
+        {/* CUSTOMER — greedy column: absorbs the table's leftover width so the
+            other columns stay snug. Truncation still works via the inner
+            min-w-0 + truncate, so long names clip instead of stretching. */}
+        <td className="w-full max-w-0 overflow-hidden px-3 py-4 align-middle">
           <div className="flex items-center gap-2.5">
             <span className={cn(
               "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",

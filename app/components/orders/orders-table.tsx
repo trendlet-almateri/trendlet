@@ -29,7 +29,7 @@ export function OrdersTable({ orders, onOpenDrawer }: OrdersTableProps) {
         <thead className="sticky top-0 z-10">
           <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)] shadow-[0_1px_0_var(--line)]">
             <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">Order</th>
-            <th className="whitespace-nowrap px-3 py-3 text-left font-semibold">Customer</th>
+            <th className="w-full whitespace-nowrap px-3 py-3 text-left font-semibold">Customer</th>
             <th className="hidden whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Sub-orders</th>
             <th className="min-w-[160px] whitespace-nowrap px-3 py-3 text-left font-semibold">Status</th>
             <th className="hidden whitespace-nowrap px-3 py-3 text-center font-semibold md:table-cell">Total</th>
