@@ -91,7 +91,7 @@ export default async function SlaHealthPage() {
           <section className="flex flex-col gap-3">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">By stage</h2>
             <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-[13px] [&_td]:align-middle">
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                     <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Stage</th>
