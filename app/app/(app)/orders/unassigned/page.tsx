@@ -67,7 +67,7 @@ export default async function UnassignedQueuePage() {
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
                 <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Sub-order</th>
-                <th className="whitespace-nowrap px-3 py-2 font-medium">Product</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Product</th>
                 <th className="whitespace-nowrap px-3 py-2 font-medium">Brand (raw)</th>
                 <th className="whitespace-nowrap px-3 py-2 font-medium">Order</th>
                 <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Value</th>
