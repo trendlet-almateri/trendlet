@@ -80,17 +80,17 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
   return (
     <>
     <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
-      <table className="w-full text-[13px] [&_td]:align-middle">
+      <table className="w-full table-fixed text-[13px] [&_td]:align-middle">
         <thead>
           <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {/* Mobile: 3 cols — Desktop: 7 cols, all centered */}
-            <th className="whitespace-nowrap px-4 py-2.5 text-center font-medium">Tracking</th>
-            <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">Status</th>
-            <th className="whitespace-nowrap px-3 py-2.5 text-center font-medium">Shipped</th>
-            <th className="hidden whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Type</th>
-            <th className="hidden whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Carrier</th>
-            <th className="hidden whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Route</th>
-            <th className="hidden whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Actions</th>
+            <th className="w-[18%] whitespace-nowrap px-4 py-2.5 text-center font-medium">Tracking</th>
+            <th className="w-[12%] whitespace-nowrap px-3 py-2.5 text-center font-medium">Status</th>
+            <th className="w-[16%] px-3 py-2.5 text-center font-medium">Shipped</th>
+            <th className="hidden w-[12%] whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Type</th>
+            <th className="hidden w-[14%] whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Carrier</th>
+            <th className="hidden w-[16%] px-3 py-2.5 text-center font-medium md:table-cell">Route</th>
+            <th className="hidden w-[12%] whitespace-nowrap px-3 py-2.5 text-center font-medium md:table-cell">Actions</th>
           </tr>
         </thead>
         <tbody>
