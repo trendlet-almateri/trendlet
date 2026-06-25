@@ -127,10 +127,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </div>
         </td>
 
-        {/* CUSTOMER — greedy column: absorbs the table's leftover width so the
-            other columns stay snug. Truncation still works via the inner
-            min-w-0 + truncate, so long names clip instead of stretching. */}
-        <td className="w-full max-w-0 overflow-hidden px-3 py-4 align-middle">
+        {/* CUSTOMER — width comes from the table-fixed 24% column; the inner
+            min-w-0 + truncate clips long names within that width. */}
+        <td className="overflow-hidden px-3 py-4 align-middle">
           <div className="flex items-center gap-2.5">
             <span className={cn(
               "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",
@@ -170,8 +169,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </div>
         </td>
 
-        {/* STATUS SUMMARY */}
-        <td className="min-w-[160px] whitespace-nowrap px-3 py-4 align-middle">
+        {/* STATUS SUMMARY — centered in its column to match the header and the
+            other metric columns; the multi-vendor summary bar fills the width. */}
+        <td className="px-3 py-4 text-center align-middle">
           {isCancelled ? (
             <span className="pill whitespace-nowrap border border-[var(--rose)]/30 bg-[var(--rose-bg)] text-[var(--rose)]">
               <X className="h-3 w-3 shrink-0" aria-hidden />
