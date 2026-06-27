@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getTaxInvoiceSignedUrl } from "@/lib/storage/tax-invoices";
 import { buildTaxInvoicePdfData } from "@/lib/services/tax-invoice-pdf-data";
+import { getMissingExtraProducts } from "./extra-actions";
+import { AddExtraPanel } from "./add-extra-panel";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -76,6 +78,9 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
   const items = pdfData?.line_items ?? [];
   const grandTotal = totals?.grand_total ?? 0;
 
+  // Products on this order with no custom.extra — admin fills them in below.
+  const missingExtraProducts = breakdown?.missing_extra ? await getMissingExtraProducts(inv.id) : [];
+
   return (
     <div className="flex flex-col gap-5">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-[var(--muted)]">
@@ -125,12 +130,8 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
 
         {/* Right rail */}
         <aside className="flex flex-col gap-4">
-          {breakdown?.missing_extra && (
-            <div className="rounded-[var(--radius)] border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-4 py-3 text-[12.5px] text-[var(--amber)]">
-              <span className="font-semibold">Missing product extra.</span> A product on this
-              order has no <code>custom.extra</code> set in Shopify, so shipping shows 0.
-              Add it to the product, then Regenerate this invoice.
-            </div>
+          {missingExtraProducts.length > 0 && (
+            <AddExtraPanel invoiceId={inv.id} products={missingExtraProducts} />
           )}
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Totals</h2>
