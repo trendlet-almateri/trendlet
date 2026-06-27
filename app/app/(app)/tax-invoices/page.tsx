@@ -48,7 +48,7 @@ async function TaxInvoicesData() {
   const { data } = await sb
     .from("tax_invoices")
     .select(`
-      id, invoice_number, status, total_fee, currency,
+      id, invoice_number, status, total_fee, currency, needs_extra,
       created_at, generated_at,
       order:orders (
         shopify_order_number,
