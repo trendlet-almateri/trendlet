@@ -30,6 +30,7 @@ export type TaxInvoiceRow = {
   id: string;
   invoice_number: string;
   status: TaxInvoiceStatus;
+  needs_extra: boolean;
   total_fee: number;
   currency: string;
   created_at: string;
@@ -281,6 +282,12 @@ function InvoiceCard({ inv, index }: { inv: TaxInvoiceRow; index: number }) {
         <span className="mono text-[15px] font-semibold leading-none tracking-tight text-[var(--ink)]">
           {inv.invoice_number}
         </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+        {inv.needs_extra && (
+          <span className="inline-flex items-center rounded-md border border-[var(--amber)]/25 bg-[var(--amber-bg)] px-2 py-[3px] text-[11px] font-medium leading-none text-[var(--amber)]">
+            Needs extra
+          </span>
+        )}
         <span
           className={cn(
             "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-[3px] text-[11px] font-medium leading-none",
@@ -290,6 +297,7 @@ function InvoiceCard({ inv, index }: { inv: TaxInvoiceRow; index: number }) {
           <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} aria-hidden />
           {s.label}
         </span>
+        </div>
       </div>
 
       {/* Middle: meta with icons */}
