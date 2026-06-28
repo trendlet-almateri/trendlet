@@ -105,7 +105,8 @@ export default async function DashboardPage() {
             headlineRevenue ? (
               <CountUp
                 value={Number(headlineRevenue.total_30d)}
-                format={(n) => formatCurrency(n, headlineRevenue.currency, { compact: true })}
+                currency={headlineRevenue.currency}
+                compact
               />
             ) : (
               "—"
