@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TeamLoadCardProps = {
@@ -25,50 +26,51 @@ export function TeamLoadCard({
 
   return (
     <div
-      className="rise-in flex flex-col gap-2.5 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
+      className="rise-in flex h-full flex-col gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]"
       style={{ ["--stagger-index" as string]: String(index) }}
     >
-      {/* Team name + dot — dot breathes when team has active items */}
-      <div className="flex items-center gap-2">
+      {/* Header — team name (left), member count in a subtle badge (right) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn("h-1.5 w-1.5 rounded-full", accent, isLive && "dot-breathe")}
+            aria-hidden
+          />
+          <span className="truncate text-[12px] font-semibold text-[var(--ink)]">{team}</span>
+        </div>
+        <span
+          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--muted)]"
+          title={`${memberCount} ${memberCount === 1 ? "member" : "members"}`}
+        >
+          <Users className="h-2.5 w-2.5" aria-hidden />
+          {memberCount}
+        </span>
+      </div>
+
+      {/* Metric — workload number centred, description directly beneath */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-0.5 py-1">
         <span
           className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            accent,
-            isLive && "dot-breathe",
+            "font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[32px] font-semibold leading-none text-[var(--ink)]",
+            isLive && "value-tick",
           )}
-          aria-hidden
-        />
-        <span className="text-[12px] font-semibold text-[var(--ink)]">{team}</span>
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          {activeCount.toLocaleString("en-US")}
+        </span>
+        <span className="text-[11px] text-[var(--muted-2)]">{description}</span>
       </div>
 
-      {/* Member count */}
-      <div className="text-[10px] uppercase tracking-[0.4px] text-[var(--muted)]">
-        {memberCount} {memberCount === 1 ? "member" : "members"}
-      </div>
-
-      {/* Active count — JetBrains Mono, slow tick when live */}
-      <div
-        className={cn(
-          "font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[28px] font-semibold leading-8 text-[var(--ink)]",
-          isLive && "value-tick",
-        )}
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
-        {activeCount.toLocaleString("en-US")}
-      </div>
-
-      <div className="text-[12px] text-[var(--muted-2)]">{description}</div>
-
-      {/* Progress bar — fills from 0 to target on mount */}
-      <div className="mt-0.5 flex items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--line)]">
+      {/* Progress — bar pulled under the metric, % aligned on its baseline */}
+      <div className="flex items-center gap-2">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--line-2)]">
           <span
             className={cn("bar-fill block h-full rounded-full", accent)}
             style={{ width: `${safeLoad}%` }}
           />
         </div>
         <span
-          className="w-8 text-right font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[11px] text-[var(--muted)]"
+          className="w-8 text-right font-[family-name:var(--font-jetbrains,_'JetBrains_Mono',_monospace)] text-[11px] font-medium text-[var(--muted)]"
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
           {safeLoad}%

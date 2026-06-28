@@ -118,19 +118,21 @@
     color: #d8dce2;
   }
   .sidebar-item-active {
-    background-color: rgba(12, 68, 124, 0.16);
-    color: #93c0e8;
+    background-color: rgba(12, 68, 124, 0.24);
+    color: #bcdcf5;
     font-weight: 500;
   }
   .sidebar-item-active::before {
     content: "";
     position: absolute;
     left: 0;
-    top: 20%;
+    top: 50%;
     height: 60%;
-    width: 2px;
-    border-radius: 0 2px 2px 0;
-    background: #4a9fd4;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #5aa9de;
+    transform: translateY(-50%);
+    transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Status pills */

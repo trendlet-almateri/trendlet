@@ -15,6 +15,7 @@ export { TabPills, type Tab } from "./tab-pills";
 export { FilterBar, FilterSelect, FilterSubmit } from "./filter-bar";
 export { DataTable, type Column } from "./data-table";
 export { TableColGroup, type ColSpec, type ColSize } from "./table-colgroup";
+export { SectionHeader } from "./section-header";
 export { TopBar } from "./top-bar";
 export { Card } from "./card";
 export { UrgencyBadge } from "./urgency-badge";
