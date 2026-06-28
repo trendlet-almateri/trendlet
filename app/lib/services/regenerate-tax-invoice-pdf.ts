@@ -34,11 +34,7 @@ export async function regenerateTaxInvoicePdf(invoiceId: string): Promise<RegenR
   const path = await uploadTaxInvoicePdf(inv.invoice_number, pdf);
   await sb
     .from("tax_invoices")
-    .update({
-      pdf_storage_path: path,
-      total_fee: pdfData.totals.grand_total,
-      needs_extra: pdfData.breakdown?.missing_extra ?? false,
-    })
+    .update({ pdf_storage_path: path, total_fee: pdfData.totals.grand_total })
     .eq("id", inv.id);
 
   return { invoiceId, invoiceNumber: inv.invoice_number, ok: true };

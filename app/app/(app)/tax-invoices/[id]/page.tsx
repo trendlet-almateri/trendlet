@@ -5,8 +5,6 @@ import { requireRole } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getTaxInvoiceSignedUrl } from "@/lib/storage/tax-invoices";
 import { buildTaxInvoicePdfData } from "@/lib/services/tax-invoice-pdf-data";
-import { getMissingExtraProducts } from "./extra-actions";
-import { AddExtraPanel } from "./add-extra-panel";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -78,9 +76,6 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
   const items = pdfData?.line_items ?? [];
   const grandTotal = totals?.grand_total ?? 0;
 
-  // Products on this order with no custom.extra — admin fills them in below.
-  const missingExtraProducts = breakdown?.missing_extra ? await getMissingExtraProducts(inv.id) : [];
-
   return (
     <div className="flex flex-col gap-5">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-[12px] text-[var(--muted)]">
@@ -130,9 +125,6 @@ export default async function TaxInvoiceDetailPage({ params }: { params: { id: s
 
         {/* Right rail */}
         <aside className="flex flex-col gap-4">
-          {missingExtraProducts.length > 0 && (
-            <AddExtraPanel invoiceId={inv.id} products={missingExtraProducts} />
-          )}
           <section className="rise-in rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--shadow-sm)]">
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Totals</h2>
             <dl className="flex flex-col gap-1.5 text-[13px]">
