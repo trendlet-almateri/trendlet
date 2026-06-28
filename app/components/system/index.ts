@@ -14,6 +14,7 @@ export { StatusChip, type StatusKey } from "./status-chip";
 export { TabPills, type Tab } from "./tab-pills";
 export { FilterBar, FilterSelect, FilterSubmit } from "./filter-bar";
 export { DataTable, type Column } from "./data-table";
+export { TableColGroup, type ColSpec, type ColSize } from "./table-colgroup";
 export { TopBar } from "./top-bar";
 export { Card } from "./card";
 export { UrgencyBadge } from "./urgency-badge";

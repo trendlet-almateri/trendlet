@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
-import { PageHeader, RealtimeRefresh } from "@/components/system";
+import { PageHeader, RealtimeRefresh, TableColGroup } from "@/components/system";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
@@ -64,15 +64,26 @@ export default async function UnassignedQueuePage() {
       ) : (
         <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full table-fixed border-collapse text-[13px]">
+            <TableColGroup
+              cols={[
+                { size: "sm" }, // Sub-order
+                { size: "lg" }, // Product
+                { size: "md" }, // Brand (raw)
+                { size: "sm" }, // Order
+                { size: "sm", mdOnly: true }, // Value
+                { size: "xs", mdOnly: true }, // Age
+                { size: "sm" }, // Action
+              ]}
+            />
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="w-[12%] whitespace-nowrap px-3 py-2 text-left font-medium">Sub-order</th>
-                <th className="w-[26%] px-3 py-2 text-left font-medium">Product</th>
-                <th className="w-[16%] whitespace-nowrap px-3 py-2 font-medium">Brand (raw)</th>
-                <th className="w-[12%] whitespace-nowrap px-3 py-2 font-medium">Order</th>
-                <th className="hidden w-[12%] whitespace-nowrap px-3 py-2 font-medium md:table-cell">Value</th>
-                <th className="hidden w-[10%] whitespace-nowrap px-3 py-2 font-medium md:table-cell">Age</th>
-                <th className="w-[12%] whitespace-nowrap px-3 py-2 font-medium">Action</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Sub-order</th>
+                <th className="px-3 py-2 text-left font-medium">Product</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Brand (raw)</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Order</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Value</th>
+                <th className="hidden whitespace-nowrap px-3 py-2 font-medium md:table-cell">Age</th>
+                <th className="whitespace-nowrap px-3 py-2 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>

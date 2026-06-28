@@ -1,6 +1,6 @@
 import { Activity } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
-import { PageHeader, RealtimeRefresh } from "@/components/system";
+import { PageHeader, RealtimeRefresh, TableColGroup } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { cn } from "@/lib/utils";
@@ -92,13 +92,22 @@ export default async function SlaHealthPage() {
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">By stage</h2>
             <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
               <table className="w-full table-fixed text-[13px] [&_td]:align-middle">
+                <TableColGroup
+                  cols={[
+                    { size: "xl" }, // Stage
+                    { size: "md" }, // Active
+                    { size: "md" }, // At risk
+                    { size: "md" }, // Delayed
+                    { size: "md" }, // On time
+                  ]}
+                />
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                    <th className="w-[32%] px-4 py-2 text-left font-medium">Stage</th>
-                    <th className="w-[17%] whitespace-nowrap px-3 py-2 font-medium">Active</th>
-                    <th className="w-[17%] whitespace-nowrap px-3 py-2 font-medium">At risk</th>
-                    <th className="w-[17%] whitespace-nowrap px-3 py-2 font-medium">Delayed</th>
-                    <th className="w-[17%] whitespace-nowrap px-3 py-2 font-medium">On time</th>
+                    <th className="px-4 py-2 text-left font-medium">Stage</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-medium">Active</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-medium">At risk</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-medium">Delayed</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-medium">On time</th>
                   </tr>
                 </thead>
                 <tbody>

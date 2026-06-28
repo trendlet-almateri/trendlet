@@ -1,6 +1,6 @@
 import { CornerDownLeft } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
-import { PageHeader, RealtimeRefresh } from "@/components/system";
+import { PageHeader, RealtimeRefresh, TableColGroup } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { relativeTime } from "@/lib/utils/date";
@@ -48,13 +48,22 @@ export default async function ReturnsPage() {
       ) : (
         <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm)]">
           <table className="w-full table-fixed text-[13px] [&_td]:align-middle">
+            <TableColGroup
+              cols={[
+                { size: "sm" }, // Sub-order
+                { size: "xl" }, // Product
+                { size: "md" }, // Brand
+                { size: "sm" }, // Order
+                { size: "md" }, // Returned
+              ]}
+            />
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--hover)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                <th className="w-[16%] whitespace-nowrap px-4 py-2 text-left font-medium">Sub-order</th>
-                <th className="w-[34%] px-3 py-2 text-left font-medium">Product</th>
-                <th className="w-[18%] whitespace-nowrap px-3 py-2 text-left font-medium">Brand</th>
-                <th className="w-[14%] whitespace-nowrap px-3 py-2 text-left font-medium">Order</th>
-                <th className="w-[18%] whitespace-nowrap px-3 py-2 text-left font-medium">Returned</th>
+                <th className="whitespace-nowrap px-4 py-2 text-left font-medium">Sub-order</th>
+                <th className="px-3 py-2 text-left font-medium">Product</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Brand</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Order</th>
+                <th className="whitespace-nowrap px-3 py-2 text-left font-medium">Returned</th>
               </tr>
             </thead>
             <tbody>
