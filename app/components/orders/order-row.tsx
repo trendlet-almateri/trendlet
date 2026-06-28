@@ -130,9 +130,9 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         {/* CUSTOMER — width comes from the table-fixed 24% column; the inner
             min-w-0 + truncate clips long names within that width. */}
         <td className="overflow-hidden px-3 py-4 align-middle">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold text-white",
+              "grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white",
               isCancelled ? "bg-[var(--muted-2)] grayscale opacity-60" : avatarCls,
             )}>
               {initials}
@@ -147,13 +147,13 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
               <div className="flex items-center gap-1.5">
                 {region && (
                   <span className={cn(
-                    "rounded px-1.5 py-px text-[10px] font-semibold",
+                    "rounded px-1.5 py-px text-[9px] font-semibold",
                     REGION_CLS[region] ?? "bg-[var(--hover)] text-[var(--muted)]",
                   )}>
                     {region}
                   </span>
                 )}
-                <span className="text-[11px] text-[var(--muted)]">Shopify</span>
+                <span className="text-[10px] text-[var(--muted-2)]">Shopify</span>
               </div>
             </div>
           </div>
@@ -197,8 +197,8 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           )}
         </td>
 
-        {/* TOTAL — desktop only */}
-        <td className="hidden whitespace-nowrap px-3 py-4 text-center align-middle md:table-cell">
+        {/* TOTAL — desktop only, right-aligned money */}
+        <td className="hidden whitespace-nowrap px-3 py-4 text-right align-middle md:table-cell">
           <span className={cn(
             "font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums",
             isCancelled || isRefunded
@@ -211,8 +211,8 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
           </span>
         </td>
 
-        {/* QUANTITY — desktop only */}
-        <td className="hidden whitespace-nowrap px-3 py-4 text-center align-middle md:table-cell">
+        {/* QUANTITY — desktop only, right-aligned */}
+        <td className="hidden whitespace-nowrap px-3 py-4 text-right align-middle md:table-cell">
           <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[13px] font-semibold tabular-nums text-[var(--ink)]">
             {o.sub_orders.reduce((sum, s) => sum + s.quantity, 0)}
           </span>
@@ -222,7 +222,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
         <td className="hidden px-3 py-4 align-middle md:table-cell">
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             {isCancelled || (!hasUnassigned && !hasDelayed && !hasAtRisk) ? (
-              <span className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--hover)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--muted)]">
+              <span className="pill border border-[var(--line)] bg-[var(--hover)] text-[var(--muted)]">
                 No alerts
               </span>
             ) : (
