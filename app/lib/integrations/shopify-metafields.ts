@@ -47,28 +47,3 @@ export async function getProductExtra(productId: string | number): Promise<numbe
   extraCache.set(id, value);
   return value;
 }
-
-/**
- * Set (create/overwrite) the `custom.extra` metafield on a product. Used by the
- * admin "add extra" flow when a product is missing it. Needs write_products
- * scope. Throws on failure so the caller can surface it.
- */
-export async function setProductExtra(productId: string | number, value: number): Promise<void> {
-  const id = String(productId);
-  const domain = getShopDomain();
-  const token = await getShopifyAccessToken();
-  const res = await fetch(
-    `https://${domain}/admin/api/${API_VERSION}/products/${id}/metafields.json`,
-    {
-      method: "POST",
-      headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        metafield: { namespace: "custom", key: "extra", type: "number_integer", value: String(Math.round(value)) },
-      }),
-    },
-  );
-  if (!res.ok) {
-    throw new Error(`Shopify setProductExtra ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  }
-  extraCache.set(id, value); // keep the process cache consistent
-}
