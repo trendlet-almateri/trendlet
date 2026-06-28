@@ -90,7 +90,7 @@ export function KpiCard({
   );
 
   const chart = miniChart && (
-    <div className="spark-wave flex h-6 items-end gap-[2px]">
+    <div className="spark-wave flex h-5 items-end gap-[2px]">
       {MINI_BARS.map((h, i) => (
         <span
           key={i}
@@ -121,8 +121,10 @@ export function KpiCard({
         <span className={valueCls}>{value}</span>
       </div>
 
-      {/* Zone 3 — chart sits right next to the trend, then trend + hint */}
-      <div className="flex flex-col gap-2">
+      {/* Zone 3 — fixed height so the metric zone is identical on every card,
+          which lands all the numbers on the same line regardless of whether a
+          card has a sparkline. Chart + trend bottom-align inside it. */}
+      <div className="flex h-12 flex-col justify-end gap-2">
         {chart}
         <div className={bottomCls}>
           {trendBadge}
