@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, RefreshCw, X } from "lucide-react";
+import { ChevronDown, RefreshCw, X, FileDown } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { TableColGroup } from "@/components/system/table-colgroup";
 import type { TrackResult } from "@/lib/integrations/dhl";
-import { refreshTrackingAction } from "./actions";
+import { refreshTrackingAction, getLabelUrlAction } from "./actions";
 
 export type ShipmentRow = {
   id: string;
@@ -18,6 +18,7 @@ export type ShipmentRow = {
   shipped_at: string | null;
   delivered_at: string | null;
   created_at: string;
+  label_storage_path: string | null;
   carrier: { display_name: string } | null;
 };
 
@@ -76,6 +77,13 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
     await loadDetail(row.id, row.tracking_number);
     setRefreshing(null);
     window.location.reload();
+  }
+
+  async function openLabel(row: ShipmentRow, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!row.label_storage_path) return;
+    const url = await getLabelUrlAction(row.label_storage_path);
+    if (url) window.open(url, "_blank", "noopener");
   }
 
   return (
@@ -146,16 +154,28 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                     {s.origin ?? "?"} → {s.destination ?? "?"}
                   </td>
                   <td className="hidden px-3 py-3 text-center md:table-cell">
-                    {s.tracking_number && (
-                      <button
-                        onClick={(e) => refresh(s, e)}
-                        disabled={refreshing === s.id}
-                        className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
-                      >
-                        <RefreshCw className={cn("size-3.5", refreshing === s.id && "animate-spin")} />
-                        Refresh
-                      </button>
-                    )}
+                    <div className="inline-flex items-center gap-1.5">
+                      {s.label_storage_path && (
+                        <button
+                          onClick={(e) => openLabel(s, e)}
+                          title="Open DHL label PDF"
+                          className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                        >
+                          <FileDown className="size-3.5" />
+                          Label
+                        </button>
+                      )}
+                      {s.tracking_number && (
+                        <button
+                          onClick={(e) => refresh(s, e)}
+                          disabled={refreshing === s.id}
+                          className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] disabled:opacity-50"
+                        >
+                          <RefreshCw className={cn("size-3.5", refreshing === s.id && "animate-spin")} />
+                          Refresh
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
 
@@ -220,6 +240,7 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
           detail={detail[mobileRow.id]}
           refreshing={refreshing === mobileRow.id}
           onRefresh={(e) => refresh(mobileRow, e)}
+          onLabel={(e) => openLabel(mobileRow, e)}
           onClose={() => setMobileRow(null)}
         />,
         document.body,
@@ -235,12 +256,14 @@ function MobileSheet({
   detail: d,
   refreshing,
   onRefresh,
+  onLabel,
   onClose,
 }: {
   shipment: ShipmentRow;
   detail: TrackResult | "loading" | "error" | undefined;
   refreshing: boolean;
   onRefresh: (e: React.MouseEvent) => void;
+  onLabel: (e: React.MouseEvent) => void;
   onClose: () => void;
 }) {
   React.useEffect(() => {
@@ -273,6 +296,15 @@ function MobileSheet({
             <span className="text-[11px] text-[var(--muted)] capitalize">{s.shipment_type} · {s.carrier?.display_name ?? "—"}</span>
           </div>
           <div className="flex items-center gap-2">
+            {s.label_storage_path && (
+              <button
+                onClick={onLabel}
+                className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+              >
+                <FileDown className="size-3.5" />
+                Label
+              </button>
+            )}
             {s.tracking_number && (
               <button
                 onClick={onRefresh}
