@@ -97,13 +97,13 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
       <table className="w-full table-fixed text-[13px] [&_td]:align-middle">
         <TableColGroup
           cols={[
-            { size: "lg" }, // Tracking
+            { size: "md" }, // Tracking
             { size: "sm" }, // Status
             { size: "md" }, // Shipped
-            { size: "sm", mdOnly: true }, // Type
-            { size: "md", mdOnly: true }, // Carrier
+            { size: "xs", mdOnly: true }, // Type
+            { size: "sm", mdOnly: true }, // Carrier
             { size: "md", mdOnly: true }, // Route
-            { size: "sm", mdOnly: true }, // Actions
+            { size: "lg", mdOnly: true }, // Actions (Label + Invoice + Refresh)
           ]}
         />
         <thead>
@@ -158,8 +158,8 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                   <td className="hidden px-3 py-3 text-center text-[var(--muted)] md:table-cell">
                     {s.origin ?? "?"} → {s.destination ?? "?"}
                   </td>
-                  <td className="hidden px-3 py-3 text-center md:table-cell">
-                    <div className="inline-flex items-center gap-1.5">
+                  <td className="hidden px-2 py-3 text-center md:table-cell">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
                       {s.label_storage_path && (
                         <>
                           <button
