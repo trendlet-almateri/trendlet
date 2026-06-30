@@ -81,8 +81,8 @@ export async function refreshTrackingAction(trackingNumber: string): Promise<Add
   return addTrackingNumberAction(trackingNumber);
 }
 
-/** Short-lived signed URL for a stored shipment label PDF. */
-export async function getLabelUrlAction(storagePath: string): Promise<string | null> {
+/** Short-lived signed URL for a stored shipment document (label or invoice). */
+export async function getShipmentDocUrlAction(storagePath: string): Promise<string | null> {
   await requireAdmin();
   return getShipmentDocSignedUrl(storagePath);
 }
