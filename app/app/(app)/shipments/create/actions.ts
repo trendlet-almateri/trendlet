@@ -153,7 +153,9 @@ export async function createShipmentAction(
   const sb = createServiceClient();
   const { error: insErr } = await sb.from("shipments").insert({
     tracking_number: result.tracking_number,
-    shipment_type: v.productCode === "P" ? "international" : "domestic",
+    // DHL's service name (matches what the tracking flow stores). productCode
+    // P/N are both DHL Express products.
+    shipment_type: "Express",
     origin: `${v.s.cityName}, ${v.s.countryCode}`,
     destination: `${v.r.cityName}, ${v.r.countryCode}`,
     status: "pre-transit",
