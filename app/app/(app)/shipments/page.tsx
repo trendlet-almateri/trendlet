@@ -23,7 +23,7 @@ export default async function ShipmentsPage() {
     .from("shipments")
     .select(`
       id, shipment_type, origin, destination, tracking_number, status,
-      shipped_at, delivered_at, created_at,
+      shipped_at, delivered_at, created_at, label_storage_path,
       carrier:carriers ( display_name )
     `)
     .order("created_at", { ascending: false })

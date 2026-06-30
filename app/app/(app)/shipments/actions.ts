@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { trackDhlShipment, type TrackResult } from "@/lib/integrations/dhl";
+import { getShipmentDocSignedUrl } from "@/lib/storage/shipment-labels";
 
 export type AddTrackingResult = { ok: boolean; error: string | null };
 
@@ -78,4 +79,10 @@ export async function addTrackingNumberAction(trackingNumber: string): Promise<A
 
 export async function refreshTrackingAction(trackingNumber: string): Promise<AddTrackingResult> {
   return addTrackingNumberAction(trackingNumber);
+}
+
+/** Short-lived signed URL for a stored shipment label PDF. */
+export async function getLabelUrlAction(storagePath: string): Promise<string | null> {
+  await requireAdmin();
+  return getShipmentDocSignedUrl(storagePath);
 }
