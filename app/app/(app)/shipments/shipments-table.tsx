@@ -1,12 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, RefreshCw, X, FileDown } from "lucide-react";
+import { ChevronDown, RefreshCw, X, FileDown, FileText } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { TableColGroup } from "@/components/system/table-colgroup";
 import type { TrackResult } from "@/lib/integrations/dhl";
-import { refreshTrackingAction, getLabelUrlAction } from "./actions";
+import { refreshTrackingAction, getShipmentDocUrlAction } from "./actions";
+
+/** Invoice PDF path is the label path with the -label suffix swapped for
+ *  -invoice (same {tracking}-{typeCode}.pdf upload convention). */
+function invoicePathFromLabel(labelPath: string): string {
+  return labelPath.replace(/-(label|waybillDoc)\.pdf$/, "-invoice.pdf");
+}
 
 export type ShipmentRow = {
   id: string;
@@ -79,10 +85,9 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
     window.location.reload();
   }
 
-  async function openLabel(row: ShipmentRow, e: React.MouseEvent) {
+  async function openDoc(path: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!row.label_storage_path) return;
-    const url = await getLabelUrlAction(row.label_storage_path);
+    const url = await getShipmentDocUrlAction(path);
     if (url) window.open(url, "_blank", "noopener");
   }
 
@@ -156,14 +161,24 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                   <td className="hidden px-3 py-3 text-center md:table-cell">
                     <div className="inline-flex items-center gap-1.5">
                       {s.label_storage_path && (
-                        <button
-                          onClick={(e) => openLabel(s, e)}
-                          title="Open DHL label PDF"
-                          className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
-                        >
-                          <FileDown className="size-3.5" />
-                          Label
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => openDoc(s.label_storage_path!, e)}
+                            title="Open DHL label PDF"
+                            className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                          >
+                            <FileDown className="size-3.5" />
+                            Label
+                          </button>
+                          <button
+                            onClick={(e) => openDoc(invoicePathFromLabel(s.label_storage_path!), e)}
+                            title="Open commercial invoice PDF"
+                            className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                          >
+                            <FileText className="size-3.5" />
+                            Invoice
+                          </button>
+                        </>
                       )}
                       {s.tracking_number && (
                         <button
@@ -240,7 +255,7 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
           detail={detail[mobileRow.id]}
           refreshing={refreshing === mobileRow.id}
           onRefresh={(e) => refresh(mobileRow, e)}
-          onLabel={(e) => openLabel(mobileRow, e)}
+          onDoc={openDoc}
           onClose={() => setMobileRow(null)}
         />,
         document.body,
@@ -256,14 +271,14 @@ function MobileSheet({
   detail: d,
   refreshing,
   onRefresh,
-  onLabel,
+  onDoc,
   onClose,
 }: {
   shipment: ShipmentRow;
   detail: TrackResult | "loading" | "error" | undefined;
   refreshing: boolean;
   onRefresh: (e: React.MouseEvent) => void;
-  onLabel: (e: React.MouseEvent) => void;
+  onDoc: (path: string, e: React.MouseEvent) => void;
   onClose: () => void;
 }) {
   React.useEffect(() => {
@@ -297,13 +312,22 @@ function MobileSheet({
           </div>
           <div className="flex items-center gap-2">
             {s.label_storage_path && (
-              <button
-                onClick={onLabel}
-                className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
-              >
-                <FileDown className="size-3.5" />
-                Label
-              </button>
+              <>
+                <button
+                  onClick={(e) => onDoc(s.label_storage_path!, e)}
+                  className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                >
+                  <FileDown className="size-3.5" />
+                  Label
+                </button>
+                <button
+                  onClick={(e) => onDoc(invoicePathFromLabel(s.label_storage_path!), e)}
+                  className="inline-flex items-center gap-1 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                >
+                  <FileText className="size-3.5" />
+                  Invoice
+                </button>
+              </>
             )}
             {s.tracking_number && (
               <button
