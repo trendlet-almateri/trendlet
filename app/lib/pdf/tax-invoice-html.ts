@@ -70,6 +70,7 @@ export function renderTaxInvoiceHtml(
     .map(
       (item, i) => `
       <tr>
+        <td>${i + 1}</td>
         <td class="col-product">
           <div class="product-name">${esc(item.title)}</div>
           ${item.variant_title ? `<div class="product-sub">${esc(item.variant_title)}</div>` : ""}
@@ -77,7 +78,6 @@ export function renderTaxInvoiceHtml(
         <td>${item.quantity}</td>
         <td>${money(item.unit_price)}</td>
         <td>${money(item.line_total)}</td>
-        <td>${i + 1}</td>
       </tr>`,
     )
     .join("");
@@ -181,12 +181,13 @@ export function renderTaxInvoiceHtml(
   thead { display: table-header-group; }
   thead tr { background: #0f1419; color: #fff; }
   thead th { padding: 11px 16px; font-size: 13px; font-weight: 600; text-align: center; }
-  thead th:first-child { text-align: right; }
-  thead th:last-child { text-align: center; width: 40px; }
+  /* # is now the first (right-most in RTL) column; product is right-aligned via its class */
+  thead th:first-child { text-align: center; width: 40px; }
+  thead th.th-product { text-align: right; }
   tbody tr { border-bottom: 1px solid #ececed; page-break-inside: avoid; }
   tbody td { padding: 12px 16px; font-size: 14px; vertical-align: middle; text-align: center; }
   tbody td.col-product { text-align: right; }
-  tbody td:last-child { width: 40px; color: #a1a1aa; }
+  tbody td:first-child { width: 40px; color: #a1a1aa; }
   .product-name { font-weight: 700; margin-bottom: 4px; font-size: 14px; }
   .product-sub { font-size: 12px; color: #71717a; }
 
@@ -264,11 +265,11 @@ export function renderTaxInvoiceHtml(
     <table>
       <thead>
         <tr>
-          <th>المنتج</th>
+          <th>#</th>
+          <th class="th-product">المنتج</th>
           <th>الكمية</th>
           <th>السعر</th>
           <th>الإجمالي</th>
-          <th>#</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
