@@ -1,4 +1,5 @@
-import { Truck } from "lucide-react";
+import Link from "next/link";
+import { Truck, Plus } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { PageHeader, RealtimeRefresh } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -38,17 +39,26 @@ export default async function ShipmentsPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Shipments" subtitle="Outbound bulk + last-mile · all stages" />
-        <span
-          title="DHL tracking API requests used today (resets 00:00 UTC). Each search or refresh = 1 request."
-          className={cn(
-            "mt-1 shrink-0 rounded-[calc(var(--radius)-4px)] border px-2.5 py-1 text-[12px] font-medium tabular-nums",
-            nearLimit
-              ? "border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)]"
-              : "border-[var(--line)] bg-[var(--hover)] text-[var(--muted)]",
-          )}
-        >
-          DHL: {dhlUsed} / {DHL_DAILY_LIMIT} today
-        </span>
+        <div className="mt-1 flex shrink-0 items-center gap-2">
+          <span
+            title="DHL tracking API requests used today (resets 00:00 UTC). Each search or refresh = 1 request."
+            className={cn(
+              "rounded-[calc(var(--radius)-4px)] border px-2.5 py-1 text-[12px] font-medium tabular-nums",
+              nearLimit
+                ? "border-[var(--amber)]/30 bg-[var(--amber-bg)] text-[var(--amber)]"
+                : "border-[var(--line)] bg-[var(--hover)] text-[var(--muted)]",
+            )}
+          >
+            DHL: {dhlUsed} / {DHL_DAILY_LIMIT} today
+          </span>
+          <Link
+            href="/shipments/create"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-[var(--accent)] px-3.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-px hover:bg-[#0a3a6a]"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Create shipment
+          </Link>
+        </div>
       </div>
 
       <div className="md:max-w-sm">

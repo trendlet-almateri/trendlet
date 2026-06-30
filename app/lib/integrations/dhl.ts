@@ -1,82 +1,198 @@
 /**
- * DHL Express integration — bulk shipment label creation.
+ * DHL Express — MyDHL API shipment (label) creation.
  *
- * MOCK FALLBACK is the default — DHL_API_KEY is not set. Mock returns a
- * deterministic-looking tracking number ("MOCK-<8 hex>") so downstream
- * code (shipments table, /shipments page) can be exercised without
- * touching the real DHL endpoint.
+ * Production-approved 2026-06-30 (DHL ticket CS5700608). Auth = HTTP Basic
+ * from env DHL_API_USERNAME:DHL_API_PASSWORD; base URL from env DHL_BASE
+ * (prod = https://express.api.dhl.com/mydhlapi, test adds /test). Account
+ * number from env DHL_ACCOUNT_NUMBER. The proven payload shape lives in
+ * reference_dhl_debug_playbook: customerDetails.{shipper,receiver}Details
+ * nesting, productCode P (intl) / N (domestic), exportDeclaration for intl,
+ * line-item gross ≤ net weight, waybillDoc + commercial-invoice output.
+ *
+ * Staff fill every field on the create form (Saudi national-address data in
+ * orders is incomplete), so this takes a fully-specified input — no order
+ * auto-mapping here.
  */
 
-import { apiCall, logSkipped } from "@/lib/api-client";
+import { apiCall } from "@/lib/api-client";
+
+export type DhlContactAddress = {
+  fullName: string;
+  companyName?: string | null;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string | null; // KSA national: district / additional number
+  addressLine3?: string | null; // KSA national: short address (4 letters + 4 digits)
+  cityName: string;
+  postalCode: string;
+  countryCode: string; // ISO-2, e.g. "US", "SA"
+};
+
+export type DhlLineItem = {
+  description: string;
+  commodityCode: string; // HS code
+  quantity: number;
+  priceValue: number;
+  priceCurrency: string; // e.g. "SAR"
+  netWeight: number; // kg
+  grossWeight: number; // kg (must be <= net per DHL)
+  manufacturerCountry: string; // ISO-2
+};
 
 export type CreateLabelInput = {
-  origin: string; // e.g. "US-NJ"
-  destination: string; // e.g. "SA-RUH"
-  weight_kg: number;
-  pieces: number;
+  productCode: "P" | "N"; // P = international, N = domestic
+  plannedShippingDateAndTime: string; // "2026-07-03T10:43:06 GMT+03:00"
+  shipper: DhlContactAddress;
+  receiver: DhlContactAddress;
+  packageWeight: number; // kg
+  dimensions: { length: number; width: number; height: number }; // cm
+  declaredValue: number;
+  declaredValueCurrency: string;
+  description: string;
+  isCustomsDeclarable: boolean;
+  lineItems: DhlLineItem[]; // export declaration (required when isCustomsDeclarable)
+  invoiceNumber: string;
+  invoiceDate: string; // "2026-07-03"
 };
 
 export type CreateLabelResult = {
-  mode: "live" | "mock";
   tracking_number: string;
-  label_url: string | null;
+  /** base64-encoded PDF documents keyed by typeCode ("label", "invoice"). */
+  documents: { typeCode: string; pdfBase64: string }[];
   error: string | null;
 };
 
-export async function createDhlLabel(input: CreateLabelInput): Promise<CreateLabelResult> {
-  const apiKey = process.env.DHL_API_KEY;
-  const baseUrl = process.env.DHL_BASE_URL ?? "https://express.api.dhl.com/mydhlapi";
+function dhlBasicAuth(): string | null {
+  const user = process.env.DHL_API_USERNAME;
+  const pass = process.env.DHL_API_PASSWORD;
+  if (!user || !pass) return null;
+  return Buffer.from(`${user}:${pass}`).toString("base64");
+}
 
-  if (!apiKey) {
-    await logSkipped({
-      service: "dhl",
-      endpoint: "/shipments",
-      reason: "DHL_API_KEY not configured (mock mode)",
-    });
+function addr(a: DhlContactAddress) {
+  const postalAddress: Record<string, string> = {
+    cityName: a.cityName,
+    countryCode: a.countryCode,
+    postalCode: a.postalCode,
+    addressLine1: a.addressLine1,
+  };
+  if (a.addressLine2) postalAddress.addressLine2 = a.addressLine2;
+  if (a.addressLine3) postalAddress.addressLine3 = a.addressLine3;
+  return {
+    postalAddress,
+    contactInformation: {
+      phone: a.phone,
+      companyName: a.companyName ?? a.fullName,
+      fullName: a.fullName,
+    },
+  };
+}
+
+export async function createDhlLabel(input: CreateLabelInput): Promise<CreateLabelResult> {
+  const basic = dhlBasicAuth();
+  const account = process.env.DHL_ACCOUNT_NUMBER;
+  const baseUrl = process.env.DHL_BASE ?? "https://express.api.dhl.com/mydhlapi";
+
+  if (!basic || !account) {
     return {
-      mode: "mock",
-      tracking_number: `MOCK-${randomHex(8).toUpperCase()}`,
-      label_url: null,
-      error: null,
+      tracking_number: "",
+      documents: [],
+      error: "DHL not configured: set DHL_API_USERNAME, DHL_API_PASSWORD, DHL_ACCOUNT_NUMBER",
     };
   }
 
-  const res = await apiCall<{ shipmentTrackingNumber?: string; documents?: { url: string }[] }>({
+  const body = {
+    productCode: input.productCode,
+    plannedShippingDateAndTime: input.plannedShippingDateAndTime,
+    pickup: { isRequested: false },
+    accounts: [{ number: account, typeCode: "shipper" }],
+    outputImageProperties: {
+      encodingFormat: "pdf",
+      imageOptions: [
+        { invoiceType: "commercial", isRequested: true, typeCode: "invoice" },
+        { hideAccountNumber: false, isRequested: true, typeCode: "waybillDoc" },
+      ],
+    },
+    customerDetails: {
+      shipperDetails: addr(input.shipper),
+      receiverDetails: addr(input.receiver),
+    },
+    content: {
+      unitOfMeasurement: "metric",
+      incoterm: "DAP",
+      isCustomsDeclarable: input.isCustomsDeclarable,
+      description: input.description,
+      packages: [
+        {
+          weight: input.packageWeight,
+          dimensions: input.dimensions,
+        },
+      ],
+      declaredValue: input.declaredValue,
+      declaredValueCurrency: input.declaredValueCurrency,
+      ...(input.isCustomsDeclarable
+        ? {
+            exportDeclaration: {
+              lineItems: input.lineItems.map((li, i) => ({
+                number: i + 1,
+                commodityCodes: [
+                  { value: li.commodityCode, typeCode: "outbound" },
+                  { value: li.commodityCode, typeCode: "inbound" },
+                ],
+                priceCurrency: li.priceCurrency,
+                quantity: { unitOfMeasurement: "PCS", value: li.quantity },
+                price: li.priceValue,
+                description: li.description,
+                weight: { netValue: li.netWeight, grossValue: li.grossWeight },
+                exportReasonType: "permanent",
+                manufacturerCountry: li.manufacturerCountry,
+              })),
+              invoice: { date: input.invoiceDate, number: input.invoiceNumber },
+            },
+          }
+        : {}),
+    },
+  };
+
+  // DHL requires a unique Message-Reference (28–36 chars).
+  const messageRef = `trendlet-${Date.now()}-${randomHex(6)}`.slice(0, 36);
+
+  const res = await apiCall<{
+    shipmentTrackingNumber?: string;
+    documents?: { typeCode?: string; content?: string }[];
+    detail?: string;
+    additionalDetails?: string[];
+  }>({
     service: "dhl",
     endpoint: "/shipments",
     method: "POST",
     url: `${baseUrl}/shipments`,
     headers: {
-      Authorization: `Basic ${apiKey}`,
+      Authorization: `Basic ${basic}`,
       "Content-Type": "application/json",
       Accept: "application/json",
+      "Message-Reference": messageRef,
     },
-    body: {
-      productCode: "P", // Express Worldwide
-      pickup: { isRequested: false },
-      shipper: { addressLocation: input.origin },
-      receiver: { addressLocation: input.destination },
-      content: {
-        packages: [{ weight: input.weight_kg }],
-        unitOfMeasurement: "metric",
-        isCustomsDeclarable: true,
-      },
-    },
+    body,
   });
 
   if (!res.ok || !res.data?.shipmentTrackingNumber) {
-    return {
-      mode: "live",
-      tracking_number: "",
-      label_url: null,
-      error: res.error ?? "DHL did not return a tracking number",
-    };
+    // Surface DHL's own validation detail (e.g. "803: Account not allowed",
+    // weight/address errors) so staff can fix the form — apiCall only reports
+    // the HTTP status.
+    const detail =
+      res.data?.detail ??
+      res.data?.additionalDetails?.join("; ") ??
+      res.error ??
+      "DHL did not return a tracking number";
+    return { tracking_number: "", documents: [], error: detail };
   }
 
   return {
-    mode: "live",
     tracking_number: res.data.shipmentTrackingNumber,
-    label_url: res.data.documents?.[0]?.url ?? null,
+    documents: (res.data.documents ?? [])
+      .filter((d) => d.content)
+      .map((d) => ({ typeCode: d.typeCode ?? "document", pdfBase64: d.content as string })),
     error: null,
   };
 }
