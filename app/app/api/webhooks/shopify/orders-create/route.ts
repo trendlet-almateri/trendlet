@@ -3,6 +3,7 @@ import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-orde
 import { verifyShopifyWebhook, isReplay, wlog } from "@/lib/shopify/webhook-utils";
 import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
+import { generateCustomerInvoiceForOrder } from "@/lib/services/generate-customer-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -63,6 +64,16 @@ export async function POST(req: Request) {
       wlog(ctx.topic, "tax_invoice", { orderId: result.order_id, ...inv });
     } catch (e) {
       console.error("[orders-create] tax invoice failed", e);
+    }
+
+    // Auto-generate customer invoices — one per sub-order, born 'approved'
+    // with a rendered PDF (no manual review). Manual form invoices are
+    // unaffected. Idempotent, so a webhook retry can't duplicate.
+    try {
+      const cinv = await generateCustomerInvoiceForOrder(result.order_id);
+      wlog(ctx.topic, "customer_invoice", { orderId: result.order_id, ...cinv });
+    } catch (e) {
+      console.error("[orders-create] customer invoice failed", e);
     }
   }
 
