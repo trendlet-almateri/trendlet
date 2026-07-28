@@ -52,7 +52,7 @@ function num(s: string | null | undefined): number {
 }
 
 /** Map a Shopify payment gateway name to a clean display label. */
-function gatewayLabel(gateway: string | null | undefined): string | null {
+export function gatewayLabel(gateway: string | null | undefined): string | null {
   if (!gateway) return null;
   const g = gateway.toLowerCase();
   if (g.includes("tabby")) return "Tabby";

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/server";
 import { renderTaxInvoicePdf, type TaxInvoicePdfData } from "@/lib/pdf/tax-invoice-pdf";
+import { gatewayLabel } from "@/lib/services/tax-invoice-pdf-data";
 import {
   uploadCustomerInvoicePdf,
   downloadCustomerInvoicePdf,
@@ -466,7 +467,7 @@ async function generateAndStoreInvoicePdf(
         invoice_number, generated_at, language, item_price, discount_amount,
         shipment_fee, tax_amount, tax_percent, total, total_currency,
         order:orders (
-          shopify_order_number,
+          shopify_order_number, raw_payload,
           customer:customers ( first_name, last_name, email, phone, default_address ),
           sub_orders ( product_title, sku, quantity )
         )
@@ -486,6 +487,17 @@ async function generateAndStoreInvoicePdf(
       .eq("customer_invoice_id", invoiceId)
       .order("position", { ascending: true });
 
+    // Per-sub-order invoices show the sub-order number (#1514-01); legacy
+    // multi-sub-order invoices fall back to the order number.
+    const { data: junction } = await sb
+      .from("customer_invoice_sub_orders")
+      .select("sub_order:sub_orders ( sub_order_number )")
+      .eq("customer_invoice_id", invoiceId);
+    const subOrderNumber =
+      junction && junction.length === 1
+        ? ((junction[0] as { sub_order: { sub_order_number: string } | null }).sub_order?.sub_order_number ?? null)
+        : null;
+
     type Addr = {
       address1?: string | null;
       city?: string | null;
@@ -494,6 +506,7 @@ async function generateAndStoreInvoicePdf(
     } | null;
     const order = (inv as { order: unknown }).order as {
       shopify_order_number: string | null;
+      raw_payload: { payment_gateway_names?: string[] | null } | null;
       customer: {
         first_name: string | null;
         last_name: string | null;
@@ -511,8 +524,8 @@ async function generateAndStoreInvoicePdf(
 
     // Map customer-invoice data onto the shared invoice template. Same shape as
     // the tax invoice (one fixed template); only the calculation differs.
-    // Customer invoices have no payment-gateway info, so the payment section is
-    // hidden (payment.paid = false).
+    // Payment method comes from the Shopify gateway; paid stays false (customer
+    // invoice, not tax invoice — we don't assert settlement).
     const lineItems =
       itemRows && itemRows.length > 0
         ? (itemRows as {
@@ -543,16 +556,22 @@ async function generateAndStoreInvoicePdf(
     const issueDate = inv.generated_at ?? new Date().toISOString();
     const dueDate = new Date(new Date(issueDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+    // Payment method from the Shopify gateway (same source as the tax invoice).
+    const paymentMethod = gatewayLabel(order?.raw_payload?.payment_gateway_names?.[0] ?? null);
+
     const data: TaxInvoicePdfData = {
       invoice_number: inv.invoice_number,
       issue_date: issueDate,
       due_date: dueDate,
-      order: { shopify_order_number: order?.shopify_order_number ?? null },
+      order: {
+        shopify_order_number: order?.shopify_order_number ?? null,
+        sub_order_number: subOrderNumber,
+      },
       customer: {
         name: customerName,
         phone: order?.customer?.phone ?? addr?.phone ?? null,
         city: addr?.city ?? null,
-        payment_method: null,
+        payment_method: paymentMethod,
       },
       line_items: lineItems,
       totals: {
@@ -561,7 +580,7 @@ async function generateAndStoreInvoicePdf(
         grand_total: Number(inv.total),
         currency: inv.total_currency,
       },
-      payment: { paid: false, method: null, paid_at: null },
+      payment: { paid: false, method: paymentMethod, paid_at: null },
     };
 
     const buffer = await renderTaxInvoicePdf(data);
