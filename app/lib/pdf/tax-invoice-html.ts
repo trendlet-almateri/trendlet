@@ -128,8 +128,11 @@ export function renderTaxInvoiceHtml(
 
   const notesHtml = NOTES.map((n) => `<li>${esc(n)}</li>`).join("");
 
-  const orderRow = order.shopify_order_number
-    ? `<div class="info-row"><span class="info-label">رقم الطلب</span><span class="info-value">#${esc(order.shopify_order_number)}</span></div>`
+  // Per-sub-order invoices show the sub-order number (#1514-01); tax invoices
+  // fall back to the order number (#1514).
+  const orderLabel = order.sub_order_number ?? order.shopify_order_number;
+  const orderRow = orderLabel
+    ? `<div class="info-row"><span class="info-label">رقم الطلب</span><span class="info-value ltr-value">#${esc(orderLabel)}</span></div>`
     : "";
 
   return `<!DOCTYPE html>
@@ -174,6 +177,8 @@ export function renderTaxInvoiceHtml(
   .info-row:last-child { margin-bottom: 0; }
   .info-label { font-size: 12px; color: #71717a; text-align: right; }
   .info-value { font-size: 13px; font-weight: 700; text-align: left; }
+  /* Numbers/phones must read LTR so a leading + or digits aren't flipped by RTL. */
+  .ltr-value { direction: ltr; unicode-bidi: embed; }
 
   /* Line items table */
   table { width: 100%; border-collapse: collapse; }
@@ -249,7 +254,7 @@ export function renderTaxInvoiceHtml(
       <div class="info-box">
         <h3>بيانات العميل</h3>
         <div class="info-row"><span class="info-label">الاسم</span><span class="info-value">${esc(customer.name) || "—"}</span></div>
-        <div class="info-row"><span class="info-label">الجوال</span><span class="info-value">${esc(customer.phone) || "—"}</span></div>
+        <div class="info-row"><span class="info-label">الجوال</span><span class="info-value ltr-value">${esc(customer.phone) || "—"}</span></div>
         <div class="info-row"><span class="info-label">المدينة</span><span class="info-value">${esc(customer.city) || "—"}</span></div>
         <div class="info-row"><span class="info-label">طريقة الدفع</span><span class="info-value">${esc(customer.payment_method) || "—"}</span></div>
       </div>

@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { renderTaxInvoicePdf, type TaxInvoicePdfData } from "@/lib/pdf/tax-invoice-pdf";
+import { gatewayLabel } from "@/lib/services/tax-invoice-pdf-data";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function GET(
       invoice_number, generated_at, language, item_price, discount_amount,
       shipment_fee, tax_amount, tax_percent, total, total_currency,
       order:orders (
-        shopify_order_number,
+        shopify_order_number, raw_payload,
         customer:customers ( first_name, last_name, email, phone, default_address ),
         sub_orders ( product_title, sku, quantity )
       )
@@ -49,6 +50,18 @@ export async function GET(
     .eq("customer_invoice_id", params.id)
     .order("position", { ascending: true });
 
+  // Per-sub-order invoices link exactly one sub-order — show its number
+  // (#1514-01) instead of the order number. Falls back to order number
+  // for legacy multi-sub-order invoices.
+  const { data: junction } = await sb
+    .from("customer_invoice_sub_orders")
+    .select("sub_order:sub_orders ( sub_order_number )")
+    .eq("customer_invoice_id", params.id);
+  const subOrderNumber =
+    junction && junction.length === 1
+      ? ((junction[0] as { sub_order: { sub_order_number: string } | null }).sub_order?.sub_order_number ?? null)
+      : null;
+
   type Addr = {
     address1?: string | null;
     city?: string | null;
@@ -57,6 +70,7 @@ export async function GET(
   } | null;
   const order = (inv as { order: unknown }).order as {
     shopify_order_number: string | null;
+    raw_payload: { payment_gateway_names?: string[] | null } | null;
     customer: {
       first_name: string | null;
       last_name: string | null;
@@ -67,14 +81,17 @@ export async function GET(
     sub_orders: { product_title: string | null; sku: string | null; quantity: number | null }[] | null;
   } | null;
 
+  // Payment method from the Shopify gateway (same source as the tax invoice).
+  const paymentMethod = gatewayLabel(order?.raw_payload?.payment_gateway_names?.[0] ?? null);
+
   const customerName = order?.customer
     ? [order.customer.first_name, order.customer.last_name].filter(Boolean).join(" ").trim() || "Customer"
     : "Customer";
   const addr = order?.customer?.default_address ?? null;
 
-  // Same shared invoice template as the tax invoice (one fixed template). The
-  // customer invoice has no payment-gateway info, so the payment section is
-  // hidden (payment.paid = false).
+  // Same shared invoice template as the tax invoice (one fixed template).
+  // Payment method comes from the Shopify gateway; paid stays false here since
+  // this is a customer (not tax) invoice and we don't assert settlement.
   const lineItems =
     itemRows && itemRows.length > 0
       ? (itemRows as {
@@ -110,12 +127,15 @@ export async function GET(
     invoice_number: (inv as { invoice_number: string }).invoice_number,
     issue_date: issueDate,
     due_date: dueDate,
-    order: { shopify_order_number: order?.shopify_order_number ?? null },
+    order: {
+      shopify_order_number: order?.shopify_order_number ?? null,
+      sub_order_number: subOrderNumber,
+    },
     customer: {
       name: customerName,
       phone: order?.customer?.phone ?? addr?.phone ?? null,
       city: addr?.city ?? null,
-      payment_method: null,
+      payment_method: paymentMethod,
     },
     line_items: lineItems,
     totals: {
@@ -124,7 +144,7 @@ export async function GET(
       grand_total: Number((inv as { total: number }).total),
       currency: (inv as { total_currency: string }).total_currency,
     },
-    payment: { paid: false, method: null, paid_at: null },
+    payment: { paid: false, method: paymentMethod, paid_at: null },
   };
 
   // Wrap render in try/catch so production iframes don't show a generic

@@ -16,6 +16,10 @@ export type TaxInvoicePdfData = {
   due_date: string; // ISO
   order: {
     shopify_order_number: string | null;
+    /** For per-sub-order customer invoices, show the sub-order number
+     *  (e.g. "1514-01") instead of the order number. Tax invoices leave
+     *  this unset and fall back to shopify_order_number. */
+    sub_order_number?: string | null;
   };
   customer: {
     name: string;
