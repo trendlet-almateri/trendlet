@@ -22,7 +22,9 @@ function esc(s: string | null | undefined): string {
 }
 
 function money(n: number): string {
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Whole amounts render without decimals (1,000 not 1,000.00); fractional
+  // unit prices keep up to 2 decimals.
+  return n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 function fmtDate(iso: string): string {
