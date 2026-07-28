@@ -281,10 +281,10 @@ function InvoiceCard({ inv, index }: { inv: InvoiceRow; index: number }) {
 
       {/* Middle */}
       <div className="flex flex-col gap-2 text-[12.5px]">
-        {inv.order?.shopify_order_number ? (
+        {inv.sub_order_number || inv.order?.shopify_order_number ? (
           <MetaRow icon={Hash} muted="Order">
             <span className="mono tabular-nums text-[var(--ink-2)]">
-              {inv.order.shopify_order_number}
+              {inv.sub_order_number ?? inv.order?.shopify_order_number}
             </span>
           </MetaRow>
         ) : null}

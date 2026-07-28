@@ -17,6 +17,9 @@ export type InvoiceRow = {
   generated_at: string | null;
   generated_by: string | null;
   created_at: string;
+  /** Sub-order number (e.g. "1514-01") for per-sub-order invoices; null for
+   *  legacy multi-sub-order invoices. Derived from the junction below. */
+  sub_order_number: string | null;
   order: {
     id: string;
     shopify_order_number: string;
@@ -43,7 +46,8 @@ export async function fetchInvoices({
       cost, cost_currency, total, total_currency,
       profit_amount, profit_percent,
       generated_at, generated_by, created_at,
-      order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name ) )
+      order:orders ( id, shopify_order_number, customer:customers ( first_name, last_name ) ),
+      sub_orders:customer_invoice_sub_orders ( sub_order:sub_orders ( sub_order_number ) )
     `)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -56,7 +60,16 @@ export async function fetchInvoices({
     console.error("[fetchInvoices]", error);
     return [];
   }
-  return (data ?? []) as unknown as InvoiceRow[];
+
+  // Flatten the junction: a per-sub-order invoice links exactly one sub-order,
+  // so surface its number; legacy multi-sub-order invoices stay null.
+  type JunctionRow = { sub_order: { sub_order_number: string | null } | null };
+  return (data ?? []).map((row) => {
+    const junction = (row as { sub_orders?: JunctionRow[] }).sub_orders ?? [];
+    const sub_order_number =
+      junction.length === 1 ? junction[0]?.sub_order?.sub_order_number ?? null : null;
+    return { ...row, sub_order_number };
+  }) as unknown as InvoiceRow[];
 }
 
 export async function fetchInvoiceCounts(
