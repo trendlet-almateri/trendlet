@@ -16,8 +16,12 @@
  */
 import { createServiceClient } from "@/lib/supabase/server";
 import { renderTaxInvoicePdf, type TaxInvoicePdfData } from "@/lib/pdf/tax-invoice-pdf";
-import { uploadCustomerInvoicePdf } from "@/lib/storage/customer-invoices";
+import {
+  uploadCustomerInvoicePdf,
+  getCustomerInvoiceSignedUrl,
+} from "@/lib/storage/customer-invoices";
 import { gatewayLabel } from "@/lib/services/tax-invoice-pdf-data";
+import { sendInvoicePdfWhatsApp } from "@/lib/integrations/twilio";
 
 const AUTO_GENERATED_BY = "99126bae-c846-400e-9d36-7a0d34b3a1f6"; // ai@trendlet.com (system)
 
@@ -146,6 +150,24 @@ export async function generateCustomerInvoiceForOrder(orderId: string): Promise<
       const pdf = await renderTaxInvoicePdf(data);
       const path = await uploadCustomerInvoicePdf(num, pdf);
       await sb.from("customer_invoices").update({ pdf_storage_path: path }).eq("id", inv.id);
+
+      // Send the PDF to the customer on WhatsApp (approved document template).
+      // No-op unless INVOICE_WHATSAPP_ENABLED=true + template SID configured.
+      // 7-day signed URL: Twilio fetches once at send time; WhatsApp then
+      // hosts the media itself, so a later-expiring link is fine.
+      try {
+        const signedUrl = await getCustomerInvoiceSignedUrl(path, 7 * 24 * 3600);
+        if (signedUrl) {
+          const sent = await sendInvoicePdfWhatsApp({
+            phone: cust?.phone ?? addr?.phone ?? null,
+            subOrderNumber: s.sub_order_number,
+            signedPdfUrl: signedUrl,
+          });
+          console.log("[generateCustomerInvoiceForOrder] whatsapp", num, sent.mode, sent.error ?? "");
+        }
+      } catch (e) {
+        console.error("[generateCustomerInvoiceForOrder] whatsapp send failed", num, e);
+      }
     } catch (e) {
       console.error("[generateCustomerInvoiceForOrder] pdf render failed", num, e);
     }
