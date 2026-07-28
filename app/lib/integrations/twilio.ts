@@ -139,6 +139,95 @@ export async function notifyCustomerOnStatusChange(
 }
 
 /**
+ * Send an invoice PDF to the customer over WhatsApp using the approved
+ * document media template (TWILIO_INVOICE_TEMPLATE_SID).
+ *
+ * The template's Media URL is `https://<supabase-host>/{{2}}`, so {{2}} is the
+ * signed-URL path AFTER the origin (storage/v1/object/sign/...?token=...).
+ * {{1}} is the sub-order number shown in the body text.
+ *
+ * Gated OFF by default: sends only when INVOICE_WHATSAPP_ENABLED=true AND the
+ * template SID is configured — so nothing fires until the template is approved
+ * by Meta and the operator flips the env var.
+ */
+export async function sendInvoicePdfWhatsApp(input: {
+  phone: string | null | undefined;
+  subOrderNumber: string;
+  /** Full signed URL of the invoice PDF (https://...supabase.co/storage/...token=...) */
+  signedPdfUrl: string;
+}): Promise<NotifyResult> {
+  if (process.env.INVOICE_WHATSAPP_ENABLED !== "true") {
+    return { mode: "skipped", message_sid: null, error: null };
+  }
+  const templateSid = process.env.TWILIO_INVOICE_TEMPLATE_SID;
+  if (!templateSid) {
+    await logSkipped({
+      service: "twilio",
+      endpoint: "/Messages",
+      reason: "TWILIO_INVOICE_TEMPLATE_SID not set (invoice PDF send)",
+    });
+    return { mode: "missing-template", message_sid: null, error: null };
+  }
+
+  const normalized = input.phone ? normalizeSaudiPhone(input.phone) : null;
+  if (!normalized) {
+    await logSkipped({
+      service: "twilio",
+      endpoint: "/Messages",
+      reason: `invoice PDF: customer phone missing or not Saudi (sub-order ${input.subOrderNumber})`,
+    });
+    return { mode: "missing-phone", message_sid: null, error: null };
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
+  if (!accountSid || !authToken || !from) {
+    await logSkipped({
+      service: "twilio",
+      endpoint: "/Messages",
+      reason: "Twilio credentials not configured (invoice PDF send)",
+    });
+    return { mode: "missing-template", message_sid: null, error: "twilio creds missing" };
+  }
+
+  // {{2}} = everything after the origin, since the template hardcodes the host.
+  const pathAfterOrigin = input.signedPdfUrl.replace(/^https:\/\/[^/]+\//, "");
+
+  const params = new URLSearchParams();
+  params.set("To", `whatsapp:${normalized}`);
+  params.set("From", from);
+  params.set("ContentSid", templateSid);
+  params.set(
+    "ContentVariables",
+    JSON.stringify({ "1": input.subOrderNumber, "2": pathAfterOrigin }),
+  );
+
+  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+  const res = await apiCall<{ sid?: string }>({
+    service: "twilio",
+    endpoint: "/Messages",
+    method: "POST",
+    url: `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params.toString(),
+  });
+
+  if (!res.ok) return { mode: "live", message_sid: null, error: res.error };
+
+  void mirrorToSupportInbox({
+    phone: normalized,
+    message: `فاتورة طلبك رقم ${input.subOrderNumber} (invoice PDF sent)`,
+    message_sid: res.data?.sid ?? null,
+  }).catch((e) => console.error("[twilio] invoice mirror failed", e));
+
+  return { mode: "live", message_sid: res.data?.sid ?? null, error: null };
+}
+
+/**
  * Fire-and-forget POST to the kind-ai support inbox. Records the outbound
  * order-status message in the customer's conversation thread there.
  * No-op (logged) when SUPPORT_INBOX_URL / SUPPORT_INBOX_TOKEN aren't set.
