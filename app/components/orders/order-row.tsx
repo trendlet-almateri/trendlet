@@ -9,7 +9,7 @@ import { StatusPill } from "@/components/status/status-pill";
 import { regionLabel } from "@/lib/utils/region";
 import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import { formatCurrency } from "@/lib/utils/currency";
-import { shortDate } from "@/lib/utils/date";
+import { shortDateTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
 
 // ── Presentational helpers ────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ export function OrderRow({ order: o, onOpenDrawer }: OrderRowProps) {
                 </span>
               ) : (
                 <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[11px] tabular-nums text-[var(--muted)]">
-                  {shortDate(o.shopify_created_at)}
+                  {shortDateTime(o.shopify_created_at)}
                 </span>
               )}
           </div>
@@ -305,7 +305,7 @@ function MobileDetailCard({ order: o, onClose }: { order: OrderRowData; onClose:
             <span className="font-[family-name:var(--font-jetbrains,monospace)] text-[14px] font-bold text-[var(--ink)]">
               {o.shopify_order_number}
             </span>
-            <span className="text-[12px] text-[var(--muted)]">{shortDate(o.shopify_created_at)}</span>
+            <span className="text-[12px] text-[var(--muted)]">{shortDateTime(o.shopify_created_at)}</span>
           </div>
           <button
             type="button"
