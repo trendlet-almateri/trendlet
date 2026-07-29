@@ -21,6 +21,23 @@ export type NotifyResult = {
   error: string | null;
 };
 
+// ponytail: the WhatsApp sender is one fixed business number, not config — an
+// unset TWILIO_WHATSAPP_FROM used to silently skip every send until someone
+// redeployed. Env still wins so a sandbox number can override it.
+const WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+966552552787";
+
+/**
+ * Twilio rejects newlines (and stray control whitespace) inside
+ * ContentVariables with 400 "Content Variables parameter is invalid" —
+ * Shopify titles like "Tory Burch Britten\nMicro Satchel" hit this.
+ * Collapse whitespace in every value; URLs and order numbers are unaffected.
+ */
+export function contentVariables(vars: Record<string, string>): string {
+  return JSON.stringify(
+    Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, v.replace(/\s+/g, " ").trim()])),
+  );
+}
+
 /**
  * Sends the Twilio template for `newStatus` to the customer associated
  * with `subOrderId`. Caller is responsible for the actual status change —
@@ -88,12 +105,11 @@ export async function notifyCustomerOnStatusChange(
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!accountSid || !authToken || !from) {
+  if (!accountSid || !authToken) {
     await logSkipped({
       service: "twilio",
       endpoint: "/Messages",
-      reason: "Twilio credentials not configured",
+      reason: `Twilio credentials not configured (missing ${!accountSid ? "TWILIO_ACCOUNT_SID" : "TWILIO_AUTH_TOKEN"})`,
     });
     return { mode: "missing-template", message_sid: null, error: "twilio creds missing" };
   }
@@ -101,11 +117,11 @@ export async function notifyCustomerOnStatusChange(
   // Twilio Content API: template SID + variables in JSON
   const params = new URLSearchParams();
   params.set("To", `whatsapp:${normalized}`);
-  params.set("From", from);
+  params.set("From", WHATSAPP_FROM);
   params.set("ContentSid", status.twilio_template_sid);
   params.set(
     "ContentVariables",
-    JSON.stringify({ "1": sub?.sub_order_number ?? "", "2": sub?.product_title ?? "" }),
+    contentVariables({ "1": sub?.sub_order_number ?? "", "2": sub?.product_title ?? "" }),
   );
 
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
@@ -181,12 +197,11 @@ export async function sendInvoicePdfWhatsApp(input: {
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!accountSid || !authToken || !from) {
+  if (!accountSid || !authToken) {
     await logSkipped({
       service: "twilio",
       endpoint: "/Messages",
-      reason: "Twilio credentials not configured (invoice PDF send)",
+      reason: `Twilio credentials not configured (invoice PDF send, missing ${!accountSid ? "TWILIO_ACCOUNT_SID" : "TWILIO_AUTH_TOKEN"})`,
     });
     return { mode: "missing-template", message_sid: null, error: "twilio creds missing" };
   }
@@ -196,12 +211,9 @@ export async function sendInvoicePdfWhatsApp(input: {
 
   const params = new URLSearchParams();
   params.set("To", `whatsapp:${normalized}`);
-  params.set("From", from);
+  params.set("From", WHATSAPP_FROM);
   params.set("ContentSid", templateSid);
-  params.set(
-    "ContentVariables",
-    JSON.stringify({ "1": input.subOrderNumber, "2": pathAfterOrigin }),
-  );
+  params.set("ContentVariables", contentVariables({ "1": input.subOrderNumber, "2": pathAfterOrigin }));
 
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
   const res = await apiCall<{ sid?: string }>({
