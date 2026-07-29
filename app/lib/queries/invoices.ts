@@ -30,12 +30,14 @@ export type InvoiceRow = {
 export async function fetchInvoices({
   status,
   generatedBy,
-  limit = 100,
+  limit = 5000,
 }: {
   status?: InvoiceStatus;
   /** Restrict to invoices created by this user. Used for non-admin views
    *  (sourcing / EU fulfiller see only their own work). */
   generatedBy?: string;
+  /** High cap: the list paginates client-side (tabs + search filter the full
+   *  set), so we fetch everything. Revisit if the table passes ~5k rows. */
   limit?: number;
 } = {}): Promise<InvoiceRow[]> {
   const sb = createServiceClient();
