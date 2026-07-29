@@ -146,6 +146,11 @@ export function InvoicesList({
 }) {
   const [filter, setFilter] = React.useState<FilterKey>("all");
   const [query, setQuery] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const PER_PAGE = 24;
+
+  // Back to page 1 whenever the visible set changes.
+  React.useEffect(() => setPage(1), [filter, query]);
 
   const filterCounts: Record<FilterKey, number> = {
     all: invoices.length,
@@ -233,12 +238,61 @@ export function InvoicesList({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((inv, i) => (
-            <InvoiceCard key={inv.id} inv={inv} index={i} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((inv, i) => (
+              <InvoiceCard key={inv.id} inv={inv} index={i} />
+            ))}
+          </div>
+          {filtered.length > PER_PAGE && (
+            <Pager
+              page={page}
+              totalPages={Math.ceil(filtered.length / PER_PAGE)}
+              totalItems={filtered.length}
+              onPage={setPage}
+            />
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+// ── Pager ─────────────────────────────────────────────────────────────────
+function Pager({
+  page,
+  totalPages,
+  totalItems,
+  onPage,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  onPage: (p: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-[14px] border border-[var(--line)] bg-[var(--panel)] px-3 py-2">
+      <span className="text-[12px] text-[var(--muted)] tabular-nums">
+        Page {page} of {totalPages} · {totalItems} invoices
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+          className="inline-flex h-8 items-center rounded-md px-3 text-[12px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          ← Prev
+        </button>
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onPage(page + 1)}
+          className="inline-flex h-8 items-center rounded-md px-3 text-[12px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next →
+        </button>
+      </div>
     </div>
   );
 }
