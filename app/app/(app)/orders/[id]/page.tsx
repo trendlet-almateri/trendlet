@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth/require-role";
 import { createServiceClient } from "@/lib/supabase/server";
 import { StatusPill } from "@/components/status/status-pill";
 import { formatCurrency } from "@/lib/utils/currency";
-import { fullDateTime, shortDate } from "@/lib/utils/date";
+import { fullDateTime } from "@/lib/utils/date";
 import { formatSubOrderNumber } from "@/lib/utils/sub-order";
 import { deriveOrderCancelState, orderCancelLabel } from "@/lib/workflow/order-cancel-state";
 
@@ -301,7 +301,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
           {/* Meta */}
           <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] p-4 text-[12px] text-[var(--muted)] shadow-[var(--shadow-sm)]">
             <div>Order ID: <span className="tabular-nums">{order.shopify_order_id}</span></div>
-            <div>Created: {shortDate(order.shopify_created_at)}</div>
+            <div>Created: {fullDateTime(order.shopify_created_at)}</div>
           </section>
         </aside>
       </div>

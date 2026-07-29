@@ -4,7 +4,7 @@ import * as React from "react";
 import { X, ChevronRight, MapPin, Mail, Phone, Package, Clock, AlertCircle, AlertTriangle, Info, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
-import { shortDate, fullDateTime } from "@/lib/utils/date";
+import { shortDateTime, fullDateTime } from "@/lib/utils/date";
 import { StatusPill } from "@/components/status/status-pill";
 import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import type { OrderRow } from "@/lib/queries/orders";
@@ -224,7 +224,7 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
         <div className="grid grid-cols-3 gap-px border-b border-[var(--line)] bg-[var(--line)]">
           {[
             { label: "Total",      value: formatCurrency(o.total ?? 0, o.currency) },
-            { label: "Placed",     value: shortDate(order.shopify_created_at) },
+            { label: "Placed",     value: shortDateTime(order.shopify_created_at) },
             { label: "Sub-orders", value: String(order.sub_orders.length) },
           ].map((s) => (
             <div key={s.label} className="flex flex-col gap-0.5 bg-[var(--panel)] px-4 py-3">
