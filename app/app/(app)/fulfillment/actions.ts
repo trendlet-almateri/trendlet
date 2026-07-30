@@ -70,7 +70,10 @@ export async function setSubOrderStatusAction(input: {
 
   // Fire WhatsApp template if the new status has notifies_customer = true.
   // No-op when twilio_template_sid is NULL on the status row.
-  void notifyCustomerOnStatusChange(parsed.data.subOrderId, parsed.data.status).catch((e) => {
+  // Awaited on purpose: Vercel freezes the lambda as soon as the action
+  // returns, so a fire-and-forget send gets suspended mid-flight and only
+  // completes (or is lost) whenever a later request thaws the container.
+  await notifyCustomerOnStatusChange(parsed.data.subOrderId, parsed.data.status).catch((e) => {
     console.error("[fulfillment] twilio notify failed", e);
   });
 
