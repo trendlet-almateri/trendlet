@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth/require-role";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notifyCustomerOnStatusChange } from "@/lib/integrations/twilio";
 import { STATUSES } from "@/lib/constants";
 
 const ALLOWED_STATUSES = STATUSES.map((s) => s.code) as readonly string[];
@@ -68,14 +67,11 @@ export async function setSubOrderStatusAction(input: {
 
   if (error) return { ok: false, error: error.message };
 
-  // Fire WhatsApp template if the new status has notifies_customer = true.
-  // No-op when twilio_template_sid is NULL on the status row.
-  // Awaited on purpose: Vercel freezes the lambda as soon as the action
-  // returns, so a fire-and-forget send gets suspended mid-flight and only
-  // completes (or is lost) whenever a later request thaws the container.
-  await notifyCustomerOnStatusChange(parsed.data.subOrderId, parsed.data.status).catch((e) => {
-    console.error("[fulfillment] twilio notify failed", e);
-  });
+  // Customer WhatsApp notification is NOT sent from here anymore. The
+  // trg_notify_status_change DB trigger on sub_orders calls
+  // /api/internal/notify-status on the current production deployment for
+  // every status change — including ones made by stale clients running old
+  // deployments, which used to silently skip the send from this action.
 
   // Same SubOrderRow component renders in /fulfillment, /queue, /pipeline,
   // /eu-fulfillment — revalidate all four so a status change in one view
