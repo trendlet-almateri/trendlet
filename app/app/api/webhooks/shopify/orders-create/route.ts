@@ -7,6 +7,13 @@ import { generateCustomerInvoiceForOrder } from "@/lib/services/generate-custome
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Each customer invoice renders a PDF (~2s) inline, so a 5-item order needs
+// ~11s — past Vercel's default cap, and being killed mid-render leaves an
+// invoice row with no PDF that the backfill would skip forever. Shopify's own
+// 5s timeout is not a concern: it just retries, and isReplay dedupes the retry.
+// At ~5 orders/day this inline approach is fine; move the render+send to the
+// poll if volume grows enough that multi-item orders become common.
+export const maxDuration = 60;
 
 /**
  * Shopify orders/create webhook.
