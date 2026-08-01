@@ -20,6 +20,7 @@ import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-orde
 import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
 import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
+import { generateCustomerInvoiceForOrder } from "@/lib/services/generate-customer-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -78,6 +79,7 @@ export async function GET(req: Request) {
     skipped: 0,
     notified: 0, // order_created notifications sent for poll-inserted orders
     invoiced: 0, // tax invoices created (issued or needs_pricing) for poll-inserted orders
+    customer_invoiced: 0, // customer invoices created (one per sub-order)
     errors: [] as { order_number: string; reason: string }[],
   };
 
@@ -168,6 +170,15 @@ export async function GET(req: Request) {
           } catch (e) {
             console.error("[shopify-poll] tax invoice failed", e);
           }
+          // Customer invoices (one per sub-order). Parity with the orders/create
+          // webhook, which is the only place this used to run — and that webhook
+          // is registered to a dead domain, so in practice it never ran at all.
+          try {
+            const cinv = await generateCustomerInvoiceForOrder(result.order_id);
+            summary.customer_invoiced += cinv.created;
+          } catch (e) {
+            console.error("[shopify-poll] customer invoice failed", e);
+          }
         } else if (result.action === "refreshed") {
           summary.refreshed++;
         } else {
@@ -225,6 +236,7 @@ export async function GET(req: Request) {
   // Idempotent: generateTaxInvoiceForOrder checks for an existing invoice and
   // UNIQUE(order_id) blocks duplicates. Time-budgeted + capped.
   let invoiceBackfill = 0;
+  let customerInvoiceBackfill = 0;
   if (Date.now() - t0 < BUDGET_MS) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -248,9 +260,30 @@ export async function GET(req: Request) {
         console.error("[shopify-poll] invoice backfill failed", o.id, e);
       }
     }
+
+    // Same backfill for customer invoices. Each one renders a PDF (~2s), so
+    // this leans on the time budget and drains across runs rather than
+    // finishing in one. Idempotent per sub-order.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: cInvoiced } = await (sb as any).from("customer_invoices").select("order_id");
+    const cInvoicedSet = new Set(
+      ((cInvoiced ?? []) as { order_id: string }[]).map((r) => r.order_id),
+    );
+    const cMissing = ((recent ?? []) as { id: string }[]).filter((o) => !cInvoicedSet.has(o.id));
+    for (const o of cMissing) {
+      if (Date.now() - t0 > BUDGET_MS) break;
+      try {
+        const cinv = await generateCustomerInvoiceForOrder(o.id);
+        customerInvoiceBackfill += cinv.created;
+      } catch (e) {
+        console.error("[shopify-poll] customer invoice backfill failed", o.id, e);
+      }
+    }
   }
 
-  console.log(`[shopify-poll] invoice backfill generated=${invoiceBackfill}`);
+  console.log(
+    `[shopify-poll] invoice backfill generated=${invoiceBackfill} customer=${customerInvoiceBackfill}`,
+  );
 
   return NextResponse.json({
     ok: true,
@@ -260,6 +293,7 @@ export async function GET(req: Request) {
     last_polled_at: newPolled,
     hasMore: budgetHit,
     invoice_backfill: invoiceBackfill,
+    customer_invoice_backfill: customerInvoiceBackfill,
     ...summary,
   });
 }
