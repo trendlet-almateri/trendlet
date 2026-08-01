@@ -154,17 +154,24 @@ export async function notifyCustomerOnStatusChange(
   return { mode: "live", message_sid: res.data?.sid ?? null, error: null };
 }
 
+// ponytail: Meta-approved template (invoice_pdf1, approved 2026-08-01). Like
+// WHATSAPP_FROM, this is a fixed identifier rather than config — keeping it in
+// env only meant an unset var silently disabled every invoice send. Env still
+// overrides so a replacement template can be tested.
+const INVOICE_TEMPLATE_SID =
+  process.env.TWILIO_INVOICE_TEMPLATE_SID || "HXc44146433e49a2cc5c5da751bfbdfc6a";
+
 /**
  * Send an invoice PDF to the customer over WhatsApp using the approved
- * document media template (TWILIO_INVOICE_TEMPLATE_SID).
+ * document media template (invoice_pdf1).
  *
  * The template's Media URL is `https://<supabase-host>/{{2}}`, so {{2}} is the
  * signed-URL path AFTER the origin (storage/v1/object/sign/...?token=...).
  * {{1}} is the sub-order number shown in the body text.
  *
- * Gated OFF by default: sends only when INVOICE_WHATSAPP_ENABLED=true AND the
- * template SID is configured — so nothing fires until the template is approved
- * by Meta and the operator flips the env var.
+ * ON by default. Kill-switch matches TWILIO_NOTIFICATIONS_ENABLED semantics:
+ * only the literal string "false" disables it, so a missing env var can never
+ * silently stop customers receiving their invoice.
  */
 export async function sendInvoicePdfWhatsApp(input: {
   phone: string | null | undefined;
@@ -172,18 +179,15 @@ export async function sendInvoicePdfWhatsApp(input: {
   /** Full signed URL of the invoice PDF (https://...supabase.co/storage/...token=...) */
   signedPdfUrl: string;
 }): Promise<NotifyResult> {
-  if (process.env.INVOICE_WHATSAPP_ENABLED !== "true") {
-    return { mode: "skipped", message_sid: null, error: null };
-  }
-  const templateSid = process.env.TWILIO_INVOICE_TEMPLATE_SID;
-  if (!templateSid) {
+  if (process.env.INVOICE_WHATSAPP_ENABLED === "false") {
     await logSkipped({
       service: "twilio",
       endpoint: "/Messages",
-      reason: "TWILIO_INVOICE_TEMPLATE_SID not set (invoice PDF send)",
+      reason: `invoice PDF send disabled (INVOICE_WHATSAPP_ENABLED=false), sub-order ${input.subOrderNumber}`,
     });
-    return { mode: "missing-template", message_sid: null, error: null };
+    return { mode: "skipped", message_sid: null, error: null };
   }
+  const templateSid = INVOICE_TEMPLATE_SID;
 
   const normalized = input.phone ? normalizeSaudiPhone(input.phone) : null;
   if (!normalized) {
