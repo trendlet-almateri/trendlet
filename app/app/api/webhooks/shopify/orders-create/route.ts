@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-order";
-import { verifyShopifyWebhook, isReplay, wlog } from "@/lib/shopify/webhook-utils";
+import { verifyShopifyWebhook, isReplay, wlog, findOrderByShopifyId } from "@/lib/shopify/webhook-utils";
 import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
 import { generateCustomerInvoiceForOrder } from "@/lib/services/generate-customer-invoice";
@@ -37,7 +37,25 @@ export async function POST(req: Request) {
   const result = await ingestShopifyOrder(payload, { updateOnDuplicate: false });
   wlog(ctx.topic, result.action, { shopifyOrderId: String(payload.id) });
 
-  if (result.action === "inserted") {
+  // Resolve the order even when THIS delivery didn't insert it. Shopify sends
+  // orders/paid and orders/updated ~3s BEFORE orders/create on every order,
+  // and orders/updated ingests the row first — so by the time orders/create
+  // arrives, ingest returns "skipped" and the side effects below were never
+  // reached. That is why orders had a tax invoice (poll backfill) but no
+  // customer invoice and no order_created notification.
+  //
+  // orders/create is delivered once per order (retries are stopped by
+  // isReplay above) and every side effect here is idempotent, so running them
+  // on a "skipped" ingest cannot duplicate anything.
+  const orderId =
+    result.action === "skipped"
+      ? (await findOrderByShopifyId(String(payload.id)))?.id ?? null
+      : result.order_id;
+
+  if (orderId) {
+    const itemCount =
+      result.action === "inserted" ? result.sub_orders_created : payload.line_items?.length ?? 0;
+
     // AWAIT both side effects — on Vercel, promises left pending after the
     // response returns are not guaranteed to run (no waitUntil in Next 14.2),
     // which is why earlier orders ingested but never got an invoice. Each is
@@ -50,8 +68,8 @@ export async function POST(req: Request) {
         type: "order_created",
         severity: "info",
         title: `New order #${payload.order_number} received`,
-        description: `${result.sub_orders_created} item${result.sub_orders_created !== 1 ? "s" : ""} · ${payload.total_price ? `${payload.currency} ${payload.total_price}` : ""}`,
-        href: `/orders/${result.order_id}`,
+        description: `${itemCount} item${itemCount !== 1 ? "s" : ""} · ${payload.total_price ? `${payload.currency} ${payload.total_price}` : ""}`,
+        href: `/orders/${orderId}`,
       });
     } catch (e) {
       console.error("[orders-create] notification failed", e);
@@ -60,8 +78,8 @@ export async function POST(req: Request) {
     // Auto-generate the tax invoice. Issues when pricing resolves cleanly;
     // otherwise leaves a 'needs_pricing' draft for manual completion.
     try {
-      const inv = await generateTaxInvoiceForOrder(result.order_id);
-      wlog(ctx.topic, "tax_invoice", { orderId: result.order_id, ...inv });
+      const inv = await generateTaxInvoiceForOrder(orderId);
+      wlog(ctx.topic, "tax_invoice", { orderId, ...inv });
     } catch (e) {
       console.error("[orders-create] tax invoice failed", e);
     }
@@ -70,8 +88,8 @@ export async function POST(req: Request) {
     // with a rendered PDF (no manual review). Manual form invoices are
     // unaffected. Idempotent, so a webhook retry can't duplicate.
     try {
-      const cinv = await generateCustomerInvoiceForOrder(result.order_id);
-      wlog(ctx.topic, "customer_invoice", { orderId: result.order_id, ...cinv });
+      const cinv = await generateCustomerInvoiceForOrder(orderId);
+      wlog(ctx.topic, "customer_invoice", { orderId, ...cinv });
     } catch (e) {
       console.error("[orders-create] customer invoice failed", e);
     }
