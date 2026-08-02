@@ -151,29 +151,133 @@ export async function generateCustomerInvoiceForOrder(orderId: string): Promise<
       const path = await uploadCustomerInvoicePdf(num, pdf);
       await sb.from("customer_invoices").update({ pdf_storage_path: path }).eq("id", inv.id);
 
-      // Send the PDF to the customer on WhatsApp (approved document template).
-      // No-op unless INVOICE_WHATSAPP_ENABLED=true + template SID configured.
-      // 7-day signed URL: Twilio fetches once at send time; WhatsApp then
-      // hosts the media itself, so a later-expiring link is fine.
-      try {
-        const signedUrl = await getCustomerInvoiceSignedUrl(path, 7 * 24 * 3600);
-        if (signedUrl) {
-          const sent = await sendInvoicePdfWhatsApp({
-            phone: cust?.phone ?? addr?.phone ?? null,
-            subOrderNumber: s.sub_order_number,
-            signedPdfUrl: signedUrl,
-          });
-          console.log("[generateCustomerInvoiceForOrder] whatsapp", num, sent.mode, sent.error ?? "");
-        }
-      } catch (e) {
-        console.error("[generateCustomerInvoiceForOrder] whatsapp send failed", num, e);
-      }
-    } catch (e) {
-      console.error("[generateCustomerInvoiceForOrder] pdf render failed", num, e);
-    }
+      await sendInvoicePdfAndRecord(sb, {
+        invoiceId: inv.id,
+        invoiceNumber: num,
+        storagePath: path,
+        subOrderNumber: s.sub_order_number,
+        phone: cust?.phone ?? addr?.phone ?? null,
+        attemptsSoFar: 0,
+      });
 
-    result.created++;
+      result.created++;
+    } catch (e) {
+      // The invoice row stands but has no PDF, so it was never sent either.
+      // resendPendingInvoiceWhatsApp cannot help (it requires a PDF), so this
+      // is a real error, not a success — counting it as "created" is what made
+      // earlier PDF-less invoices look fine and never get regenerated.
+      console.error("[generateCustomerInvoiceForOrder] pdf render failed", num, e);
+      result.errors++;
+    }
   }
 
   return result;
+}
+
+/** Cap on WhatsApp send attempts per invoice — stops a permanently failing
+ *  send (bad number, revoked template) from retrying every 5 minutes forever. */
+const MAX_WHATSAPP_ATTEMPTS = 5;
+
+/**
+ * Send one invoice's PDF over WhatsApp and record the outcome on the invoice
+ * row: `whatsapp_attempts` always increments, `whatsapp_sent_at` is stamped
+ * only on a confirmed send. That stamp is what stops any further retry, so it
+ * is written immediately after the send returns.
+ *
+ * Shared by the create path and the retry sweep so both record identically.
+ */
+async function sendInvoicePdfAndRecord(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sb: any,
+  input: {
+    invoiceId: string;
+    invoiceNumber: string;
+    storagePath: string;
+    subOrderNumber: string;
+    phone: string | null;
+    attemptsSoFar: number;
+  },
+): Promise<"sent" | "skipped" | "failed"> {
+  await sb
+    .from("customer_invoices")
+    .update({ whatsapp_attempts: input.attemptsSoFar + 1 })
+    .eq("id", input.invoiceId);
+
+  try {
+    const signedUrl = await getCustomerInvoiceSignedUrl(input.storagePath, 7 * 24 * 3600);
+    if (!signedUrl) {
+      console.error("[invoice-whatsapp] could not sign pdf url", input.invoiceNumber);
+      return "failed";
+    }
+
+    const sent = await sendInvoicePdfWhatsApp({
+      phone: input.phone,
+      subOrderNumber: input.subOrderNumber,
+      signedPdfUrl: signedUrl,
+    });
+    console.log("[invoice-whatsapp]", input.invoiceNumber, sent.mode, sent.error ?? "");
+
+    if (sent.mode === "live" && sent.message_sid) {
+      await sb
+        .from("customer_invoices")
+        .update({ whatsapp_sent_at: new Date().toISOString() })
+        .eq("id", input.invoiceId);
+      return "sent";
+    }
+    // "skipped" = kill-switch off or unusable phone. Neither is retryable, but
+    // the attempt counter still bounds it.
+    return sent.mode === "skipped" || sent.mode === "missing-phone" ? "skipped" : "failed";
+  } catch (e) {
+    console.error("[invoice-whatsapp] send failed", input.invoiceNumber, e);
+    return "failed";
+  }
+}
+
+/**
+ * Retry sweep: re-send invoices that have a PDF but were never confirmed sent.
+ * Called from the Shopify poll, so a Twilio outage or a crash between render
+ * and send heals itself within ~5 minutes instead of the customer silently
+ * never receiving their invoice.
+ *
+ * Bounded three ways: MAX_WHATSAPP_ATTEMPTS, a 7-day window, and `limit`.
+ * `whatsapp_sent_at` makes a double-send impossible once one succeeds.
+ */
+export async function resendPendingInvoiceWhatsApp(limit = 10): Promise<{
+  sent: number;
+  failed: number;
+  skipped: number;
+}> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceClient() as any;
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: pending } = await sb
+    .from("customer_invoices")
+    .select(`
+      id, invoice_number, pdf_storage_path, whatsapp_attempts,
+      order:orders ( customer:customers ( phone ) ),
+      links:customer_invoice_sub_orders ( sub_order:sub_orders ( sub_order_number ) )
+    `)
+    .not("pdf_storage_path", "is", null)
+    .is("whatsapp_sent_at", null)
+    .lt("whatsapp_attempts", MAX_WHATSAPP_ATTEMPTS)
+    .gte("created_at", since)
+    .limit(limit);
+
+  const out = { sent: 0, failed: 0, skipped: 0 };
+  for (const inv of pending ?? []) {
+    const subNumber = inv.links?.[0]?.sub_order?.sub_order_number;
+    if (!subNumber) { out.skipped++; continue; }
+
+    const res = await sendInvoicePdfAndRecord(sb, {
+      invoiceId: inv.id,
+      invoiceNumber: inv.invoice_number,
+      storagePath: inv.pdf_storage_path,
+      subOrderNumber: subNumber,
+      phone: inv.order?.customer?.phone ?? null,
+      attemptsSoFar: inv.whatsapp_attempts ?? 0,
+    });
+    out[res === "sent" ? "sent" : res === "skipped" ? "skipped" : "failed"]++;
+  }
+  return out;
 }
