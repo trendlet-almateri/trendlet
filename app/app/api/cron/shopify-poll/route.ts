@@ -20,7 +20,10 @@ import { ingestShopifyOrder, type ShopifyOrder } from "@/lib/shopify/ingest-orde
 import { getShopifyAccessToken, getShopDomain } from "@/lib/shopify/get-access-token";
 import { writeOrderNotification } from "@/lib/notifications/write-notification";
 import { generateTaxInvoiceForOrder } from "@/lib/services/generate-tax-invoice";
-import { generateCustomerInvoiceForOrder } from "@/lib/services/generate-customer-invoice";
+import {
+  generateCustomerInvoiceForOrder,
+  resendPendingInvoiceWhatsApp,
+} from "@/lib/services/generate-customer-invoice";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -281,8 +284,22 @@ export async function GET(req: Request) {
     }
   }
 
+  // Retry invoices that have a PDF but were never confirmed sent — a Twilio
+  // outage or a crash between render and send would otherwise leave the
+  // customer silently without their invoice, since the backfills above only
+  // look for orders with no invoice row at all.
+  let whatsappRetry = { sent: 0, failed: 0, skipped: 0 };
+  if (Date.now() - t0 < BUDGET_MS) {
+    try {
+      whatsappRetry = await resendPendingInvoiceWhatsApp(10);
+    } catch (e) {
+      console.error("[shopify-poll] invoice whatsapp retry failed", e);
+    }
+  }
+
   console.log(
-    `[shopify-poll] invoice backfill generated=${invoiceBackfill} customer=${customerInvoiceBackfill}`,
+    `[shopify-poll] invoice backfill generated=${invoiceBackfill} customer=${customerInvoiceBackfill} ` +
+      `whatsappRetry sent=${whatsappRetry.sent} failed=${whatsappRetry.failed} skipped=${whatsappRetry.skipped}`,
   );
 
   return NextResponse.json({
@@ -294,6 +311,7 @@ export async function GET(req: Request) {
     hasMore: budgetHit,
     invoice_backfill: invoiceBackfill,
     customer_invoice_backfill: customerInvoiceBackfill,
+    whatsapp_retry: whatsappRetry,
     ...summary,
   });
 }
