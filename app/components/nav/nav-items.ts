@@ -28,6 +28,8 @@ export type NavItem = {
   roles?: Role[];
   /** Visually present but non-navigable — rendered without interaction */
   disabled?: boolean;
+  /** Small pill shown on the right, e.g. "Soon" for coming-soon features. */
+  badge?: string;
 };
 
 export type NavSection = {
@@ -60,7 +62,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/queue", label: "Sourcing", icon: ShoppingBag, dot: "bg-status-sourcing-border", roles: ["sourcing", "admin"] },
       { href: "/pipeline", label: "Warehouse", icon: Warehouse, dot: "bg-status-warehouse-border", roles: ["warehouse", "admin"] },
       { href: "/eu-fulfillment", label: "EU fulfillment", icon: Globe, dot: "bg-status-transit-border", roles: ["fulfiller", "admin"] },
-      { href: "/ksa-last-mile", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"], disabled: true },
+      { href: "/ksa-last-mile", label: "KSA last-mile", icon: MapPin, dot: "bg-status-delivered-border", roles: ["ksa_operator", "admin"], disabled: true, badge: "Soon" },
       // Sourcing + EU fulfiller share the /invoices page (filtered to
       // their own work). Admin already has the full Invoices view in
       // Workspace above, so excluded here to avoid a duplicate link.

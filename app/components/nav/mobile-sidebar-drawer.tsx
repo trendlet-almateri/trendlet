@@ -97,6 +97,7 @@ export function MobileSidebarDrawer({ user, counts, unassignedCount, notificatio
                     count={key ? counts[key] ?? null : null}
                     dot={item.dot ?? "bg-[#6e7581]"}
                     disabled={item.disabled}
+                    badge={item.badge}
                   />
                 );
               })}

@@ -50,6 +50,7 @@ export function Sidebar({ user, counts, unassignedCount, notifications }: Sideba
                   count={key ? counts[key] ?? null : null}
                   dot={item.dot ?? "bg-[#6e7581]"}
                   disabled={item.disabled}
+                  badge={item.badge}
                 />
               );
             })}
