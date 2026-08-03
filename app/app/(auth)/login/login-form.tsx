@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { BrandSpinnerOverlay } from "@/components/spinner/brand-spinner";
 
@@ -29,7 +29,6 @@ function SubmitButton() {
 
 export function LoginForm({ next }: { next: string }) {
   const [state, formAction] = useFormState(loginAction, initial);
-  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
@@ -60,26 +59,14 @@ export function LoginForm({ next }: { next: string }) {
             Forgot password?
           </Link>
         </div>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            required
-            placeholder="••••••••"
-            aria-invalid={state.error ? true : undefined}
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute inset-y-0 right-3 flex items-center text-ink-tertiary hover:text-ink-secondary"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          autoComplete="current-password"
+          required
+          placeholder="••••••••"
+          aria-invalid={state.error ? true : undefined}
+        />
       </div>
 
       {state.error && (

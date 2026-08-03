@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type BootstrapResult =
   | { ok: true; shop: string; expires_in: number; refresh_token_expires_in: number; scope: string | null }
@@ -76,8 +77,7 @@ export function BootstrapForm() {
         </Field>
 
         <Field label="Client secret" hint="From the same page — click Reveal">
-          <Input
-            type="password"
+          <PasswordInput
             value={clientSecret}
             onChange={(e) => setClientSecret(e.target.value)}
             placeholder="shpss_…"
@@ -86,8 +86,7 @@ export function BootstrapForm() {
         </Field>
 
         <Field label="Current access token" hint="The shpat_… you've been using (will be replaced)">
-          <Input
-            type="password"
+          <PasswordInput
             value={accessToken}
             onChange={(e) => setAccessToken(e.target.value)}
             placeholder="shpat_…"
