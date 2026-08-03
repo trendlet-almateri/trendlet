@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { StatusPill } from "@/components/status/status-pill";
 import { formatCurrency } from "@/lib/utils/currency";
 import { fullDateTime } from "@/lib/utils/date";
+import { formatPerformer, type PerformerEmbed } from "@/lib/utils/performer";
 import { formatSubOrderNumber } from "@/lib/utils/sub-order";
 import { deriveOrderCancelState, orderCancelLabel } from "@/lib/workflow/order-cancel-state";
 
@@ -53,6 +54,9 @@ type StatusHistoryRow = {
   to_status: string;
   notes: string | null;
   created_at: string;
+  // Admin-only: this page is requireAdmin(), so the performer join is safe.
+  changed_by: string | null;
+  changer: PerformerEmbed;
 };
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
@@ -97,7 +101,9 @@ export default async function OrderDetailPage({ params }: { params: { id: string
   const { data: historyData } = subOrderIds.length
     ? await sb
         .from("status_history")
-        .select("id, sub_order_id, from_status, to_status, notes, created_at")
+        .select(
+          "id, sub_order_id, from_status, to_status, notes, created_at, changed_by, changer:profiles!status_history_changed_by_fkey ( full_name, user_roles!user_roles_user_id_fkey ( role ) )",
+        )
         .in("sub_order_id", subOrderIds)
         .order("created_at", { ascending: false })
         .limit(50)
@@ -212,6 +218,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
               <ul className="flex flex-col gap-2">
                 {history.map((h) => {
                   const sub = order.sub_orders.find((s) => s.id === h.sub_order_id);
+                  const performer = formatPerformer(h.changer);
                   return (
                     <li
                       key={h.id}
@@ -229,6 +236,11 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                       <StatusPill status={h.to_status} />
                       <span className="ml-auto text-[11px] text-ink-tertiary">
                         {fullDateTime(h.created_at)}
+                      </span>
+                      {/* Admin-only performer (this route is requireAdmin) */}
+                      <span className="basis-full text-[11px] text-ink-tertiary">
+                        Changed by <span className="font-medium text-ink-secondary">{performer.name}</span>
+                        {performer.role && <> · {performer.role}</>}
                       </span>
                       {h.notes && (
                         <span className="basis-full text-[12px] text-ink-secondary">{h.notes}</span>

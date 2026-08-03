@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/system";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/common/empty-state";
 import { fullDateTime, relativeTime } from "@/lib/utils/date";
+import { formatPerformer } from "@/lib/utils/performer";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ type Row = {
   resource_id: string | null;
   description: string;
   created_at: string;
-  user: { full_name: string | null; email: string } | null;
+  user: { full_name: string | null; email: string; user_roles?: { role: string }[] | null } | null;
 };
 
 function getInitials(name: string | null | undefined, email: string): string {
@@ -35,7 +36,7 @@ export default async function ActivityLogPage() {
     .from("activity_log")
     .select(`
       id, user_id, action, resource_type, resource_id, description, created_at,
-      user:profiles ( full_name, email )
+      user:profiles ( full_name, email, user_roles!user_roles_user_id_fkey ( role ) )
     `)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -78,6 +79,7 @@ export default async function ActivityLogPage() {
                 <ul className="flex flex-col gap-1">
                   {items.map((r) => {
                     const userName = r.user?.full_name ?? r.user?.email ?? "System";
+                    const role = formatPerformer(r.user ?? null).role;
                     const initials = getInitials(r.user?.full_name, r.user?.email ?? "system");
                     return (
                       <li
@@ -93,7 +95,7 @@ export default async function ActivityLogPage() {
                             <span className="text-ink-secondary">{r.description}</span>
                           </span>
                           <span className="text-[11px] uppercase tracking-[0.4px] text-ink-tertiary">
-                            {r.action.replace(/\./g, " · ")}
+                            {role ? `${role} · ` : ""}{r.action.replace(/\./g, " · ")}
                           </span>
                         </div>
                         <time

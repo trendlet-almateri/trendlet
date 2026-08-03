@@ -40,7 +40,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (subOrderIds.length) {
     const { data: hist } = await sb
       .from("status_history")
-      .select("id, sub_order_id, from_status, to_status, notes, created_at")
+      .select(
+        "id, sub_order_id, from_status, to_status, notes, created_at, changed_by, changer:profiles!status_history_changed_by_fkey ( full_name, user_roles!user_roles_user_id_fkey ( role ) )",
+      )
       .in("sub_order_id", subOrderIds)
       .order("created_at", { ascending: false })
       .limit(50);

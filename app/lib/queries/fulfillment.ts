@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { formatPerformer, type PerformerEmbed } from "@/lib/utils/performer";
 
 export type FulfillmentRow = {
   id: string;
@@ -10,6 +11,12 @@ export type FulfillmentRow = {
   product_image_url: string | null;
   status: string;
   status_changed_at: string;
+  /**
+   * Who last changed this sub-order's status (name + role). Populated ONLY
+   * for admin viewers — null for everyone else, so the identity never leaves
+   * the server for non-admins.
+   */
+  changed_by: { name: string; role: string | null } | null;
   /**
    * Timestamp the user clicked the explicit "final" button (Mark
    * delivered / Out of stock / Deliver to warehouse for sourcing).
@@ -101,7 +108,8 @@ export async function fetchFulfillmentQueue(opts: {
     .select(`
       id, sub_order_number, product_title, variant_title, sku, quantity,
       product_image_url, status, status_changed_at, marked_done_at,
-      is_at_risk, is_delayed,
+      is_at_risk, is_delayed, status_changed_by,
+      changer:profiles!sub_orders_status_changed_by_fkey ( full_name, user_roles!user_roles_user_id_fkey ( role ) ),
       brand:brands!inner ( id, name, region ),
       order:orders (
         id, shopify_order_number,
@@ -136,6 +144,7 @@ export async function fetchFulfillmentQueue(opts: {
         marked_done_at: string | null;
         is_at_risk: boolean;
         is_delayed: boolean;
+        changer: PerformerEmbed;
         brand: { id: string; name: string; region: string | null } | null;
         order: {
           id: string;
@@ -167,6 +176,8 @@ export async function fetchFulfillmentQueue(opts: {
         product_image_url: r.product_image_url,
         status: r.status,
         status_changed_at: r.status_changed_at,
+        // Admin-only: strip the performer for non-admin viewers server-side.
+        changed_by: opts.isAdmin ? formatPerformer(r.changer) : null,
         marked_done_at: r.marked_done_at,
         is_at_risk: r.is_at_risk,
         is_delayed: r.is_delayed,
