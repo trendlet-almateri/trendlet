@@ -12,7 +12,7 @@ const ROLE_OPTIONS = [
   { value: "sourcing", label: "sourcing" },
   { value: "fulfiller", label: "fulfiller" },
   { value: "warehouse", label: "warehouse" },
-  { value: "ksa_operator", label: "ksa_operator" },
+  // ksa_operator hidden until the KSA last-mile feature ships (coming soon).
   { value: "admin", label: "admin" },
 ];
 
