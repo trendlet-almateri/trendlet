@@ -12,6 +12,7 @@ import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 import { isCustomerNotifyStatus } from "@/lib/integrations/twilio-templates";
 import { getNextStatuses, type Role } from "@/lib/workflow/sub-order-transitions";
+import { PerformerTag } from "@/components/fulfillment/performer-tag";
 
 const NOTIFICATIONS_ENABLED =
   process.env.NEXT_PUBLIC_TWILIO_NOTIFICATIONS_ENABLED === "true";
@@ -325,6 +326,8 @@ export function SourcingCard({
                   </span>
                 </>
               )}
+              {/* Admin-only performer (null for non-admins → renders nothing) */}
+              <PerformerTag changedBy={row.changed_by} status={row.status} isReadOnly={isReadOnly} />
             </div>
 
             {/* Action buttons — always shown when actionable */}

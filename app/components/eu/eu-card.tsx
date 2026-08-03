@@ -11,6 +11,7 @@ import type { FulfillmentRow } from "@/lib/queries/fulfillment";
 import { setSubOrderStatusAction } from "@/app/(app)/fulfillment/actions";
 import { ConfirmStatusModal } from "@/components/status/confirm-status-modal";
 import { isCustomerNotifyStatus } from "@/lib/integrations/twilio-templates";
+import { PerformerTag } from "@/components/fulfillment/performer-tag";
 
 // Skip the WhatsApp confirm modal when notifications are disabled — the
 // modal would just be theater since no message would actually send.
@@ -369,6 +370,8 @@ export function EuCard({
                   </span>
                 </>
               )}
+              {/* Admin-only performer (null for non-admins → renders nothing) */}
+              <PerformerTag changedBy={row.changed_by} status={row.status} isReadOnly={isReadOnly} />
             </div>
 
             {/* Action buttons — always shown when actionable */}
