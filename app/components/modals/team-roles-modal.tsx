@@ -92,7 +92,10 @@ export function TeamRolesModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const ALL_ROLES = ["admin", "sourcing", "warehouse", "fulfiller", "ksa_operator"];
+  // ksa_operator omitted while KSA last-mile is coming-soon — no "Filter by
+  // role" tab for it. The display label map keeps rendering it for any member
+  // who still holds the role.
+  const ALL_ROLES = ["admin", "sourcing", "warehouse", "fulfiller"];
   const roleCounts = Object.fromEntries(
     ALL_ROLES.map((r) => [r, members.filter((m) => m.roles.includes(r)).length]),
   );
