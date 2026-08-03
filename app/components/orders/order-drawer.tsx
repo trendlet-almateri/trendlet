@@ -5,6 +5,7 @@ import { X, ChevronRight, MapPin, Mail, Phone, Package, Clock, AlertCircle, Aler
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 import { shortDateTime, fullDateTime } from "@/lib/utils/date";
+import { formatPerformer, type PerformerEmbed } from "@/lib/utils/performer";
 import { StatusPill } from "@/components/status/status-pill";
 import { deriveOrderCancelState } from "@/lib/workflow/order-cancel-state";
 import type { OrderRow } from "@/lib/queries/orders";
@@ -57,6 +58,9 @@ type HistoryRow = {
   to_status: string;
   notes: string | null;
   created_at: string;
+  // Admin-only: the /api/orders/[id] route is requireAdmin, so the embed is
+  // only ever populated for admins.
+  changer?: PerformerEmbed;
 };
 
 type EventRow = {
@@ -443,6 +447,7 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
 
                   // status history entry
                   const h = entry.data;
+                  const performer = formatPerformer(h.changer ?? null);
                   return (
                     <div key={h.id} className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 text-[12px]">
                       <span className="font-[family-name:var(--font-jetbrains,_monospace)] text-[11px] font-medium tabular-nums text-[var(--muted)]">
@@ -456,6 +461,11 @@ export function OrderDrawer({ order, onClose, compact = false }: Props) {
                       )}
                       <StatusPill status={h.to_status} />
                       <span className="ml-auto text-[11px] text-[var(--muted)]">{fullDateTime(h.created_at)}</span>
+                      {/* Admin-only performer (drawer data comes from a requireAdmin route) */}
+                      <span className="basis-full text-[11px] text-[var(--muted)]">
+                        Changed by <span className="font-medium text-[var(--ink-2)]">{performer.name}</span>
+                        {performer.role && <> · {performer.role}</>}
+                      </span>
                       {h.notes && <span className="basis-full text-[12px] text-[var(--ink-2)]">{h.notes}</span>}
                     </div>
                   );

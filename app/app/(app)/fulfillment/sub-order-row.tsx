@@ -169,9 +169,20 @@ export function SubOrderRow({
         </div>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3">
-          <div className="flex items-center gap-2 text-[12px] text-ink-tertiary">
+          <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-tertiary">
             <Clock className="h-3 w-3" aria-hidden />
             <span>changed {relativeTime(row.status_changed_at)}</span>
+            {/* Admin-only: present only when the query populated it (isAdmin) */}
+            {row.changed_by && (
+              <>
+                <span>·</span>
+                <span>
+                  Updated by{" "}
+                  <span className="font-medium text-ink-secondary">{row.changed_by.name}</span>
+                  {row.changed_by.role && ` (${row.changed_by.role})`}
+                </span>
+              </>
+            )}
             {brandInitials && (
               <>
                 <span>·</span>
@@ -293,6 +304,17 @@ export function SubOrderRow({
           <span>Qty {row.quantity}</span>
           <span>·</span>
           <span>changed {relativeTime(row.status_changed_at)}</span>
+          {/* Admin-only: present only when the query populated it (isAdmin) */}
+          {row.changed_by && (
+            <>
+              <span>·</span>
+              <span>
+                Updated by{" "}
+                <span className="font-medium text-ink-secondary">{row.changed_by.name}</span>
+                {row.changed_by.role && ` (${row.changed_by.role})`}
+              </span>
+            </>
+          )}
           {row.is_delayed && (
             <span className="flex items-center gap-1 text-status-danger-fg">
               <AlertTriangle className="h-3 w-3" aria-hidden />
