@@ -217,6 +217,12 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                       )}
                       {d && d !== "loading" && d !== "error" && d.found && (
                         <div>
+                          {d.from_cache && (
+                            <p className="mb-2 text-[12px] text-[var(--muted)]">
+                              DHL no longer tracks this shipment. Showing our saved copy
+                              {d.cached_at ? ` from ${fmt(d.cached_at)}` : ""}.
+                            </p>
+                          )}
                           <p className="mb-3 text-[12px] text-ink-tertiary">
                             {d.description ?? d.status ?? d.status_code ?? "—"}
                             {d.estimated_delivery ? ` · ETA ${fmt(d.estimated_delivery)}` : ""}
