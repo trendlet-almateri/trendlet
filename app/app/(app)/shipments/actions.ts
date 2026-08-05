@@ -31,6 +31,11 @@ async function persist(r: TrackResult): Promise<AddTrackingResult> {
     status: r.status_code ?? "unknown",
     shipped_at: r.events.length ? r.events[r.events.length - 1].timestamp || null : null,
     delivered_at: r.status_code === "delivered" ? r.last_update : null,
+    // Our own copy of the full DHL result. DHL serves live tracking for only a
+    // few months after delivery and then 404s, so without this the event
+    // timeline is lost the moment DHL forgets the shipment.
+    tracking_snapshot: r as unknown as Record<string, unknown>,
+    tracking_synced_at: new Date().toISOString(),
   };
 
   // No unique constraint on tracking_number — find-then-update/insert

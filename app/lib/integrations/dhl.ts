@@ -235,6 +235,10 @@ export type TrackResult = {
   pieces: number | null;
   events: TrackEvent[];
   error: string | null;
+  /** Set when DHL no longer has the shipment and we served our stored copy. */
+  from_cache?: boolean;
+  /** When that stored copy was last refreshed from DHL. */
+  cached_at?: string | null;
 };
 
 type DhlAddress = { addressLocality?: string };
