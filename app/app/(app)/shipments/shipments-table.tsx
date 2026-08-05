@@ -56,7 +56,11 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
     try {
       const res = await fetch(`/api/shipments/track?trackingNumber=${encodeURIComponent(tn)}`);
       const data = (await res.json()) as TrackResult;
-      setDetail((d) => ({ ...d, [id]: data.found ? data : "error" }));
+      // Keep the result even when found=false. DHL answering "no shipment with
+      // that tracking number" is information, not a failure — collapsing it to
+      // "error" showed a red system-error message for shipments DHL has simply
+      // aged out of its tracking window.
+      setDetail((d) => ({ ...d, [id]: data }));
     } catch {
       setDetail((d) => ({ ...d, [id]: "error" }));
     }
@@ -204,7 +208,14 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                       {d === "error" && (
                         <p className="text-[12px] text-[var(--rose)]">Could not load tracking detail from DHL.</p>
                       )}
-                      {d && d !== "loading" && d !== "error" && (
+                      {d && d !== "loading" && d !== "error" && !d.found && (
+                        <p className="text-[12px] text-[var(--muted)]">
+                          {d.error ?? "No tracking detail available."} DHL keeps live tracking for a
+                          few months after delivery — the status and dates shown above are the last
+                          ones we recorded.
+                        </p>
+                      )}
+                      {d && d !== "loading" && d !== "error" && d.found && (
                         <div>
                           <p className="mb-3 text-[12px] text-ink-tertiary">
                             {d.description ?? d.status ?? d.status_code ?? "—"}
@@ -377,7 +388,13 @@ function MobileSheet({
             </p>
             {d === "loading" && <p className="text-[12px] text-[var(--muted)]">Loading from DHL…</p>}
             {d === "error"   && <p className="text-[12px] text-[var(--rose)]">Could not load from DHL.</p>}
-            {d && d !== "loading" && d !== "error" && (
+            {d && d !== "loading" && d !== "error" && !d.found && (
+              <p className="text-[12px] text-[var(--muted)]">
+                {d.error ?? "No tracking detail available."} DHL keeps live tracking for a few
+                months after delivery.
+              </p>
+            )}
+            {d && d !== "loading" && d !== "error" && d.found && (
               <>
                 {d.description && (
                   <p className="mb-3 text-[12px] text-[var(--muted)]">
