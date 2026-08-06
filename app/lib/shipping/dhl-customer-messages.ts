@@ -44,14 +44,26 @@ export type PlannedMessage = {
 };
 
 /**
- * Message bodies, verbatim from the spec. These are the source of truth for
- * the Twilio content templates — scripts/create-dhl-templates.mts creates the
- * templates from this map, so the repo and Twilio cannot drift.
+ * Every message opens with the order it refers to, because one DHL shipment
+ * carries many customers' sub-orders and a customer may have several items in
+ * the same consignment — without this they cannot tell which order moved.
  *
- * No placeholders on purpose: the spec forbids the DHL tracking number from
- * appearing in any customer message, and none of these need a variable.
+ *   {{1}} = sub-order number (e.g. 1535-01)
+ *   {{2}} = product title
+ *
+ * Deliberately NOT the DHL tracking number: the spec forbids it appearing in
+ * any customer message, and the sub-order number is the reference customers
+ * already know from their invoice.
  */
-export const MESSAGE_BODIES: Record<CustomerMessageKey, string> = {
+const ORDER_REF = "🧾 طلبك رقم {{1}} — {{2}}\n\n";
+
+/**
+ * Message bodies, verbatim from the spec, each prefixed with ORDER_REF. These
+ * are the source of truth for the Twilio content templates —
+ * scripts/create-dhl-templates.mts builds the templates from this map, so the
+ * repo and Twilio cannot drift.
+ */
+const BODIES: Record<CustomerMessageKey, string> = {
   picked_up:
     "هلا بك! 🤍 خبر جميل، تم تسليم شحنتك لشركة DHL Express، وبدأت الآن رحلتها من الولايات المتحدة إلى المملكة العربية السعودية ✨✈️\n" +
     "بنكون معك خطوة بخطوة، وبنطمنك على شحنتك أول بأول لين توصل بالسلامة بإذن الله 🙏",
@@ -93,6 +105,40 @@ export const MESSAGE_BODIES: Record<CustomerMessageKey, string> = {
     "لسا نتابع شحنتك مباشرة مع شركة DHL، وهي حاليًا في مركزهم بالرياض بعد اكتمال إجراءاتها الجمركية، ويجري ترتيب إعادة تسليمها إلى مقرنا.\n" +
     "طلبك محفوظ وتحت متابعتنا، وما يحتاج منك التواصل مع DHL أو اتخاذ أي إجراء 🙏\n" +
     "بنبلغك فور استلام الشحنة وانتقال طلبك لمرحلة التوصيل الداخلي. شكرًا لصبرك وثقتك بـ Trendlet 🤍",
+};
+
+export const MESSAGE_BODIES: Record<CustomerMessageKey, string> = Object.fromEntries(
+  Object.entries(BODIES).map(([k, body]) => [k, ORDER_REF + body]),
+) as Record<CustomerMessageKey, string>;
+
+/**
+ * Approved Twilio content SIDs, created by scripts/create-dhl-templates.mts.
+ * Kept in code rather than env for the same reason as the WhatsApp sender: a
+ * missing env var silently disabled every send for two days.
+ *
+ * A message with no SID here is skipped and counted, never guessed.
+ */
+export const TEMPLATE_SIDS: Record<CustomerMessageKey, string> = {
+  picked_up: "HXf9acf8dbfccb58bc531bbd7e33f8dc4e",
+  usa_processing: "HXc80d5b9e13b68ff033e3a524b7267eba",
+  departed_usa: "HX9c2a625310038364d2775f4b39a7c08c",
+  arrived_ksa: "HX48ad6752bb921b631a65b0d91045ebd8",
+  customs_cleared: "HX16daf4dd4afc085cd4d7e0e13809bebb",
+  at_trendlet_hq: "HX3ed7bf293a284be3165b45707c9bb3bd",
+  delay_after_customs: "HX286f445d4e1708795ef090fea18cedc4",
+  delay_3days: "HXf4a80d76301c9cc5d8b6847710caf7ef",
+};
+
+/** Short English labels for the admin UI — the messages themselves are Arabic. */
+export const MESSAGE_LABELS: Record<CustomerMessageKey, string> = {
+  picked_up: "Picked up",
+  usa_processing: "In US facility",
+  departed_usa: "Left the US",
+  arrived_ksa: "Arrived in KSA",
+  customs_cleared: "Customs cleared",
+  at_trendlet_hq: "At Trendlet HQ",
+  delay_after_customs: "Delay",
+  delay_3days: "Delay 3+ days",
 };
 
 /** Twilio content-template name per message (lowercase + underscores). */
