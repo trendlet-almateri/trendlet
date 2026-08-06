@@ -24,7 +24,8 @@ export type DhlContactAddress = {
   addressLine2?: string | null; // KSA national: district / additional number
   addressLine3?: string | null; // KSA national: short address (4 letters + 4 digits)
   cityName: string;
-  postalCode: string;
+  /** Omitted for Saudi National Address, which uses the short code instead. */
+  postalCode?: string;
   countryCode: string; // ISO-2, e.g. "US", "SA"
 };
 
@@ -73,9 +74,12 @@ function addr(a: DhlContactAddress) {
   const postalAddress: Record<string, string> = {
     cityName: a.cityName,
     countryCode: a.countryCode,
-    postalCode: a.postalCode,
     addressLine1: a.addressLine1,
   };
+  // Saudi National Address carries no postal code — the short address in
+  // addressLine3 identifies the location instead. Sending an empty string
+  // fails DHL validation, so omit the field entirely when it is blank.
+  if (a.postalCode) postalAddress.postalCode = a.postalCode;
   if (a.addressLine2) postalAddress.addressLine2 = a.addressLine2;
   if (a.addressLine3) postalAddress.addressLine3 = a.addressLine3;
   return {

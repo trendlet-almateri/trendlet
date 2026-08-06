@@ -150,7 +150,7 @@ export function CreateShipmentForm() {
             <Field label="Address line 2 (additional + district)" name="r.addressLine2" defaultValue={RECEIVER_PRESET.addressLine2} />
             <Field label="Address line 3 (short code)" name="r.addressLine3" defaultValue={RECEIVER_PRESET.addressLine3} required={false} />
             <Field label="City" name="r.cityName" defaultValue={RECEIVER_PRESET.cityName} />
-            <Field label="Postal code" name="r.postalCode" placeholder="not in the spec — fill in" />
+            <Field label="Postal code" name="r.postalCode" required={false} placeholder="Saudi addresses use the short code" />
           </div>
         </Section>
       </div>
