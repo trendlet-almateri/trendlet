@@ -29,9 +29,29 @@ import {
 /** DHL stops moving after this, so we stop polling it. */
 const TERMINAL_STATUSES = ["delivered", "failure"];
 
+/**
+ * DHL milestones that also move the order forward on the fulfilment board.
+ * Staff stop pressing buttons at preparing_for_shipment, so from there the
+ * shipment's own progress is what advances the sub-order.
+ *
+ * Both targets have notifies_customer = false, which is deliberate: the write
+ * fires the status-change DB trigger, and if either were armed the customer
+ * would get two messages for the same event — the DHL template and the status
+ * template.
+ */
+const STATUS_FOR_MILESTONE: Partial<Record<CustomerMessageKey, string>> = {
+  arrived_ksa: "arrived_in_ksa",
+  at_trendlet_hq: "delivered_to_warehouse",
+};
+
+/** Service-role writes have no auth.uid(), so the trigger needs this set. */
+const SYSTEM_USER_ID =
+  process.env.TRENDLET_SYSTEM_USER_ID ?? "99126bae-c846-400e-9d36-7a0d34b3a1f6";
+
 export type PollSummary = {
   shipments_checked: number;
   messages_sent: number;
+  statuses_advanced: number;
   skipped_no_phone: number;
   skipped_no_template: number;
   errors: string[];
@@ -43,6 +63,7 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
   const out: PollSummary = {
     shipments_checked: 0,
     messages_sent: 0,
+    statuses_advanced: 0,
     skipped_no_phone: 0,
     skipped_no_template: 0,
     errors: [],
@@ -103,6 +124,25 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
           (r) => `${r.sub_order_id}:${r.message_key}`,
         ),
       );
+
+      // Advance the board to the furthest milestone DHL has reported. Done
+      // once per shipment rather than per message so a sub-order lands on its
+      // final state instead of stepping through every intermediate one.
+      const furthest = [...plan].reverse().find((m) => STATUS_FOR_MILESTONE[m.key]);
+      if (furthest) {
+        const target = STATUS_FOR_MILESTONE[furthest.key]!;
+        const { data: moved } = await sb
+          .from("sub_orders")
+          .update({
+            status: target,
+            status_changed_at: new Date().toISOString(),
+            status_changed_by: SYSTEM_USER_ID,
+          })
+          .in("id", (links as { sub_order_id: string }[]).map((l) => l.sub_order_id))
+          .neq("status", target)
+          .select("id");
+        out.statuses_advanced += moved?.length ?? 0;
+      }
 
       for (const link of links as never[]) {
         const l = link as unknown as {
