@@ -43,6 +43,70 @@ export type PlannedMessage = {
   trigger: string;
 };
 
+/**
+ * Message bodies, verbatim from the spec. These are the source of truth for
+ * the Twilio content templates — scripts/create-dhl-templates.mts creates the
+ * templates from this map, so the repo and Twilio cannot drift.
+ *
+ * No placeholders on purpose: the spec forbids the DHL tracking number from
+ * appearing in any customer message, and none of these need a variable.
+ */
+export const MESSAGE_BODIES: Record<CustomerMessageKey, string> = {
+  picked_up:
+    "هلا بك! 🤍 خبر جميل، تم تسليم شحنتك لشركة DHL Express، وبدأت الآن رحلتها من الولايات المتحدة إلى المملكة العربية السعودية ✨✈️\n" +
+    "بنكون معك خطوة بخطوة، وبنطمنك على شحنتك أول بأول لين توصل بالسلامة بإذن الله 🙏",
+
+  usa_processing:
+    "تحديث لطيف على طلبك 📦\n" +
+    "شحنتك الحين داخل مراكز DHL في الولايات المتحدة، وتمر بإجراءات الفحص والتجهيز المعتادة قبل ما تنطلق إلى السعودية ✨\n" +
+    "كل شي ماشي طبيعي، وبنعلمك أول ما تغادر الشحنة باتجاه المملكة بإذن الله ✈️",
+
+  departed_usa:
+    "طلبك حلّق باتجاه السعودية! ✈️\n" +
+    "غادرت شحنتك الولايات المتحدة، وهي الحين في رحلتها الجوية نحو المملكة 🌍\n" +
+    "صارت أقرب لك، وبنرسل لك التحديث الجميل الجاي فور وصولها بإذن الله ✨",
+
+  arrived_ksa:
+    "وصلت شحنتك إلى السعودية! 🇸🇦\n" +
+    "بدأت الحين إجراءات الفحص والتخليص الجمركي المعتادة، وفريقنا يتابعها خطوة بخطوة لين تخلص الإجراءات بسلام 🙏\n" +
+    "بنطمنك فور ما تنتقل للمرحلة الجاية بإذن الله 🤍",
+
+  customs_cleared:
+    "خبر يفرّح! ✅ اكتملت الإجراءات الجمركية بنجاح\n" +
+    "شحنتك الحين في طريقها إلى مقرنا في الرياض 🏢\n" +
+    "وبمجرد وصولها، يبدأ فريقنا تجهيز طلبك للمرحلة الأخيرة من التوصيل إليك. باقي القليل وتصير عندك بإذن الله 🤍",
+
+  at_trendlet_hq:
+    "وصلت شحنتك إلى مقرنا في الرياض! 📦🇸🇦\n" +
+    "بدأ فريقنا الحين فرز وتجهيز الطلبات وإصدار أرقام التتبع الداخلي بكل عناية ✨\n" +
+    "انتبه لجوالك خلال الفترة الجاية، بتتواصل معك شركة التوصيل، وبنزودك برقم تتبع شحنتك الداخلي فور إصداره 🏢\n" +
+    "شكرًا لثقتك وصبرك، طلبك صار قريب جدًا منك 🤍",
+
+  delay_after_customs:
+    "نحب نطمّنك على طلبك 🤍\n" +
+    "اكتملت الإجراءات الجمركية لشحنتك بنجاح، لكن صار تأخير تشغيلي من شركة DHL أثناء تسليمها إلى مقرنا في الرياض.\n" +
+    "لا تشيل هم 🙏 فريقنا يتابع الشحنة مباشرة مع DHL لاستكمال التسليم بأقرب وقت، وما يحتاج منك أي إجراء.\n" +
+    "نعتذر لك عن التأخير الخارج عن إرادتنا، ونقدّر صبرك وتفهمك، وبنخبرك فور وصولها إلى مقرنا بإذن الله 🙏",
+
+  delay_3days:
+    "تحديث وطمأنة على طلبك 🤍\n" +
+    "لسا نتابع شحنتك مباشرة مع شركة DHL، وهي حاليًا في مركزهم بالرياض بعد اكتمال إجراءاتها الجمركية، ويجري ترتيب إعادة تسليمها إلى مقرنا.\n" +
+    "طلبك محفوظ وتحت متابعتنا، وما يحتاج منك التواصل مع DHL أو اتخاذ أي إجراء 🙏\n" +
+    "بنبلغك فور استلام الشحنة وانتقال طلبك لمرحلة التوصيل الداخلي. شكرًا لصبرك وثقتك بـ Trendlet 🤍",
+};
+
+/** Twilio content-template name per message (lowercase + underscores). */
+export const TEMPLATE_NAMES: Record<CustomerMessageKey, string> = {
+  picked_up: "dhl_picked_up",
+  usa_processing: "dhl_usa_processing",
+  departed_usa: "dhl_departed_usa",
+  arrived_ksa: "dhl_arrived_ksa",
+  customs_cleared: "dhl_customs_cleared",
+  at_trendlet_hq: "dhl_at_trendlet_hq",
+  delay_after_customs: "dhl_delay_after_customs",
+  delay_3days: "dhl_delay_3days",
+};
+
 type Event = { timestamp: string; description: string; status_code?: string | null; location?: string | null };
 
 const has = (s: string, ...needles: string[]) =>
