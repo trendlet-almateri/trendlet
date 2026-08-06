@@ -17,6 +17,7 @@ const auth = "Basic " + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH
 
 const KEYS: CustomerMessageKey[] = [
   "picked_up", "usa_processing", "departed_usa", "arrived_ksa", "customs_cleared", "at_trendlet_hq",
+  "delay_after_customs", "delay_3days",
 ];
 
 const list = await (await fetch("https://content.twilio.com/v1/Content?PageSize=200", { headers: { Authorization: auth } })).json();
