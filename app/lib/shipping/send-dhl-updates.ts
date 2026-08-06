@@ -48,6 +48,8 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
     errors: [],
   };
 
+  const approved = await approvedTemplateSids();
+
   // Only shipments that can still change. A delivered shipment costs a DHL
   // call and can produce nothing new.
   const { data: active } = await sb
@@ -119,7 +121,9 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
           if (!normalized) { out.skipped_no_phone++; continue; }
 
           const sid = TEMPLATE_SIDS[msg.key];
-          if (!sid) { out.skipped_no_template++; continue; }
+          // Not approved by Meta = guaranteed rejection. Skipping keeps the
+          // ledger clean so these messages are sent for real once approved.
+          if (!sid || !approved.has(sid)) { out.skipped_no_template++; continue; }
 
           const res = await sendTemplate(sid, normalized, {
             "1": l.sub_order?.sub_order_number ?? "",
@@ -145,6 +149,42 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
   }
 
   return out;
+}
+
+/**
+ * Which templates Meta has actually approved.
+ *
+ * Sending an unapproved template is not a soft failure: Twilio accepts it,
+ * WhatsApp rejects it moments later with error 63016, and the customer gets
+ * nothing. Checking the message status afterwards races that rejection — the
+ * first send is usually still "queued" when you look — so the check belongs
+ * BEFORE the send, where it is deterministic.
+ *
+ * Fetched once per poll run and reused, so this costs at most 8 calls every
+ * 6 hours.
+ */
+async function approvedTemplateSids(): Promise<Set<string>> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const approved = new Set<string>();
+  if (!accountSid || !authToken) return approved;
+
+  const auth = `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`;
+  await Promise.all(
+    Object.values(TEMPLATE_SIDS).map(async (sid) => {
+      try {
+        const res = await fetch(`https://content.twilio.com/v1/Content/${sid}/ApprovalRequests`, {
+          headers: { Authorization: auth },
+        });
+        if (!res.ok) return;
+        const body = (await res.json()) as { whatsapp?: { status?: string } };
+        if (body.whatsapp?.status === "approved") approved.add(sid);
+      } catch {
+        // Unknown approval state means "do not send" — the default already is.
+      }
+    }),
+  );
+  return approved;
 }
 
 const WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+966552552787";
