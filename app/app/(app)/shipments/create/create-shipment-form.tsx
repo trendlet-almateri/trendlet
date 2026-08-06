@@ -5,6 +5,13 @@ import { useFormState, useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, AlertTriangle } from "lucide-react";
 import { createShipmentAction, type CreateShipmentState } from "./actions";
+import {
+  PACKAGE_PRESETS,
+  DEFAULT_PACKAGE_PRESET,
+  SHIPPER_PRESET,
+  RECEIVER_PRESET,
+  ITEM_PRESET,
+} from "@/lib/shipping/dhl-presets";
 
 const initial: CreateShipmentState = { ok: false, error: null };
 
@@ -71,6 +78,8 @@ export function CreateShipmentForm() {
   const router = useRouter();
   const [state, formAction] = useFormState(createShipmentAction, initial);
   const [confirmed, setConfirmed] = React.useState(false);
+  const [pkgKey, setPkgKey] = React.useState<keyof typeof PACKAGE_PRESETS>(DEFAULT_PACKAGE_PRESET);
+  const pkg = PACKAGE_PRESETS[pkgKey];
 
   React.useEffect(() => {
     if (state.ok && state.trackingNumber) {
@@ -119,55 +128,73 @@ export function CreateShipmentForm() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Shipper">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Full name" name="s.fullName" defaultValue="Trendlet Warehouse" />
-            <Field label="Company" name="s.companyName" defaultValue="Trendlet US" required={false} />
-            <Field label="Phone" name="s.phone" defaultValue="+12025550150" />
-            <Field label="Country code" name="s.countryCode" defaultValue="US" />
-            <Field label="Address line 1" name="s.addressLine1" defaultValue="4613 Nw 131st Ave" />
-            <Field label="Address line 2" name="s.addressLine2" required={false} />
+            <Field label="Full name" name="s.fullName" defaultValue={SHIPPER_PRESET.fullName} />
+            <Field label="Company" name="s.companyName" defaultValue={SHIPPER_PRESET.companyName} required={false} />
+            <Field label="Phone" name="s.phone" defaultValue={SHIPPER_PRESET.phone} />
+            <Field label="Country code" name="s.countryCode" defaultValue={SHIPPER_PRESET.countryCode} />
+            <Field label="Address line 1" name="s.addressLine1" defaultValue={SHIPPER_PRESET.addressLine1} />
+            <Field label="Address line 2" name="s.addressLine2" defaultValue={SHIPPER_PRESET.addressLine2} required={false} />
             <Field label="Address line 3" name="s.addressLine3" required={false} />
-            <Field label="City" name="s.cityName" defaultValue="PORTLAND" />
-            <Field label="Postal code" name="s.postalCode" defaultValue="97229" />
+            <Field label="City" name="s.cityName" defaultValue={SHIPPER_PRESET.cityName} />
+            <Field label="Postal code" name="s.postalCode" defaultValue={SHIPPER_PRESET.postalCode} />
           </div>
         </Section>
 
         <Section title="Receiver (Saudi national address)">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Full name" name="r.fullName" />
-            <Field label="Company" name="r.companyName" required={false} />
-            <Field label="Phone" name="r.phone" />
-            <Field label="Country code" name="r.countryCode" defaultValue="SA" />
-            <Field label="Address line 1 (bldg + street)" name="r.addressLine1" placeholder="2929, Raihana Bint Zaid Street" />
-            <Field label="Address line 2 (additional + district)" name="r.addressLine2" placeholder="8118, AlArid" />
-            <Field label="Address line 3 (short code)" name="r.addressLine3" required={false} placeholder="RRRD2929" />
-            <Field label="City" name="r.cityName" defaultValue="Riyadh" />
-            <Field label="Postal code" name="r.postalCode" placeholder="13337" />
+            <Field label="Full name" name="r.fullName" defaultValue={RECEIVER_PRESET.fullName} />
+            <Field label="Company" name="r.companyName" defaultValue={RECEIVER_PRESET.companyName} required={false} />
+            <Field label="Phone" name="r.phone" defaultValue={RECEIVER_PRESET.phone} />
+            <Field label="Country code" name="r.countryCode" defaultValue={RECEIVER_PRESET.countryCode} />
+            <Field label="Address line 1 (bldg + street)" name="r.addressLine1" defaultValue={RECEIVER_PRESET.addressLine1} />
+            <Field label="Address line 2 (additional + district)" name="r.addressLine2" defaultValue={RECEIVER_PRESET.addressLine2} />
+            <Field label="Address line 3 (short code)" name="r.addressLine3" defaultValue={RECEIVER_PRESET.addressLine3} required={false} />
+            <Field label="City" name="r.cityName" defaultValue={RECEIVER_PRESET.cityName} />
+            <Field label="Postal code" name="r.postalCode" required={false} placeholder="Saudi addresses use the short code" />
           </div>
         </Section>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Package">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Package weight (kg)" name="packageWeight" type="number" defaultValue="0.95" />
-            <Field label="Description" name="description" defaultValue="Cosmetics: Skincare" />
-            <Field label="Length (cm)" name="length" type="number" defaultValue="18" />
-            <Field label="Width (cm)" name="width" type="number" defaultValue="13" />
-            <Field label="Height (cm)" name="height" type="number" defaultValue="13" />
-            <Field label="Declared value" name="declaredValue" type="number" defaultValue="608.39" />
-            <Field label="Currency" name="declaredValueCurrency" defaultValue="SAR" />
+          <label className="mb-3 flex flex-col gap-1">
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--muted)]">
+              Size preset
+            </span>
+            <select
+              value={pkgKey}
+              onChange={(e) => setPkgKey(e.target.value as keyof typeof PACKAGE_PRESETS)}
+              className={inputCls}
+            >
+              {Object.entries(PACKAGE_PRESETS).map(([key, p]) => (
+                <option key={key} value={key}>
+                  {p.label} · {p.lengthCm} × {p.widthCm} × {p.heightCm} cm
+                </option>
+              ))}
+            </select>
+          </label>
+          {/* keyed on the preset so switching it refills weight + dimensions,
+              while leaving each field editable for a one-off size. */}
+          <div key={pkgKey} className="grid gap-3 sm:grid-cols-2">
+            <Field label="Package weight (kg)" name="packageWeight" type="number" defaultValue={String(pkg.weightKg)} />
+            <Field label="Description" name="description" defaultValue={ITEM_PRESET.description} />
+            <Field label="Length (cm)" name="length" type="number" defaultValue={String(pkg.lengthCm)} />
+            <Field label="Width (cm)" name="width" type="number" defaultValue={String(pkg.widthCm)} />
+            <Field label="Height (cm)" name="height" type="number" defaultValue={String(pkg.heightCm)} />
+            <Field label="Declared value" name="declaredValue" type="number" defaultValue={String(ITEM_PRESET.declaredValue)} />
+            <Field label="Currency" name="declaredValueCurrency" defaultValue={ITEM_PRESET.currency} />
           </div>
         </Section>
 
         <Section title="Customs line item / invoice">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Item description" name="itemDescription" defaultValue="Skincare cream 100ml" />
-            <Field label="HS / commodity code" name="commodityCode" defaultValue="33059040" />
-            <Field label="Quantity" name="quantity" type="number" defaultValue="1" />
-            <Field label="Unit price" name="priceValue" type="number" defaultValue="608.39" />
-            <Field label="Net weight (kg)" name="netWeight" type="number" defaultValue="0.95" />
-            <Field label="Gross weight (kg) ≤ net" name="grossWeight" type="number" defaultValue="0.95" />
-            <Field label="Manufacturer country" name="manufacturerCountry" defaultValue="GB" />
+          <div key={pkgKey} className="grid gap-3 sm:grid-cols-2">
+            <Field label="Item description" name="itemDescription" defaultValue={ITEM_PRESET.description} />
+            <Field label="HS / commodity code" name="commodityCode" placeholder="not in the spec — fill in" />
+            <Field label="Quantity" name="quantity" type="number" defaultValue={String(ITEM_PRESET.quantity)} />
+            <Field label="Unit price" name="priceValue" type="number" defaultValue={String(ITEM_PRESET.declaredValue)} />
+            <Field label="Net weight (kg)" name="netWeight" type="number" defaultValue={String(pkg.weightKg)} />
+            <Field label="Gross weight (kg) ≤ net" name="grossWeight" type="number" defaultValue={String(pkg.weightKg)} />
+            <Field label="Manufacturer country" name="manufacturerCountry" placeholder="not in the spec — fill in" />
             <Field label="Invoice number" name="invoiceNumber" defaultValue="INV-001" />
             <Field label="Invoice date" name="invoiceDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
           </div>

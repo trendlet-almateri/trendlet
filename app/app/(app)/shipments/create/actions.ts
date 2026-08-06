@@ -21,7 +21,9 @@ const addrSchema = z.object({
   addressLine2: z.string().trim().optional(),
   addressLine3: z.string().trim().optional(),
   cityName: z.string().trim().min(1, "City required"),
-  postalCode: z.string().trim().min(1, "Postal code required"),
+  // Optional: Saudi National Address has no postal code — MyDHL+ itself asks
+  // only for the short address (e.g. RNMA7049), suburb, city and state.
+  postalCode: z.string().trim().optional(),
   countryCode: z.string().trim().length(2, "2-letter country code"),
 });
 
