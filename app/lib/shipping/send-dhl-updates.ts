@@ -192,6 +192,65 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
 }
 
 /**
+ * Send one milestone to one customer on demand — the manual override for when
+ * DHL is wrong, late, or silent and staff need to tell the customer anyway.
+ *
+ * Writes the same ledger as the poller, so a manual send and the automatic one
+ * can never both go out: whichever happens first claims the row.
+ */
+export async function sendMilestoneNow(input: {
+  shipmentId: string;
+  subOrderId: string;
+  key: CustomerMessageKey;
+}): Promise<{ ok: boolean; error: string | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceClient() as any;
+
+  const sid = TEMPLATE_SIDS[input.key];
+  if (!sid) return { ok: false, error: "No template for this message." };
+
+  const approved = await approvedTemplateSids();
+  if (!approved.has(sid)) {
+    return { ok: false, error: "WhatsApp has not approved this template yet, so it cannot be sent." };
+  }
+
+  const { data: sub } = await sb
+    .from("sub_orders")
+    .select("sub_order_number, product_title, order:orders ( customer:customers ( phone ) )")
+    .eq("id", input.subOrderId)
+    .maybeSingle();
+  if (!sub) return { ok: false, error: "Order not found." };
+
+  const raw = sub as {
+    sub_order_number: string;
+    product_title: string | null;
+    order: { customer: { phone: string | null } | null } | null;
+  };
+  const phone = raw.order?.customer?.phone;
+  const normalized = phone ? normalizeSaudiPhone(phone) : null;
+  if (!normalized) return { ok: false, error: "This customer has no usable Saudi phone number." };
+
+  const res = await sendTemplate(sid, normalized, {
+    "1": raw.sub_order_number ?? "",
+    "2": raw.product_title ?? "",
+  });
+  if (!res.ok) return { ok: false, error: res.error ?? "Twilio rejected the message." };
+
+  const { error } = await sb.from("shipment_message_log").insert({
+    shipment_id: input.shipmentId,
+    sub_order_id: input.subOrderId,
+    message_key: input.key,
+    twilio_sid: res.sid,
+  });
+  // A conflict means the poller sent it between the button press and now —
+  // the customer has it either way, so this is not an error.
+  if (error && !/duplicate key/i.test(error.message)) {
+    return { ok: false, error: `Sent, but recording it failed: ${error.message}` };
+  }
+  return { ok: true, error: null };
+}
+
+/**
  * Which templates Meta has actually approved.
  *
  * Sending an unapproved template is not a soft failure: Twilio accepts it,
