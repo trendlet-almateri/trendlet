@@ -74,7 +74,95 @@ function SubmitButton() {
   );
 }
 
-export function CreateShipmentForm() {
+export type ShippableSubOrder = {
+  id: string;
+  subOrderNumber: string;
+  productTitle: string;
+  status: string;
+  customerName: string;
+  /** Without a phone we cannot notify that customer, so the row warns. */
+  hasPhone: boolean;
+};
+
+/**
+ * Which customer orders are inside this consignment. This is what makes DHL
+ * status notifications possible — each selected sub-order's customer gets the
+ * WhatsApp updates as the shipment moves.
+ */
+function ContentsPicker({ shippable }: { shippable: ShippableSubOrder[] }) {
+  const [query, setQuery] = React.useState("");
+  const [picked, setPicked] = React.useState<Set<string>>(new Set());
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return shippable;
+    return shippable.filter((s) =>
+      `${s.subOrderNumber} ${s.productTitle} ${s.customerName}`.toLowerCase().includes(q),
+    );
+  }, [shippable, query]);
+
+  const toggle = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const missingPhone = shippable.filter((s) => picked.has(s.id) && !s.hasPhone).length;
+
+  return (
+    <Section title={`Orders in this shipment — ${picked.size} selected`}>
+      {/* The selection travels with the form submit. */}
+      {[...picked].map((id) => (
+        <input key={id} type="hidden" name="subOrderIds" value={id} />
+      ))}
+
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search order number, item or customer…"
+        className={`${inputCls} mb-3`}
+      />
+
+      {missingPhone > 0 && (
+        <p className="mb-2 text-[12px] text-[var(--amber)]">
+          {missingPhone} selected order{missingPhone !== 1 ? "s have" : " has"} no phone number — those
+          customers will not receive shipment updates.
+        </p>
+      )}
+
+      <div className="max-h-72 overflow-y-auto rounded-[calc(var(--radius)-4px)] border border-[var(--line)]">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-4 text-[13px] text-[var(--muted)]">No matching orders.</p>
+        ) : (
+          filtered.map((s) => (
+            <label
+              key={s.id}
+              className="flex cursor-pointer items-center gap-3 border-b border-[var(--line)] px-3 py-2 last:border-b-0 hover:bg-[var(--hover)]"
+            >
+              <input
+                type="checkbox"
+                checked={picked.has(s.id)}
+                onChange={() => toggle(s.id)}
+                className="size-4 shrink-0"
+              />
+              <span className="w-[74px] shrink-0 font-mono text-[12px] text-[var(--ink)]">{s.subOrderNumber}</span>
+              <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--ink)]">{s.productTitle}</span>
+              <span className="hidden w-32 shrink-0 truncate text-[12px] text-[var(--muted)] sm:block">{s.customerName}</span>
+              {!s.hasPhone && <span className="shrink-0 text-[11px] text-[var(--amber)]">no phone</span>}
+            </label>
+          ))
+        )}
+      </div>
+      <p className="mt-2 text-[12px] text-[var(--muted)]">
+        Selected customers receive WhatsApp updates as DHL moves the shipment. You can change this
+        later from the shipment page.
+      </p>
+    </Section>
+  );
+}
+
+export function CreateShipmentForm({ shippable }: { shippable: ShippableSubOrder[] }) {
   const router = useRouter();
   const [state, formAction] = useFormState(createShipmentAction, initial);
   const [confirmed, setConfirmed] = React.useState(false);
@@ -200,6 +288,8 @@ export function CreateShipmentForm() {
           </div>
         </Section>
       </div>
+
+      <ContentsPicker shippable={shippable} />
 
       <label className="flex items-center gap-2 rounded-[var(--radius)] border border-[var(--amber)]/30 bg-[var(--amber-bg)] px-4 py-3 text-[13px] text-[var(--amber)]">
         <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="size-4" />

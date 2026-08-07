@@ -153,16 +153,20 @@ export async function createShipmentAction(
   }
 
   const sb = createServiceClient();
-  const { error: insErr } = await sb.from("shipments").insert({
-    tracking_number: result.tracking_number,
-    // DHL's service name (matches what the tracking flow stores). productCode
-    // P/N are both DHL Express products.
-    shipment_type: "Express",
-    origin: `${v.s.cityName}, ${v.s.countryCode}`,
-    destination: `${v.r.cityName}, ${v.r.countryCode}`,
-    status: "pre-transit",
-    label_storage_path: labelPath,
-  });
+  const { data: inserted, error: insErr } = await sb
+    .from("shipments")
+    .insert({
+      tracking_number: result.tracking_number,
+      // DHL's service name (matches what the tracking flow stores). productCode
+      // P/N are both DHL Express products.
+      shipment_type: "Express",
+      origin: `${v.s.cityName}, ${v.s.countryCode}`,
+      destination: `${v.r.cityName}, ${v.r.countryCode}`,
+      status: "pre-transit",
+      label_storage_path: labelPath,
+    })
+    .select("id")
+    .maybeSingle<{ id: string }>();
   if (insErr) {
     // The DHL shipment exists; surface the save error but don't lose the number.
     return {
@@ -170,6 +174,18 @@ export async function createShipmentAction(
       error: `Shipment ${result.tracking_number} created at DHL, but saving failed: ${insErr.message}`,
       trackingNumber: result.tracking_number,
     };
+  }
+
+  // Record which customer orders travel in this shipment. This is what makes
+  // DHL status notifications possible — without it there is no phone number to
+  // message. Best-effort: the DHL shipment already exists, so a failure here
+  // must not read as "shipment failed"; it can be fixed on the shipment page.
+  const subOrderIds = (fd.getAll("subOrderIds") as string[]).filter(Boolean);
+  if (inserted?.id && subOrderIds.length > 0) {
+    const { error: linkErr } = await sb
+      .from("shipment_sub_orders")
+      .insert(subOrderIds.map((id) => ({ shipment_id: inserted.id, sub_order_id: id })));
+    if (linkErr) console.error("[createShipmentAction] linking sub-orders", linkErr);
   }
 
   revalidatePath("/shipments");

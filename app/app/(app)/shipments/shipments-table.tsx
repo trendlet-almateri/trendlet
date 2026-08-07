@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, RefreshCw, X, FileDown, FileText } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, RefreshCw, X, FileDown, FileText, Package } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { TableColGroup } from "@/components/system/table-colgroup";
@@ -164,6 +165,15 @@ export function ShipmentsTable({ rows }: { rows: ShipmentRow[] }) {
                   </td>
                   <td className="hidden px-2 py-3 text-center md:table-cell">
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
+                      <Link
+                        href={`/shipments/${s.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Which customer orders are in this shipment"
+                        className="inline-flex items-center gap-1.5 rounded-[calc(var(--radius)-4px)] border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1 text-[12px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)]"
+                      >
+                        <Package className="size-3.5" />
+                        Orders
+                      </Link>
                       {s.label_storage_path && (
                         <>
                           <button
