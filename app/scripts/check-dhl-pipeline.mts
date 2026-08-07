@@ -121,11 +121,13 @@ console.log("\n4. Status configuration");
     ? ok("staff messaging stops at preparing_for_shipment", armed.join(", "))
     : bad("staff messaging stops at preparing_for_shipment", `armed = ${armed.join(", ")}`);
 
-  // THE critical invariant: DHL writes these two statuses, so if either were
-  // armed every customer would get the DHL message AND the status message.
+  // DHL never writes sub-order statuses — it is a notification source only.
+  // These two would otherwise be the tempting targets, so assert they stay
+  // silent: arming either would mean a customer gets the DHL message and the
+  // status message for the same event.
   for (const key of ["arrived_in_ksa", "delivered_to_warehouse"]) {
     const row = rows.find((r) => r.key === key);
-    if (!row) bad(`${key} exists`, "status missing — auto-advance would fail");
+    if (!row) bad(`${key} exists`, "status missing from the table");
     else if (row.notifies_customer) bad(`${key} stays silent`, "ARMED — would double-message every customer");
     else ok(`${key} stays silent`);
   }
