@@ -29,17 +29,42 @@ import {
 /** DHL stops moving after this, so we stop polling it. */
 const TERMINAL_STATUSES = ["delivered", "failure"];
 
-// DHL does NOT write sub-order statuses. It only messages customers.
-//
-// An earlier version advanced the board on two milestones, which was wrong on
-// both counts: arrived_in_ksa is not part of the live flow, and
-// delivered_to_warehouse means the US warehouse — set from a Riyadh arrival it
-// would have pushed orders backwards. The fulfilment board stays entirely
-// staff-driven; DHL is a notification source, nothing more.
+/**
+ * DHL milestones that also move the board, using the statuses the team already
+ * works with. DHL knows these events first — it physically has the box — so
+ * the employee does not have to re-enter what DHL has already reported.
+ *
+ * Deliberately NOT arrived_in_ksa (not part of the live flow) and NOT
+ * delivered_to_warehouse (that means the US warehouse, so setting it from a
+ * Riyadh arrival would push orders backwards).
+ *
+ * Safe because both targets were disarmed: the write fires the status-change
+ * trigger, and if either still notified, the customer would get the DHL
+ * message and the status message for the same event.
+ */
+const STATUS_FOR_MILESTONE: Partial<Record<CustomerMessageKey, string>> = {
+  picked_up: "shipped",
+  // DHL delivering to the Riyadh office closes the order. Note this means
+  // `delivered` records "arrived at Trendlet Riyadh", not "the customer has
+  // it" — the last mile is handled off-system, and the customer's final
+  // message (dhl_at_trendlet_hq) tells them the courier will be in touch.
+  at_trendlet_hq: "delivered",
+};
+
+/** Service-role writes have no auth.uid(), so the trigger needs this set. */
+const SYSTEM_USER_ID =
+  process.env.TRENDLET_SYSTEM_USER_ID ?? "99126bae-c846-400e-9d36-7a0d34b3a1f6";
+
+/** Statuses already at or past the target — never move an order backwards. */
+const AT_OR_PAST: Record<string, string[]> = {
+  shipped: ["shipped", "arrived_in_ksa", "out_for_delivery", "delivered", "returned", "cancelled"],
+  delivered: ["delivered", "returned", "cancelled"],
+};
 
 export type PollSummary = {
   shipments_checked: number;
   messages_sent: number;
+  statuses_advanced: number;
   skipped_no_phone: number;
   skipped_no_template: number;
   errors: string[];
@@ -51,6 +76,7 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
   const out: PollSummary = {
     shipments_checked: 0,
     messages_sent: 0,
+    statuses_advanced: 0,
     skipped_no_phone: 0,
     skipped_no_template: 0,
     errors: [],
@@ -111,6 +137,25 @@ export async function pollDhlAndNotify(limit = 50): Promise<PollSummary> {
           (r) => `${r.sub_order_id}:${r.message_key}`,
         ),
       );
+
+      // Move the board to the furthest milestone DHL has reported, skipping any
+      // sub-order already at or past it so a late poll cannot rewind an order a
+      // human has since advanced.
+      const furthest = [...plan].reverse().find((m) => STATUS_FOR_MILESTONE[m.key]);
+      if (furthest) {
+        const target = STATUS_FOR_MILESTONE[furthest.key]!;
+        const { data: moved } = await sb
+          .from("sub_orders")
+          .update({
+            status: target,
+            status_changed_at: new Date().toISOString(),
+            status_changed_by: SYSTEM_USER_ID,
+          })
+          .in("id", (links as { sub_order_id: string }[]).map((l) => l.sub_order_id))
+          .not("status", "in", `(${(AT_OR_PAST[target] ?? [target]).join(",")})`)
+          .select("id");
+        out.statuses_advanced += moved?.length ?? 0;
+      }
 
       for (const link of links as never[]) {
         const l = link as unknown as {
