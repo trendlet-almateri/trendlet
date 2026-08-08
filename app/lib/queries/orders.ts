@@ -149,6 +149,8 @@ export type TopBrandRow = {
   items_count: number;
   orders_count: number;
   revenue: number;
+  /** False = no primary assignee, so every item on this brand sits unassigned. */
+  has_owner: boolean;
 };
 
 /**

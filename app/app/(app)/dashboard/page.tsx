@@ -54,6 +54,7 @@ export default async function DashboardPage() {
   // brands arrives sorted by items_count, so [0] is the max.
   const topBrandItems = brands.length ? brands[0].items_count : 0;
   const totalBrandItems = brands.reduce((sum, b) => sum + b.items_count, 0);
+  const brandsNeedingOwner = brands.filter((b) => !b.has_owner).length;
 
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
@@ -162,6 +163,17 @@ export default async function DashboardPage() {
           <SectionHeader
             label={`Brands · all orders — ${brands.length} brands · ${totalBrandItems.toLocaleString("en-US")} items`}
             icon={Tag}
+            action={
+              brandsNeedingOwner > 0 ? (
+                <a
+                  href="/admin/brands"
+                  className="inline-flex items-center gap-0.5 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--amber)] shadow-[var(--shadow-sm)] transition-colors hover:brightness-95"
+                >
+                  {brandsNeedingOwner} need an owner
+                  <ChevronRight className="h-3 w-3" aria-hidden />
+                </a>
+              ) : undefined
+            }
           />
           <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]">
             <ul className="divide-y divide-[var(--line)]">
@@ -172,8 +184,18 @@ export default async function DashboardPage() {
                     key={b.brand_id}
                     className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--hover)]"
                   >
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ink)]">
-                      {b.brand_name}
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="truncate text-[13px] font-medium text-[var(--ink)]">
+                        {b.brand_name}
+                      </span>
+                      {!b.has_owner && (
+                        <span
+                          title="No employee owns this brand — its items stay unassigned"
+                          className="shrink-0 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-medium text-[var(--amber)]"
+                        >
+                          no owner
+                        </span>
+                      )}
                     </span>
                     <span
                       className="hidden h-1.5 w-28 shrink-0 overflow-hidden rounded-full bg-[var(--line)] sm:block"
