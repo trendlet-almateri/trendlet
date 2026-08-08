@@ -4,6 +4,7 @@ import {
   fetchDashboardKpis,
   fetchRevenueByCurrency,
   fetchTeamLoad,
+  fetchTopBrands,
 } from "@/lib/queries/orders";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { CountUp } from "@/components/dashboard/count-up";
@@ -22,6 +23,7 @@ import {
   Package,
   GitBranch,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -40,12 +42,16 @@ const TEAM_ORDER = ["sourcing", "warehouse", "fulfiller", "ksa_operator"];
 export default async function DashboardPage() {
   await requireAdmin();
 
-  const [kpis, revenue, teamLoad, orders] = await Promise.all([
+  const [kpis, revenue, teamLoad, orders, brands] = await Promise.all([
     fetchDashboardKpis(),
     fetchRevenueByCurrency(),
     fetchTeamLoad(),
     fetchAdminOrders({ limit: 5 }),
+    fetchTopBrands(),
   ]);
+
+  // Bars are scaled to the biggest brand, so the leader always fills the row.
+  const topBrandRevenue = brands.length ? Number(brands[0].revenue) : 0;
 
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
@@ -142,6 +148,46 @@ export default async function DashboardPage() {
                   </span>
                 </li>
               ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Brands we have orders with — ordered by 30-day revenue, with a share
+          bar so the mix reads at a glance rather than needing the numbers. */}
+      {brands.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <SectionHeader label="Brands · last 30 days" icon={Tag} />
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <ul className="divide-y divide-[var(--line)]">
+              {brands.map((b) => {
+                const share = topBrandRevenue > 0 ? (Number(b.revenue) / topBrandRevenue) * 100 : 0;
+                return (
+                  <li
+                    key={b.brand_id}
+                    className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--hover)]"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ink)]">
+                      {b.brand_name}
+                    </span>
+                    <span
+                      className="hidden h-1.5 w-28 shrink-0 overflow-hidden rounded-full bg-[var(--line)] sm:block"
+                      aria-hidden
+                    >
+                      <span
+                        className="block h-full rounded-full bg-[var(--accent)]"
+                        style={{ width: `${Math.max(share, 3)}%` }}
+                      />
+                    </span>
+                    <span className="mono shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+                      {b.items_count} {b.items_count === 1 ? "item" : "items"}
+                    </span>
+                    <span className="mono w-28 shrink-0 text-right text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
+                      {formatCurrency(Number(b.revenue), b.currency, { compact: false })}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </section>

@@ -142,6 +142,28 @@ export async function fetchRevenueByCurrency(): Promise<RevenueByCurrencyRow[]> 
   return (data ?? []) as unknown as RevenueByCurrencyRow[];
 }
 
+export type TopBrandRow = {
+  brand_id: string;
+  brand_name: string;
+  currency: string;
+  items_count: number;
+  revenue: number;
+};
+
+/** Brands ordered by 30-day revenue, from the mv_top_brands_30d view. */
+export async function fetchTopBrands(): Promise<TopBrandRow[]> {
+  const sb = createServiceClient();
+  const { data, error } = await sb
+    .from("mv_top_brands_30d")
+    .select("*")
+    .order("revenue", { ascending: false });
+  if (error) {
+    console.error("[fetchTopBrands]", error);
+    return [];
+  }
+  return (data ?? []) as unknown as TopBrandRow[];
+}
+
 export type TeamLoadRow = {
   team: string;
   member_count: number;
