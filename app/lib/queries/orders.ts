@@ -147,16 +147,26 @@ export type TopBrandRow = {
   brand_name: string;
   currency: string;
   items_count: number;
+  orders_count: number;
   revenue: number;
 };
 
-/** Brands ordered by 30-day revenue, from the mv_top_brands_30d view. */
+/**
+ * Every brand we have ever ordered from, all time, busiest first.
+ *
+ * Reads v_brands_all_time — a plain view, so the numbers are live. The
+ * mv_top_brands_30d materialized view covers only a rolling month and is 15
+ * minutes stale, which hides the long tail: Micheal Kors is the biggest brand
+ * by volume all-time but barely registers in a 30-day window.
+ */
 export async function fetchTopBrands(): Promise<TopBrandRow[]> {
-  const sb = createServiceClient();
+  // v_brands_all_time is newer than the generated Database types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceClient() as any;
   const { data, error } = await sb
-    .from("mv_top_brands_30d")
+    .from("v_brands_all_time")
     .select("*")
-    .order("revenue", { ascending: false });
+    .order("items_count", { ascending: false });
   if (error) {
     console.error("[fetchTopBrands]", error);
     return [];

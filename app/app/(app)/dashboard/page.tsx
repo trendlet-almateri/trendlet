@@ -50,8 +50,10 @@ export default async function DashboardPage() {
     fetchTopBrands(),
   ]);
 
-  // Bars are scaled to the biggest brand, so the leader always fills the row.
-  const topBrandRevenue = brands.length ? Number(brands[0].revenue) : 0;
+  // Bars are scaled to the busiest brand, so the leader always fills the row.
+  // brands arrives sorted by items_count, so [0] is the max.
+  const topBrandItems = brands.length ? brands[0].items_count : 0;
+  const totalBrandItems = brands.reduce((sum, b) => sum + b.items_count, 0);
 
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
@@ -153,15 +155,18 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {/* Brands we have orders with — ordered by 30-day revenue, with a share
-          bar so the mix reads at a glance rather than needing the numbers. */}
+      {/* Every brand we have ordered from, all time, busiest first. The bar is
+          scaled to the biggest brand so the mix reads without parsing numbers. */}
       {brands.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Brands · last 30 days" icon={Tag} />
+          <SectionHeader
+            label={`Brands · all orders — ${brands.length} brands · ${totalBrandItems.toLocaleString("en-US")} items`}
+            icon={Tag}
+          />
           <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]">
             <ul className="divide-y divide-[var(--line)]">
               {brands.map((b) => {
-                const share = topBrandRevenue > 0 ? (Number(b.revenue) / topBrandRevenue) * 100 : 0;
+                const share = topBrandItems > 0 ? (b.items_count / topBrandItems) * 100 : 0;
                 return (
                   <li
                     key={b.brand_id}
@@ -181,6 +186,9 @@ export default async function DashboardPage() {
                     </span>
                     <span className="mono shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
                       {b.items_count} {b.items_count === 1 ? "item" : "items"}
+                      <span className="hidden sm:inline">
+                        {" · "}{b.orders_count} {b.orders_count === 1 ? "order" : "orders"}
+                      </span>
                     </span>
                     <span className="mono w-28 shrink-0 text-right text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
                       {formatCurrency(Number(b.revenue), b.currency, { compact: false })}
