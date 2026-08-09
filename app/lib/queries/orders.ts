@@ -145,6 +145,8 @@ export async function fetchRevenueByCurrency(): Promise<RevenueByCurrencyRow[]> 
 export type TopBrandRow = {
   brand_id: string;
   brand_name: string;
+  /** US | EU | KSA | GLOBAL. Null = no team owns this brand's region. */
+  region: string | null;
   currency: string;
   items_count: number;
   orders_count: number;

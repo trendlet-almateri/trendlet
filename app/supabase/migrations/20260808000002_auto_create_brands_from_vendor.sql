@@ -87,3 +87,35 @@ join public.brands b on b.id = so.brand_id
 group by b.id, b.name, o.currency;
 
 grant select on public.v_brands_all_time to authenticated;
+
+-- Region on the view so the dashboard can flag brands that have none.
+--
+-- Region decides which team handles the brand — US goes to sourcing, EU to
+-- fulfiller — and enforce_brand_region only validates the assignee when the
+-- brand's region is set. A NULL region therefore turns that guardrail off
+-- silently: a US brand can be assigned to an EU employee with no error. Every
+-- auto-created brand starts NULL, because a vendor name does not say which
+-- warehouse handles it, so admin must set it.
+--
+-- Dropped first: CREATE OR REPLACE VIEW cannot insert a column in the middle.
+drop view if exists public.v_brands_all_time;
+
+create view public.v_brands_all_time as
+select
+  b.id                              as brand_id,
+  b.name                            as brand_name,
+  b.region::text                    as region,
+  o.currency,
+  count(distinct so.id)::int        as items_count,
+  count(distinct so.order_id)::int  as orders_count,
+  sum(so.unit_price * so.quantity)  as revenue,
+  exists (
+    select 1 from public.brand_assignments ba
+    where ba.brand_id = b.id and ba.is_primary
+  )                                 as has_owner
+from public.sub_orders so
+join public.orders o on o.id = so.order_id
+join public.brands b on b.id = so.brand_id
+group by b.id, b.name, b.region, o.currency;
+
+grant select on public.v_brands_all_time to authenticated;

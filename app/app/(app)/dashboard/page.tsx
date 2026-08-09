@@ -54,7 +54,10 @@ export default async function DashboardPage() {
   // brands arrives sorted by items_count, so [0] is the max.
   const topBrandItems = brands.length ? brands[0].items_count : 0;
   const totalBrandItems = brands.reduce((sum, b) => sum + b.items_count, 0);
-  const brandsNeedingOwner = brands.filter((b) => !b.has_owner).length;
+  // A brand needs setup if nobody owns it, or it has no region — without a
+  // region the enforce_brand_region guard is off and a US brand can be given
+  // to an EU employee with no error.
+  const brandsNeedingSetup = brands.filter((b) => !b.has_owner || !b.region).length;
 
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
@@ -164,12 +167,12 @@ export default async function DashboardPage() {
             label={`Brands · all orders — ${brands.length} brands · ${totalBrandItems.toLocaleString("en-US")} items`}
             icon={Tag}
             action={
-              brandsNeedingOwner > 0 ? (
+              brandsNeedingSetup > 0 ? (
                 <a
                   href="/admin/brands"
                   className="inline-flex items-center gap-0.5 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--amber)] shadow-[var(--shadow-sm)] transition-colors hover:brightness-95"
                 >
-                  {brandsNeedingOwner} need an owner
+                  {brandsNeedingSetup} need setup
                   <ChevronRight className="h-3 w-3" aria-hidden />
                 </a>
               ) : undefined
@@ -188,6 +191,21 @@ export default async function DashboardPage() {
                       <span className="truncate text-[13px] font-medium text-[var(--ink)]">
                         {b.brand_name}
                       </span>
+                      {b.region ? (
+                        <span
+                          title={`${b.region} brand`}
+                          className="shrink-0 rounded-full border border-[var(--line)] px-1.5 py-px text-[10px] font-medium text-[var(--muted)]"
+                        >
+                          {b.region}
+                        </span>
+                      ) : (
+                        <span
+                          title="No region — the US/EU check is off, so this brand can be assigned to the wrong team"
+                          className="shrink-0 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-medium text-[var(--amber)]"
+                        >
+                          no region
+                        </span>
+                      )}
                       {!b.has_owner && (
                         <span
                           title="No employee owns this brand — its items stay unassigned"
