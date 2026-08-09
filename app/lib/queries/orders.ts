@@ -142,6 +142,42 @@ export async function fetchRevenueByCurrency(): Promise<RevenueByCurrencyRow[]> 
   return (data ?? []) as unknown as RevenueByCurrencyRow[];
 }
 
+export type TopBrandRow = {
+  brand_id: string;
+  brand_name: string;
+  /** US | EU | KSA | GLOBAL. Null = no team owns this brand's region. */
+  region: string | null;
+  currency: string;
+  items_count: number;
+  orders_count: number;
+  revenue: number;
+  /** False = no primary assignee, so every item on this brand sits unassigned. */
+  has_owner: boolean;
+};
+
+/**
+ * Every brand we have ever ordered from, all time, busiest first.
+ *
+ * Reads v_brands_all_time — a plain view, so the numbers are live. The
+ * mv_top_brands_30d materialized view covers only a rolling month and is 15
+ * minutes stale, which hides the long tail: Micheal Kors is the biggest brand
+ * by volume all-time but barely registers in a 30-day window.
+ */
+export async function fetchTopBrands(): Promise<TopBrandRow[]> {
+  // v_brands_all_time is newer than the generated Database types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createServiceClient() as any;
+  const { data, error } = await sb
+    .from("v_brands_all_time")
+    .select("*")
+    .order("items_count", { ascending: false });
+  if (error) {
+    console.error("[fetchTopBrands]", error);
+    return [];
+  }
+  return (data ?? []) as unknown as TopBrandRow[];
+}
+
 export type TeamLoadRow = {
   team: string;
   member_count: number;

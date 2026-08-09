@@ -4,6 +4,7 @@ import {
   fetchDashboardKpis,
   fetchRevenueByCurrency,
   fetchTeamLoad,
+  fetchTopBrands,
 } from "@/lib/queries/orders";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { CountUp } from "@/components/dashboard/count-up";
@@ -22,6 +23,7 @@ import {
   Package,
   GitBranch,
   ChevronRight,
+  Tag,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -40,12 +42,22 @@ const TEAM_ORDER = ["sourcing", "warehouse", "fulfiller", "ksa_operator"];
 export default async function DashboardPage() {
   await requireAdmin();
 
-  const [kpis, revenue, teamLoad, orders] = await Promise.all([
+  const [kpis, revenue, teamLoad, orders, brands] = await Promise.all([
     fetchDashboardKpis(),
     fetchRevenueByCurrency(),
     fetchTeamLoad(),
     fetchAdminOrders({ limit: 5 }),
+    fetchTopBrands(),
   ]);
+
+  // Bars are scaled to the busiest brand, so the leader always fills the row.
+  // brands arrives sorted by items_count, so [0] is the max.
+  const topBrandItems = brands.length ? brands[0].items_count : 0;
+  const totalBrandItems = brands.reduce((sum, b) => sum + b.items_count, 0);
+  // A brand needs setup if nobody owns it, or it has no region — without a
+  // region the enforce_brand_region guard is off and a US brand can be given
+  // to an EU employee with no error.
+  const brandsNeedingSetup = brands.filter((b) => !b.has_owner || !b.region).length;
 
   const headlineRevenue = revenue[0];
   const teamLoadByKey = new Map(teamLoad.map((r) => [r.team, r]));
@@ -142,6 +154,88 @@ export default async function DashboardPage() {
                   </span>
                 </li>
               ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Every brand we have ordered from, all time, busiest first. The bar is
+          scaled to the biggest brand so the mix reads without parsing numbers. */}
+      {brands.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            label={`Brands · all orders — ${brands.length} brands · ${totalBrandItems.toLocaleString("en-US")} items`}
+            icon={Tag}
+            action={
+              brandsNeedingSetup > 0 ? (
+                <a
+                  href="/admin/brands"
+                  className="inline-flex items-center gap-0.5 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--amber)] shadow-[var(--shadow-sm)] transition-colors hover:brightness-95"
+                >
+                  {brandsNeedingSetup} need setup
+                  <ChevronRight className="h-3 w-3" aria-hidden />
+                </a>
+              ) : undefined
+            }
+          />
+          <div className="overflow-hidden rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--shadow-sm),inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <ul className="divide-y divide-[var(--line)]">
+              {brands.map((b) => {
+                const share = topBrandItems > 0 ? (b.items_count / topBrandItems) * 100 : 0;
+                return (
+                  <li
+                    key={b.brand_id}
+                    className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--hover)]"
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="truncate text-[13px] font-medium text-[var(--ink)]">
+                        {b.brand_name}
+                      </span>
+                      {b.region ? (
+                        <span
+                          title={`${b.region} brand`}
+                          className="shrink-0 rounded-full border border-[var(--line)] px-1.5 py-px text-[10px] font-medium text-[var(--muted)]"
+                        >
+                          {b.region}
+                        </span>
+                      ) : (
+                        <span
+                          title="No region — the US/EU check is off, so this brand can be assigned to the wrong team"
+                          className="shrink-0 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-medium text-[var(--amber)]"
+                        >
+                          no region
+                        </span>
+                      )}
+                      {!b.has_owner && (
+                        <span
+                          title="No employee owns this brand — its items stay unassigned"
+                          className="shrink-0 rounded-full border border-[var(--amber)]/40 bg-[var(--amber-bg)] px-1.5 py-px text-[10px] font-medium text-[var(--amber)]"
+                        >
+                          no owner
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className="hidden h-1.5 w-28 shrink-0 overflow-hidden rounded-full bg-[var(--line)] sm:block"
+                      aria-hidden
+                    >
+                      <span
+                        className="block h-full rounded-full bg-[var(--accent)]"
+                        style={{ width: `${Math.max(share, 3)}%` }}
+                      />
+                    </span>
+                    <span className="mono shrink-0 text-[11px] tabular-nums text-[var(--muted)]">
+                      {b.items_count} {b.items_count === 1 ? "item" : "items"}
+                      <span className="hidden sm:inline">
+                        {" · "}{b.orders_count} {b.orders_count === 1 ? "order" : "orders"}
+                      </span>
+                    </span>
+                    <span className="mono w-28 shrink-0 text-right text-[14px] font-semibold tabular-nums tracking-[-0.02em] text-[var(--ink)]">
+                      {formatCurrency(Number(b.revenue), b.currency, { compact: false })}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </section>

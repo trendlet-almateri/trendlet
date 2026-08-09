@@ -234,9 +234,17 @@ export async function ingestShopifyOrder(
     const li = payload.line_items[i];
     const subOrderNumber = `${payload.order_number}-${String(i + 1).padStart(2, "0")}`;
 
+    // Matches an existing brand, or creates one for a vendor we have not seen.
+    // An unmatched vendor used to leave brand_id NULL, which dropped the item
+    // out of every brand view — 167 sub-orders were lost that way. A new brand
+    // arrives with no employee assignment, so the sub-order stays flagged
+    // unassigned for admin to action.
     let brandId: string | null = null;
     if (li.vendor) {
-      const { data: brand } = await sb.rpc("match_brand_from_vendor", { p_vendor: li.vendor });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: brand } = await (sb as any).rpc("match_or_create_brand_from_vendor", {
+        p_vendor: li.vendor,
+      });
       brandId = (brand as string | null) ?? null;
     }
 
